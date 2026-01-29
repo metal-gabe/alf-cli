@@ -1,13 +1,6 @@
-# `alf` — `Al`ias & `F`unction `C`LI Searching `T`oo`l`
+# `alf` — `Al`ias & `F`unction CLI Searching Tool
 
-One-Liner: 
+A Rust-built CLI tool to search through & rediscover your custom-made shell aliases, functions, and their descriptions (*i.e. comments*).
 
-- "A CLI tool to search & rediscover your custom shell aliases & functions."
+Binary Tool Name: `alf`
 
-Tool Name: 
-
-- `alf`
-
-# What This Tool Is
-
-A Rust-built CLI tool to search through your custom-made shell aliases, functions, and their descriptions (*i.e. comments*)
