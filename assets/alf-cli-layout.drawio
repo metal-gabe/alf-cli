@@ -1,0 +1,43 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.0 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.3.0">
+  <diagram name="Page-1" id="ZtTQd4rYl71fzDFXkpLi">
+    <mxGraphModel dx="2176" dy="856" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="pL2zzTea3e_b29_zSjFT-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#647687;fontColor=#ffffff;strokeColor=#314354;movable=0;resizable=0;rotatable=0;deletable=0;editable=0;locked=1;connectable=0;" value="" vertex="1">
+          <mxGeometry height="770" width="1020" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="&lt;font style=&quot;color: rgb(102, 102, 102); font-size: 24px;&quot; face=&quot;Tahoma&quot;&gt;search bar&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="960" x="70" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;span style=&quot;color: rgb(102, 102, 102); font-family: Tahoma; font-size: 24px;&quot;&gt;list of aliases/functions&lt;/span&gt;" vertex="1">
+          <mxGeometry height="630" width="470" x="70" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font color=&quot;#666666&quot; face=&quot;Tahoma&quot;&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;comments/description&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="150" width="470" x="560" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font color=&quot;#666666&quot; face=&quot;Tahoma&quot;&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;display of the actual scripts for the alias&amp;nbsp;&lt;/span&gt;&lt;/font&gt;&lt;div&gt;&lt;font color=&quot;#666666&quot; face=&quot;Tahoma&quot;&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;or the full logic contained in the function&lt;/span&gt;&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="470" width="470" x="560" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-12" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;" value="" vertex="1">
+          <mxGeometry height="30" width="50" x="74" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-8" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#2D7600;fillColor=#60a917;align=center;verticalAlign=middle;rounded=0;fontColor=#ffffff;" value="&lt;font face=&quot;Tahoma&quot; style=&quot;color: rgb(255, 255, 255); font-size: 24px;&quot;&gt;&amp;amp;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="70" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-9" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font face=&quot;Tahoma&quot; style=&quot;color: rgb(255, 255, 255); font-size: 24px;&quot;&gt;ƒ&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="120" y="48" as="geometry" />
+        </mxCell>
+        <mxCell id="pL2zzTea3e_b29_zSjFT-10" parent="1" style="sketch=0;outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.globe;" value="" vertex="1">
+          <mxGeometry height="20" width="20" x="190" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="8WdZ26o-6bY4cw6ikQmL-1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;autosize=1;resizable=0;fontFamily=Tahoma;fontSize=24;fontColor=#FFCE9F;" value="$SHELL: zsh" vertex="1">
+          <mxGeometry height="40" width="150" x="890" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="DKESVI9n5Bbu2JtC2ylq-1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;autosize=1;resizable=0;" value="&lt;span style=&quot;font-family: Tahoma;&quot;&gt;&lt;font style=&quot;font-size: 20px; color: rgb(255, 255, 255);&quot;&gt;Press &quot;?&quot; for Help&lt;/font&gt;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="180" x="850" y="773" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
