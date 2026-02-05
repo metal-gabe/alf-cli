@@ -1,0 +1,38 @@
+# Alf Configuration File
+# First-run: This file is created after running `alf init`
+
+[general]
+# Shell files to parse (supports glob patterns)
+# Configure these paths during first-run initialization
+shell_files = [
+    # Examples (will be populated by `alf init`):
+    # "~/.zshrc",
+    # "~/.bashrc",
+    # "~/.config/zsh/**/*.zsh",
+]
+
+[search]
+# Search options for nucleo matcher
+case_matching = "smart"  # Options: "ignore", "smart", "respect"
+normalize = true         # Unicode normalization
+enable_regex = true
+substring_matching = true
+
+[ui]
+# Selected theme
+# Options: default, gruvbox, nord, dracula, solarized, 
+#          catppuccin, tokyonight, shades_of_purple
+theme = "default"
+
+# Keybinding mode (currently only vim is supported)
+keybind_mode = "vim"
+
+[display]
+# Show type badges next to entries (alias/function)
+show_type_badges = true
+
+# Enable syntax highlighting in detail view
+syntax_highlighting = true
+
+# Parse and display comments from shell files
+parse_comments = true
