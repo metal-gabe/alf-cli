@@ -1,0 +1,43 @@
+[package]
+name = "alf"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74.0"
+authors = ["Metal Gabe"]
+license = "MIT OR Apache-2.0"
+description = "A CLI tool to search & rediscover your custom shell aliases & functions"
+repository = "https://github.com/metal-gabe/alf-cli"
+readme = "README.md"
+keywords = ["cli", "tui", "shell", "aliases", "fuzzy-search"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "alf"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "cargo"] }
+ratatui = "0.28"
+crossterm = "0.28"
+nucleo-matcher = "0.3"
+syntect = { version = "5.2", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+directories = "5.0"
+regex = "1.10"
+anyhow = "1.0"
+thiserror = "1.0"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+tempfile = "3.10"
+
+[features]
+default = ["syntax-highlighting"]
+syntax-highlighting = ["syntect"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = 3
