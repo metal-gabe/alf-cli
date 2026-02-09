@@ -1,8 +1,7 @@
 //! Event handling for the TUI.
 
 use anyhow::Result;
-// use crossterm::event::{self, Event as CrosstermEvent, KeyEvent};
-use crossterm::event::{KeyEvent};
+use crossterm::event::{self, Event as CrosstermEvent, KeyEvent};
 use std::time::Duration;
 
 /// Application events
