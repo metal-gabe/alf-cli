@@ -6,10 +6,10 @@
 //! - Main body: left list panel + right detail panels (description + script)
 //! - Footer bar with help text
 
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::models::EntryType;
@@ -17,6 +17,10 @@ use crate::tui::app::{App, EntryFilter, InputMode, Panel};
 
 /// Draw the complete TUI interface
 pub fn draw(frame: &mut Frame, app: &App) {
+   // Apply global background color to entire TUI
+   let background = Block::default().style(Style::default().bg(Color::Rgb(17, 17, 17)));
+   frame.render_widget(background, frame.area());
+
    // Top-level vertical layout
    let outer_chunks = Layout::default()
       .direction(Direction::Vertical)
@@ -33,8 +37,13 @@ pub fn draw(frame: &mut Frame, app: &App) {
    draw_main_body(frame, app, outer_chunks[2]);
    draw_footer(frame, outer_chunks[3]);
 
-   // Place cursor in search bar when in search mode
-   if app.input_mode == InputMode::Search {
+   // Draw help modal overlay if active (must be last to overlay everything)
+   if app.show_help {
+      draw_help_modal(frame);
+   }
+
+   // Place cursor in search bar when in search mode (and help is not showing)
+   if app.input_mode == InputMode::Search && !app.show_help {
       // Cursor position: inside the search block (1 char border + cursor_position)
       frame.set_cursor_position((outer_chunks[1].x + 1 + app.cursor_position as u16, outer_chunks[1].y + 1));
    }
@@ -42,32 +51,22 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
 /// Draw the header bar with filter badges and shell indicator
 fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
-   let alias_style = if matches!(app.filter, EntryFilter::Aliases) {
-      Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold()
-   } else {
-      Style::default()
+   let bg_color: Color = match app.filter {
+      EntryFilter::Aliases => Color::Rgb(253, 90, 30),
+      EntryFilter::All => Color::Rgb(220, 220, 220),
+      EntryFilter::Functions => Color::Rgb(0, 199, 255),
    };
 
-   let function_style = if matches!(app.filter, EntryFilter::Functions) {
-      Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold()
-   } else {
-      Style::default()
-   };
-
-   let all_style = if matches!(app.filter, EntryFilter::All) {
-      Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold()
-   } else {
-      Style::default()
-   };
+   let badge_style = Style::default().fg(Color::Rgb(17, 17, 17)).bg(bg_color).bold();
 
    // Build the left side: filter badges
    let badges = vec![
+      Span::raw("FILTERS: "),
+      Span::styled(" & ", if matches!(app.filter, EntryFilter::Aliases) { badge_style } else { Style::default() }),
       Span::raw(" "),
-      Span::styled(" & ", alias_style),
+      Span::styled(" f ", if matches!(app.filter, EntryFilter::Functions) { badge_style } else { Style::default() }),
       Span::raw(" "),
-      Span::styled(" f ", function_style),
-      Span::raw(" "),
-      Span::styled(" * ", all_style),
+      Span::styled(" * ", if matches!(app.filter, EntryFilter::All) { badge_style } else { Style::default() }),
    ];
 
    // Build the right side: shell indicator
@@ -76,6 +75,7 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
    // Calculate padding to right-align the shell label
    let badges_width: usize = badges.iter().map(|s| s.width()).sum();
    let shell_width = shell_label.len();
+
    let padding = if area.width as usize > badges_width + shell_width {
       area.width as usize - badges_width - shell_width
    } else {
@@ -84,25 +84,22 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    let mut spans = badges;
    spans.push(Span::raw(" ".repeat(padding)));
-   spans.push(Span::styled(shell_label, Style::default().add_modifier(Modifier::DIM)));
+   spans.push(Span::styled(shell_label, Style::default()));
 
    let header = Paragraph::new(Line::from(spans));
    frame.render_widget(header, area);
 }
 
-/// Draw the search bar
 fn draw_search_bar(frame: &mut Frame, app: &App, area: Rect) {
    let (title, style) = match app.input_mode {
       InputMode::Normal => (" Search (press / to search) ", Style::default()),
       InputMode::Search => (" Search ", Style::default().add_modifier(Modifier::BOLD)),
    };
 
-   let block =
-      Block::default().borders(Borders::ALL).title(title).border_style(if app.input_mode == InputMode::Search {
-         Style::default().add_modifier(Modifier::BOLD)
-      } else {
-         Style::default()
-      });
+   let block = Block::default()
+      .borders(Borders::ALL)
+      .title(title)
+      .border_style(if app.input_mode == InputMode::Search { get_border_style(&app.filter) } else { Style::default() });
 
    let search_text = if app.search_query.is_empty() && app.input_mode == InputMode::Normal {
       Paragraph::new(Span::styled("Type / to search...", Style::default().add_modifier(Modifier::DIM)))
@@ -132,9 +129,25 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
 
    let block = Block::default()
       .borders(Borders::ALL)
-      .title(" Name ")
+      .title(Span::styled(
+         "[ Name ]",
+         if is_active { Style::default().fg(Color::Rgb(220, 220, 220)) } else { Style::default() },
+      ))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
-      .border_style(if is_active { Style::default().add_modifier(Modifier::BOLD) } else { Style::default() });
+      .border_style(if is_active { get_border_style(&app.filter) } else { Style::default() });
+
+   // Check if we have no results after a search
+   if app.visible_indices.is_empty() && !app.search_query.is_empty() {
+      let no_results =
+         Paragraph::new(Span::styled("(No results found)", Style::default().add_modifier(Modifier::DIM))).block(block);
+      frame.render_widget(no_results, area);
+      return;
+   }
+
+   // Calculate available width for content (accounting for borders, highlight symbol, and padding)
+   let content_width = area.width.saturating_sub(6); // 2 for borders, 2 for highlight symbol "▸ ", 2 for padding
+   let source_file = ".zshrc";
+   let badge_width = 4; // "[&] " or "[f] "
 
    let items: Vec<ListItem> = app
       .visible_indices
@@ -142,11 +155,38 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       .map(|&idx| {
          let entry = &app.entries[idx];
          let badge = match entry.entry_type {
-            EntryType::Alias => Span::styled("[&] ", Style::default().fg(Color::Rgb(253, 90, 30))),
-            EntryType::Function => Span::styled("[f] ", Style::default().fg(Color::Rgb(0, 199, 255))),
+            EntryType::Alias => Span::styled(
+               "[&] ",
+               if is_active {
+                  Style::default().fg(Color::Rgb(253, 90, 30))
+               } else {
+                  Style::default().fg(Color::Rgb(253, 90, 30)).add_modifier(Modifier::DIM)
+               },
+            ),
+            EntryType::Function => Span::styled(
+               "[f] ",
+               if is_active {
+                  Style::default().fg(Color::Rgb(0, 199, 255))
+               } else {
+                  Style::default().fg(Color::Rgb(0, 199, 255)).add_modifier(Modifier::DIM)
+               },
+            ),
          };
-         let name = Span::raw(&entry.name);
-         ListItem::new(Line::from(vec![badge, name]))
+         let name = Span::styled(
+            &entry.name,
+            if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
+         );
+
+         // Calculate padding between name and source file
+         let text_width = badge_width + entry.name.len() + source_file.len();
+         let padding_width = if content_width as usize > text_width { content_width as usize - text_width } else { 1 };
+
+         let source = Span::styled(
+            source_file,
+            if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
+         );
+
+         ListItem::new(Line::from(vec![badge, name, Span::raw(" ".repeat(padding_width)), source]))
       })
       .collect();
 
@@ -182,9 +222,12 @@ fn draw_description_panel(frame: &mut Frame, app: &App, area: Rect) {
 
    let block = Block::default()
       .borders(Borders::ALL)
-      .title(" Description ")
+      .title(Span::styled(
+         "[ Description ]",
+         if is_active { Style::default().fg(Color::Rgb(220, 220, 220)) } else { Style::default() },
+      ))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
-      .border_style(if is_active { Style::default().add_modifier(Modifier::BOLD) } else { Style::default() });
+      .border_style(if is_active { get_border_style(&app.filter) } else { Style::default() });
 
    let description_text = match app.selected_entry() {
       Some(entry) => match &entry.comments {
@@ -194,10 +237,13 @@ fn draw_description_panel(frame: &mut Frame, app: &App, area: Rect) {
       None => "(No entry selected)".to_string(),
    };
 
-   let paragraph = Paragraph::new(description_text)
-      .block(block)
-      .wrap(Wrap { trim: false })
-      .scroll((app.description_scroll_offset as u16, 0));
+   let paragraph = Paragraph::new(Span::styled(
+      description_text,
+      if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
+   ))
+   .block(block)
+   .wrap(Wrap { trim: false })
+   .scroll((app.description_scroll_offset as u16, 0));
 
    frame.render_widget(paragraph, area);
 }
@@ -208,25 +254,96 @@ fn draw_script_panel(frame: &mut Frame, app: &App, area: Rect) {
 
    let block = Block::default()
       .borders(Borders::ALL)
-      .title(" Script ")
+      .title(Span::styled(
+         "[ Script ]",
+         if is_active { Style::default().fg(Color::Rgb(220, 220, 220)) } else { Style::default() },
+      ))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
-      .border_style(if is_active { Style::default().add_modifier(Modifier::BOLD) } else { Style::default() });
+      .border_style(if is_active {
+         match app.filter {
+            EntryFilter::Aliases => Style::default().fg(Color::Rgb(253, 90, 30)).add_modifier(Modifier::BOLD),
+            EntryFilter::Functions => Style::default().fg(Color::Rgb(0, 199, 255)).add_modifier(Modifier::BOLD),
+            _ => Style::default().white().add_modifier(Modifier::BOLD),
+         }
+      } else {
+         Style::default()
+      });
 
    let script_text = match app.selected_entry() {
       Some(entry) => entry.value.clone(),
       None => "(No entry selected)".to_string(),
    };
 
-   let paragraph =
-      Paragraph::new(script_text).block(block).wrap(Wrap { trim: false }).scroll((app.script_scroll_offset as u16, 0));
+   let paragraph = Paragraph::new(Span::styled(
+      script_text,
+      if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
+   ))
+   .block(block)
+   .wrap(Wrap { trim: false })
+   .scroll((app.script_scroll_offset as u16, 0));
 
    frame.render_widget(paragraph, area);
 }
 
 /// Draw the footer bar with help text
 fn draw_footer(frame: &mut Frame, area: Rect) {
-   let footer = Paragraph::new(Span::styled("Press \"?\" for Help ", Style::default().add_modifier(Modifier::DIM)))
-      .alignment(Alignment::Right);
+   let left_text = "GROUP: all | SORT: asc";
+   let right_text = "Press \"?\" for Help ";
 
+   // Calculate padding between left and right text
+   let total_text_width = left_text.len() + right_text.len();
+   let padding = if area.width as usize > total_text_width { area.width as usize - total_text_width } else { 1 };
+
+   let footer_line = Line::from(vec![Span::raw(left_text), Span::raw(" ".repeat(padding)), Span::raw(right_text)]);
+
+   let footer = Paragraph::new(footer_line);
    frame.render_widget(footer, area);
+}
+
+fn get_border_style(filter: &EntryFilter) -> Style {
+   match filter {
+      EntryFilter::Aliases => Style::default().fg(Color::Rgb(253, 90, 30)).add_modifier(Modifier::BOLD),
+      EntryFilter::Functions => Style::default().fg(Color::Rgb(0, 199, 255)).add_modifier(Modifier::BOLD),
+      _ => Style::default().white().add_modifier(Modifier::BOLD),
+   }
+}
+
+/// Draw the help modal overlay (75% width, 80% height, centered)
+fn draw_help_modal(frame: &mut Frame) {
+   let area = frame.area();
+
+   // Calculate modal dimensions: 75% width, 80% height
+   let modal_width = (area.width as f32 * 0.70) as u16;
+   let modal_height = (area.height as f32 * 0.90) as u16;
+
+   // Center the modal
+   let modal_x = (area.width.saturating_sub(modal_width)) / 2;
+   let modal_y = (area.height.saturating_sub(modal_height)) / 2;
+
+   let modal_area = Rect { x: modal_x, y: modal_y, width: modal_width, height: modal_height };
+
+   // Clear the entire screen area first (this removes all underlying content)
+   frame.render_widget(Clear, area);
+
+   // Draw full-screen dark background
+   let full_bg = Block::default().style(Style::default().bg(Color::Rgb(17, 17, 17)));
+   frame.render_widget(full_bg, area);
+
+   // Clear the modal area to ensure clean rendering
+   frame.render_widget(Clear, modal_area);
+
+   // Draw modal block with border and background
+   let modal_block = Block::default()
+      .borders(Borders::ALL)
+      .border_type(BorderType::Double)
+      .border_style(Style::default().fg(Color::Rgb(220, 220, 220)).bold())
+      .title(Span::styled(" Help ", Style::default().fg(Color::Rgb(220, 220, 220)).bold()))
+      .style(Style::default().bg(Color::Rgb(17, 17, 17)));
+
+   // Content with padding consistent with the app
+   let help_text = "Welcome to Getting Help!";
+   let content =
+      Paragraph::new(help_text).block(modal_block).style(Style::default().fg(Color::White).bg(Color::Rgb(17, 17, 17)));
+
+   frame.render_widget(content, modal_area);
 }

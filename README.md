@@ -35,7 +35,7 @@ cargo install alf
 Configuration file location (created after `alf init`):
 
 - **Linux**: `~/.config/alf/config.toml`
-- **macOS**: `~/Library/Application Support/alf/config.toml`
+- **macOS**: `~/.config/alf/config.toml`
 - **Windows**: `%APPDATA%\alf\config.toml`
 
 ### Available Commands
@@ -62,8 +62,8 @@ Configuration file location (created after `alf init`):
 - `j/k` - Move down/up
 - `gg/G` - Jump to top/bottom
 - `Ctrl-u/d` - Scroll up/down
-- `/` - Focus search
-- `Esc` - Clear search
+- `/` - Focus search & activate search mode
+- `Esc` - Exit search mode
 - `q` - Quit
 
 ## Development

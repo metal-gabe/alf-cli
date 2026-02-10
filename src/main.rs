@@ -1,5 +1,3 @@
-//! Main entry point for the alf CLI.
-
 use anyhow::Result;
 use clap::Parser;
 
@@ -10,7 +8,6 @@ fn main() -> Result<()> {
 
    match cli.command {
       Some(Commands::Search) | None => {
-         // Default action: launch the TUI search interface
          alf::tui::run()
       }
       Some(Commands::Init) => {

@@ -61,6 +61,8 @@ pub struct App {
    pub pending_key: Option<char>,
    /// Flag to signal application should quit
    pub should_quit: bool,
+   /// Flag to show/hide the help modal
+   pub show_help: bool,
 }
 
 impl App {
@@ -81,6 +83,7 @@ impl App {
          script_scroll_offset: 0,
          pending_key: None,
          should_quit: false,
+         show_help: false,
       }
    }
 
@@ -202,7 +205,7 @@ impl App {
       }
    }
 
-   /// Cycle to the next panel
+   /// Cycle to the next panel (forward)
    pub fn cycle_panel(&mut self) {
       self.active_panel = match self.active_panel {
          Panel::List => Panel::Description,
@@ -211,12 +214,31 @@ impl App {
       };
    }
 
-   /// Cycle the entry type filter
+   /// Cycle to the previous panel (backward)
+   pub fn cycle_panel_backward(&mut self) {
+      self.active_panel = match self.active_panel {
+         Panel::List => Panel::Script,
+         Panel::Script => Panel::Description,
+         Panel::Description => Panel::List,
+      };
+   }
+
+   /// Cycle the entry type filter (forward)
    pub fn cycle_filter(&mut self) {
       self.filter = match self.filter {
          EntryFilter::All => EntryFilter::Aliases,
          EntryFilter::Aliases => EntryFilter::Functions,
          EntryFilter::Functions => EntryFilter::All,
+      };
+      self.update_visible_entries();
+   }
+
+   /// Cycle the entry type filter (backward)
+   pub fn cycle_filter_backward(&mut self) {
+      self.filter = match self.filter {
+         EntryFilter::All => EntryFilter::Functions,
+         EntryFilter::Functions => EntryFilter::Aliases,
+         EntryFilter::Aliases => EntryFilter::All,
       };
       self.update_visible_entries();
    }
@@ -247,9 +269,20 @@ impl App {
       self.update_visible_entries();
    }
 
+   /// Clear the search query without changing mode
+   pub fn clear_search(&mut self) {
+      self.search_query.clear();
+      self.cursor_position = 0;
+      self.update_visible_entries();
+   }
+
    /// Insert a character at the cursor position in the search query
+   /// Uppercase letters are automatically converted to lowercase for case-insensitive search
    pub fn search_insert_char(&mut self, c: char) {
-      self.search_query.insert(self.cursor_position, c);
+      // Convert uppercase letters to lowercase, leave special chars/symbols unchanged
+      let char_to_insert = if c.is_ascii_uppercase() { c.to_ascii_lowercase() } else { c };
+
+      self.search_query.insert(self.cursor_position, char_to_insert);
       self.cursor_position += 1;
       self.update_visible_entries();
    }
@@ -275,6 +308,11 @@ impl App {
       if self.cursor_position < self.search_query.len() {
          self.cursor_position += 1;
       }
+   }
+
+   /// Toggle the help modal
+   pub fn toggle_help(&mut self) {
+      self.show_help = !self.show_help;
    }
 
    /// Update application state (called each tick)

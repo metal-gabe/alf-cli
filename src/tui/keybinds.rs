@@ -11,9 +11,43 @@ use crate::tui::app::{App, EntryFilter, InputMode};
 /// In Normal mode, vim-style navigation keys are active.
 /// In Search mode, printable characters are inserted into the search query.
 pub fn handle_key_event(app: &mut App, key: KeyEvent) {
+   // Check for truly global keybinds first (Ctrl-c, Ctrl-d) - these work ALWAYS
+   match key.code {
+      KeyCode::Char('d') | KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.should_quit = true;
+         return;
+      }
+      _ => {}
+   }
+
+   // If help modal is open, handle help-specific keybinds
+   if app.show_help {
+      handle_help_mode(app, key);
+      return;
+   }
+
+   // Handle other global keybinds (work in any mode except help)
+   if handle_global_keybinds(app, &key) {
+      return;
+   }
+
+   // Then handle mode-specific keybinds
    match app.input_mode {
       InputMode::Normal => handle_normal_mode(app, key),
       InputMode::Search => handle_search_mode(app, key),
+   }
+}
+
+/// Handle global keybinds that work in any mode (except help modal).
+/// Returns true if a global keybind was handled.
+fn handle_global_keybinds(app: &mut App, key: &KeyEvent) -> bool {
+   match key.code {
+      // Clear search (Ctrl-u)
+      KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.clear_search();
+         true
+      }
+      _ => false,
    }
 }
 
@@ -27,9 +61,20 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
 
    match key.code {
       // Quit
-      KeyCode::Char('q') => app.should_quit = true,
+      KeyCode::Char('q') | KeyCode::Esc => app.should_quit = true,
 
-      // Navigation
+      // Toggle help modal
+      KeyCode::Char('?') => app.toggle_help(),
+
+      // Scrolling with modifiers (check these first before plain keys)
+      KeyCode::Char('j') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.scroll_down(10);
+      }
+      KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.scroll_up(10);
+      }
+
+      // Navigation (single item - plain keys)
       KeyCode::Char('j') | KeyCode::Down => app.move_down(),
       KeyCode::Char('k') | KeyCode::Up => app.move_up(),
       KeyCode::Char('G') => app.move_bottom(),
@@ -38,29 +83,18 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
          app.pending_key = Some('g');
       }
 
-      // Scrolling (half page)
-      KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-         app.scroll_down(10);
-      }
-      KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-         app.scroll_up(10);
-      }
-
-      // Full page scrolling
-      KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-         app.scroll_down(20);
-      }
-      KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-         app.scroll_up(20);
-      }
-
       // Enter search mode
       KeyCode::Char('/') => app.enter_search_mode(),
 
       // Panel cycling
-      KeyCode::Tab => app.cycle_panel(),
+      KeyCode::Char('n') => app.cycle_panel(),
+      KeyCode::Char('p') => app.cycle_panel_backward(),
 
-      // Filter toggles
+      // Filter cycling
+      KeyCode::Char('l') => app.cycle_filter(),
+      KeyCode::Char('h') => app.cycle_filter_backward(),
+
+      // Filter direct selection
       KeyCode::Char('1') => app.set_filter(EntryFilter::Aliases),
       KeyCode::Char('2') => app.set_filter(EntryFilter::Functions),
       KeyCode::Char('3') => app.set_filter(EntryFilter::All),
@@ -83,7 +117,15 @@ fn handle_search_mode(app: &mut App, key: KeyEvent) {
       // Exit search mode, keep query and filtered results
       KeyCode::Esc => app.exit_search_keep_query(),
 
-      // Text editing
+      // Panel cycling (Shift+n/p sends uppercase N/P)
+      KeyCode::Char('N') => app.cycle_panel(),
+      KeyCode::Char('P') => app.cycle_panel_backward(),
+
+      // Filter cycling (Shift+h/l sends uppercase H/L)
+      KeyCode::Char('L') => app.cycle_filter(),
+      KeyCode::Char('H') => app.cycle_filter_backward(),
+
+      // Text editing (captures all other characters including lowercase n,p,h,l)
       KeyCode::Char(c) => app.search_insert_char(c),
       KeyCode::Backspace => app.search_delete_char(),
 
@@ -94,6 +136,17 @@ fn handle_search_mode(app: &mut App, key: KeyEvent) {
       // Enter is reserved for future use
       KeyCode::Enter => {}
 
+      _ => {}
+   }
+}
+
+/// Handle key events in Help modal mode
+fn handle_help_mode(app: &mut App, key: KeyEvent) {
+   match key.code {
+      // Close help modal with '?', 'q', or Esc
+      KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => app.toggle_help(),
+
+      // Ignore all other keys (prevent propagation to underlying panels)
       _ => {}
    }
 }
