@@ -7,7 +7,7 @@
 //! - Footer bar with help text
 
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph, Wrap};
 use ratatui::Frame;
@@ -42,22 +42,22 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
 /// Draw the header bar with filter badges and shell indicator
 fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
-   let alias_style = if matches!(app.filter, EntryFilter::All | EntryFilter::Aliases) {
-      Style::default().add_modifier(Modifier::BOLD | Modifier::REVERSED)
+   let alias_style = if matches!(app.filter, EntryFilter::Aliases) {
+      Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold()
    } else {
-      Style::default().add_modifier(Modifier::DIM)
+      Style::default()
    };
 
-   let function_style = if matches!(app.filter, EntryFilter::All | EntryFilter::Functions) {
-      Style::default().add_modifier(Modifier::BOLD | Modifier::REVERSED)
+   let function_style = if matches!(app.filter, EntryFilter::Functions) {
+      Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold()
    } else {
-      Style::default().add_modifier(Modifier::DIM)
+      Style::default()
    };
 
    let all_style = if matches!(app.filter, EntryFilter::All) {
-      Style::default().add_modifier(Modifier::BOLD | Modifier::REVERSED)
+      Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold()
    } else {
-      Style::default().add_modifier(Modifier::DIM)
+      Style::default()
    };
 
    // Build the left side: filter badges
@@ -132,7 +132,7 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
 
    let block = Block::default()
       .borders(Borders::ALL)
-      .title(" Entries ")
+      .title(" Name ")
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
       .border_style(if is_active { Style::default().add_modifier(Modifier::BOLD) } else { Style::default() });
 
@@ -142,8 +142,8 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       .map(|&idx| {
          let entry = &app.entries[idx];
          let badge = match entry.entry_type {
-            EntryType::Alias => Span::styled("[&] ", Style::default().add_modifier(Modifier::BOLD)),
-            EntryType::Function => Span::styled("[f] ", Style::default().add_modifier(Modifier::BOLD)),
+            EntryType::Alias => Span::styled("[&] ", Style::default().fg(Color::Rgb(253, 90, 30))),
+            EntryType::Function => Span::styled("[f] ", Style::default().fg(Color::Rgb(0, 199, 255))),
          };
          let name = Span::raw(&entry.name);
          ListItem::new(Line::from(vec![badge, name]))
@@ -152,10 +152,11 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
 
    let list = List::new(items)
       .block(block)
-      .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
+      .highlight_style(Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold())
       .highlight_symbol("▸ ");
 
    let mut list_state = ListState::default();
+
    if !app.visible_indices.is_empty() {
       list_state.select(Some(app.selected_index));
    }

@@ -80,11 +80,8 @@ fn handle_pending_key(app: &mut App, pending: char, key: KeyEvent) {
 /// Handle key events in Search (text input) mode
 fn handle_search_mode(app: &mut App, key: KeyEvent) {
    match key.code {
-      // Exit search, keep query
-      KeyCode::Enter => app.exit_search_keep_query(),
-
-      // Exit search, clear query
-      KeyCode::Esc => app.exit_search_clear_query(),
+      // Exit search mode, keep query and filtered results
+      KeyCode::Esc => app.exit_search_keep_query(),
 
       // Text editing
       KeyCode::Char(c) => app.search_insert_char(c),
@@ -93,6 +90,9 @@ fn handle_search_mode(app: &mut App, key: KeyEvent) {
       // Cursor movement within search
       KeyCode::Left => app.search_cursor_left(),
       KeyCode::Right => app.search_cursor_right(),
+
+      // Enter is reserved for future use
+      KeyCode::Enter => {}
 
       _ => {}
    }
