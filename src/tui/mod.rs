@@ -4,6 +4,7 @@ pub mod app;
 pub mod events;
 pub mod keybinds;
 pub mod mock;
+pub mod syntax;
 pub mod themes;
 pub mod ui;
 

@@ -8,12 +8,13 @@
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
-use ratatui::text::{Line, Span};
+use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::models::EntryType;
 use crate::tui::app::{App, EntryFilter, InputMode, Panel};
+use crate::tui::syntax;
 
 /// Draw the complete TUI interface
 pub fn draw(frame: &mut Frame, app: &App) {
@@ -51,13 +52,13 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
 /// Draw the header bar with filter badges and shell indicator
 fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
-   let bg_color: Color = match app.filter {
+   let filter_color: Color = match app.filter {
       EntryFilter::Aliases => Color::Rgb(253, 90, 30),
       EntryFilter::All => Color::Rgb(220, 220, 220),
       EntryFilter::Functions => Color::Rgb(0, 199, 255),
    };
 
-   let badge_style = Style::default().fg(Color::Rgb(17, 17, 17)).bg(bg_color).bold();
+   let badge_style = Style::default().fg(Color::Rgb(17, 17, 17)).bg(filter_color).bold();
 
    // Build the left side: filter badges
    let badges = vec![
@@ -70,11 +71,13 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
    ];
 
    // Build the right side: shell indicator
-   let shell_label = " $SHELL: zsh ";
+   let shell_label_prefix = " $SHELL: ";
+   let shell_name = "zsh";
+   let shell_label_suffix = " ";
 
    // Calculate padding to right-align the shell label
    let badges_width: usize = badges.iter().map(|s| s.width()).sum();
-   let shell_width = shell_label.len();
+   let shell_width = shell_label_prefix.len() + shell_name.len() + shell_label_suffix.len();
 
    let padding = if area.width as usize > badges_width + shell_width {
       area.width as usize - badges_width - shell_width
@@ -84,7 +87,9 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    let mut spans = badges;
    spans.push(Span::raw(" ".repeat(padding)));
-   spans.push(Span::styled(shell_label, Style::default()));
+   spans.push(Span::raw(shell_label_prefix));
+   spans.push(Span::styled(shell_name, Style::default().fg(filter_color)));
+   spans.push(Span::raw(shell_label_suffix));
 
    let header = Paragraph::new(Line::from(spans));
    frame.render_widget(header, area);
@@ -102,7 +107,7 @@ fn draw_search_bar(frame: &mut Frame, app: &App, area: Rect) {
       .border_style(if app.input_mode == InputMode::Search { get_border_style(&app.filter) } else { Style::default() });
 
    let search_text = if app.search_query.is_empty() && app.input_mode == InputMode::Normal {
-      Paragraph::new(Span::styled("Type / to search...", Style::default().add_modifier(Modifier::DIM)))
+      Paragraph::new(Span::styled(" Enter your search term...", Style::default().add_modifier(Modifier::DIM)))
    } else {
       Paragraph::new(Span::raw(&app.search_query))
    };
@@ -237,7 +242,7 @@ fn draw_description_panel(frame: &mut Frame, app: &App, area: Rect) {
       None => "(No entry selected)".to_string(),
    };
 
-   let paragraph = Paragraph::new(Span::styled(
+   let paragraph = Paragraph::new(Text::styled(
       description_text,
       if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
    ))
@@ -274,13 +279,13 @@ fn draw_script_panel(frame: &mut Frame, app: &App, area: Rect) {
       None => "(No entry selected)".to_string(),
    };
 
-   let paragraph = Paragraph::new(Span::styled(
-      script_text,
-      if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
-   ))
-   .block(block)
-   .wrap(Wrap { trim: false })
-   .scroll((app.script_scroll_offset as u16, 0));
+   // Apply syntax highlighting with optional dimming
+   let highlighted_text = syntax::highlight_shell_script_with_style(&script_text, !is_active);
+
+   let paragraph = Paragraph::new(highlighted_text)
+      .block(block)
+      .wrap(Wrap { trim: false })
+      .scroll((app.script_scroll_offset as u16, 0));
 
    frame.render_widget(paragraph, area);
 }

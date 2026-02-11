@@ -11,10 +11,15 @@ use crate::tui::app::{App, EntryFilter, InputMode};
 /// In Normal mode, vim-style navigation keys are active.
 /// In Search mode, printable characters are inserted into the search query.
 pub fn handle_key_event(app: &mut App, key: KeyEvent) {
-   // Check for truly global keybinds first (Ctrl-c, Ctrl-d) - these work ALWAYS
+   // Check for truly global keybinds first - these work ALWAYS or are reserved
    match key.code {
+      // Quit app
       KeyCode::Char('d') | KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.should_quit = true;
+         return;
+      }
+      // Reserved for future use - ignore these globally
+      KeyCode::Char('n') | KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          return;
       }
       _ => {}
@@ -74,9 +79,9 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
          app.scroll_up(10);
       }
 
-      // Navigation (single item - plain keys)
-      KeyCode::Char('j') | KeyCode::Down => app.move_down(),
-      KeyCode::Char('k') | KeyCode::Up => app.move_up(),
+      // Navigation (single line - plain keys, respects active panel)
+      KeyCode::Char('j') | KeyCode::Down => app.scroll_down(1),
+      KeyCode::Char('k') | KeyCode::Up => app.scroll_up(1),
       KeyCode::Char('G') => app.move_bottom(),
       KeyCode::Char('g') => {
          // Start of 'gg' sequence
