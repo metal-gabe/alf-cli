@@ -306,7 +306,17 @@ fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
    };
 
    let left_text = format!("GROUP: {} | SORT: {}", group_text, sort_text);
-   let right_text = "Press \"?\" for Help ";
+
+   // Show pending key indicator or default help text
+   let right_text = if let Some(pending) = app.pending_key {
+      match pending {
+         'g' => "Waiting: g (go to top) ",
+         'o' => "Waiting: g (group), G (back), s (sort) ",
+         _ => "Press \"?\" for Help ", // Fallback for unknown pending keys
+      }
+   } else {
+      "Press \"?\" for Help "
+   };
 
    // Calculate padding between left and right text
    let total_text_width = left_text.len() + right_text.len();

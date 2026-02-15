@@ -25,6 +25,11 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) {
       _ => {}
    }
 
+   // Check if pending key has expired - clear it if so
+   if app.is_pending_key_expired() {
+      app.clear_pending_key();
+   }
+
    // If help modal is open, handle help-specific keybinds
    if app.show_help {
       handle_help_mode(app, key);
@@ -59,17 +64,23 @@ fn handle_global_keybinds(app: &mut App, key: &KeyEvent) -> bool {
 /// Handle key events in Normal (vim navigation) mode
 fn handle_normal_mode(app: &mut App, key: KeyEvent) {
    // Check for pending multi-key sequences first
-   if let Some(pending) = app.pending_key.take() {
+   if let Some(pending) = app.pending_key {
       handle_pending_key(app, pending, key);
       return;
    }
 
    match key.code {
       // Quit
-      KeyCode::Char('q') | KeyCode::Esc => app.should_quit = true,
+      KeyCode::Char('q') => app.should_quit = true,
+
+      // Clear pending key state
+      KeyCode::Esc => app.clear_pending_key(),
 
       // Toggle help modal
-      KeyCode::Char('?') => app.toggle_help(),
+      KeyCode::Char('?') => {
+         app.toggle_help();
+         app.clear_pending_key();
+      }
 
       // Scrolling with modifiers (check these first before plain keys)
       KeyCode::Char('j') if key.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -85,7 +96,12 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
       KeyCode::Char('G') => app.move_bottom(),
       KeyCode::Char('g') => {
          // Start of 'gg' sequence
-         app.pending_key = Some('g');
+         app.set_pending_key('g');
+      }
+
+      // Start of 'og', 'oG', 'os' sequences
+      KeyCode::Char('o') => {
+         app.set_pending_key('o');
       }
 
       // Enter search mode
@@ -110,10 +126,48 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
 
 /// Handle the second key in a multi-key sequence
 fn handle_pending_key(app: &mut App, pending: char, key: KeyEvent) {
-   if let ('g', KeyCode::Char('g')) = (pending, key.code) {
-      app.move_top();
-   }
-   // Any other key after 'g' is silently ignored
+   // Determine if the key sequence is valid
+   let _handled = match (pending, key.code) {
+      // Clear pending on Esc (always)
+      (_, KeyCode::Esc) => {
+         app.clear_pending_key();
+         true
+      }
+
+      // 'gg' sequence - go to top
+      ('g', KeyCode::Char('g')) => {
+         app.move_top();
+         app.clear_pending_key();
+         true
+      }
+
+      // 'og' sequence - cycle group mode forward
+      ('o', KeyCode::Char('g')) => {
+         app.cycle_group_mode();
+         app.clear_pending_key();
+         true
+      }
+
+      // 'oG' sequence - cycle group mode backward
+      ('o', KeyCode::Char('G')) => {
+         app.cycle_group_mode_backward();
+         app.clear_pending_key();
+         true
+      }
+
+      // 'os' sequence - toggle sort order
+      ('o', KeyCode::Char('s')) => {
+         app.toggle_sort_order();
+         app.clear_pending_key();
+         true
+      }
+
+      // Any other key - invalid sequence, clear pending
+      _ => {
+         app.clear_pending_key();
+         false
+      }
+   };
 }
 
 /// Handle key events in Search (text input) mode

@@ -1,6 +1,7 @@
 //! Application state management for the TUI.
 
 use crate::models::{AliasEntry, EntryType};
+use std::time::Instant;
 
 /// Input mode for the application
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,6 +80,8 @@ pub struct App {
    pub script_scroll_offset: usize,
    /// Pending key for multi-key sequences (e.g. 'g' for 'gg')
    pub pending_key: Option<char>,
+   /// Timestamp when pending key was set (for timeout handling)
+   pub pending_key_time: Option<Instant>,
    /// Flag to signal application should quit
    pub should_quit: bool,
    /// Flag to show/hide the help modal
@@ -106,6 +109,7 @@ impl App {
          description_scroll_offset: 0,
          script_scroll_offset: 0,
          pending_key: None,
+         pending_key_time: None,
          should_quit: false,
          show_help: false,
          group_mode: GroupMode::Aliases,   // Default: aliases first
@@ -430,8 +434,32 @@ impl App {
       self.update_visible_entries();
    }
 
+   /// Check if pending key has timed out (2 seconds)
+   pub fn is_pending_key_expired(&self) -> bool {
+      if let (Some(_), Some(time)) = (self.pending_key, self.pending_key_time) {
+         time.elapsed() > std::time::Duration::from_secs(2)
+      } else {
+         false
+      }
+   }
+
+   /// Clear pending key state
+   pub fn clear_pending_key(&mut self) {
+      self.pending_key = None;
+      self.pending_key_time = None;
+   }
+
+   /// Set pending key with timestamp
+   pub fn set_pending_key(&mut self, key: char) {
+      self.pending_key = Some(key);
+      self.pending_key_time = Some(Instant::now());
+   }
+
    /// Update application state (called each tick)
    pub fn tick(&mut self) {
-      // Reserved for future periodic updates
+      // Check and clear expired pending keys
+      if self.is_pending_key_expired() {
+         self.clear_pending_key();
+      }
    }
 }

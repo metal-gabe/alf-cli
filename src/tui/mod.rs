@@ -57,6 +57,11 @@ fn run_loop(
    event_handler: &EventHandler,
 ) -> Result<()> {
    while !app.should_quit {
+      // Check and clear expired pending keys before drawing
+      if app.is_pending_key_expired() {
+         app.clear_pending_key();
+      }
+
       // Draw the UI
       terminal.draw(|frame| ui::draw(frame, app))?;
 
