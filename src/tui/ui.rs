@@ -149,12 +149,13 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       return;
    }
 
-   // Split area into header (1 line) and list (remaining)
+   // Split area into header (1 line), divider (1 line), and list (remaining)
    let inner_area = block.inner(area);
    let chunks = Layout::default()
       .direction(Direction::Vertical)
       .constraints([
          Constraint::Length(1), // Header row
+         Constraint::Length(1), // Divider line
          Constraint::Min(0),    // List entries
       ])
       .split(inner_area);
@@ -191,6 +192,15 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
    });
 
    frame.render_widget(header, chunks[0]);
+
+   // Draw divider line (horizontal line of dashes)
+   let divider_line = Line::from(Span::raw("─".repeat(content_width as usize + 2)));
+   let divider = Paragraph::new(divider_line).style(if is_active {
+      Style::default()
+   } else {
+      Style::default().add_modifier(Modifier::DIM)
+   });
+   frame.render_widget(divider, chunks[1]);
 
    let items: Vec<ListItem> = app
       .visible_indices
@@ -243,7 +253,7 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       list_state.select(Some(app.selected_index));
    }
 
-   frame.render_stateful_widget(list, chunks[1], &mut list_state);
+   frame.render_stateful_widget(list, chunks[2], &mut list_state);
 }
 
 /// Draw the right detail panels: description (top) + script (bottom)
