@@ -135,7 +135,7 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
    let block = Block::default()
       .borders(Borders::ALL)
       .title(Span::styled(
-         "[ Name ]",
+         "[ Entries ]",
          if is_active { Style::default().fg(Color::Rgb(220, 220, 220)) } else { Style::default() },
       ))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
