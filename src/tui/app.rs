@@ -33,6 +33,26 @@ pub enum EntryFilter {
    Functions,
 }
 
+/// Grouping mode for entries
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GroupMode {
+   /// All entries mixed together
+   None,
+   /// Aliases first, then functions
+   Aliases,
+   /// Functions first, then aliases
+   Functions,
+}
+
+/// Sorting order for entries
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortOrder {
+   /// A-Z by name
+   Ascending,
+   /// Z-A by name
+   Descending,
+}
+
 /// Main application state
 pub struct App {
    /// All loaded alias/function entries
@@ -63,6 +83,10 @@ pub struct App {
    pub should_quit: bool,
    /// Flag to show/hide the help modal
    pub show_help: bool,
+   /// Current grouping mode
+   pub group_mode: GroupMode,
+   /// Current sort order
+   pub sort_order: SortOrder,
 }
 
 impl App {
@@ -84,6 +108,8 @@ impl App {
          pending_key: None,
          should_quit: false,
          show_help: false,
+         group_mode: GroupMode::Aliases,   // Default: aliases first
+         sort_order: SortOrder::Ascending, // Default: A-Z
       }
    }
 
@@ -122,6 +148,9 @@ impl App {
          .map(|(idx, _)| idx)
          .collect();
 
+      // Apply grouping and sorting
+      self.apply_grouping_and_sorting();
+
       // Clamp selected index to valid range
       if self.visible_indices.is_empty() {
          self.selected_index = 0;
@@ -132,6 +161,63 @@ impl App {
       // Reset detail panel scroll when results change
       self.description_scroll_offset = 0;
       self.script_scroll_offset = 0;
+   }
+
+   /// Apply grouping and sorting to visible_indices
+   fn apply_grouping_and_sorting(&mut self) {
+      match self.group_mode {
+         GroupMode::None => {
+            // All entries mixed together, sort by name
+            self.visible_indices.sort_by(|&a, &b| {
+               let name_a = &self.entries[a].name;
+               let name_b = &self.entries[b].name;
+               match self.sort_order {
+                  SortOrder::Ascending => name_a.cmp(name_b),
+                  SortOrder::Descending => name_b.cmp(name_a),
+               }
+            });
+         }
+         GroupMode::Aliases => {
+            // Aliases first, then functions, each group sorted by name
+            self.visible_indices.sort_by(|&a, &b| {
+               let entry_a = &self.entries[a];
+               let entry_b = &self.entries[b];
+
+               // First, group by type (aliases before functions)
+               match (entry_a.entry_type, entry_b.entry_type) {
+                  (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Less,
+                  (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Greater,
+                  _ => {
+                     // Within same group, sort by name
+                     match self.sort_order {
+                        SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
+                        SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
+                     }
+                  }
+               }
+            });
+         }
+         GroupMode::Functions => {
+            // Functions first, then aliases, each group sorted by name
+            self.visible_indices.sort_by(|&a, &b| {
+               let entry_a = &self.entries[a];
+               let entry_b = &self.entries[b];
+
+               // First, group by type (functions before aliases)
+               match (entry_a.entry_type, entry_b.entry_type) {
+                  (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Less,
+                  (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Greater,
+                  _ => {
+                     // Within same group, sort by name
+                     match self.sort_order {
+                        SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
+                        SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
+                     }
+                  }
+               }
+            });
+         }
+      }
    }
 
    /// Move selection up by one
@@ -313,6 +399,35 @@ impl App {
    /// Toggle the help modal
    pub fn toggle_help(&mut self) {
       self.show_help = !self.show_help;
+   }
+
+   /// Cycle to the next group mode
+   pub fn cycle_group_mode(&mut self) {
+      self.group_mode = match self.group_mode {
+         GroupMode::None => GroupMode::Aliases,
+         GroupMode::Aliases => GroupMode::Functions,
+         GroupMode::Functions => GroupMode::None,
+      };
+      self.update_visible_entries();
+   }
+
+   /// Cycle to the previous group mode
+   pub fn cycle_group_mode_backward(&mut self) {
+      self.group_mode = match self.group_mode {
+         GroupMode::None => GroupMode::Functions,
+         GroupMode::Functions => GroupMode::Aliases,
+         GroupMode::Aliases => GroupMode::None,
+      };
+      self.update_visible_entries();
+   }
+
+   /// Toggle sort order
+   pub fn toggle_sort_order(&mut self) {
+      self.sort_order = match self.sort_order {
+         SortOrder::Ascending => SortOrder::Descending,
+         SortOrder::Descending => SortOrder::Ascending,
+      };
+      self.update_visible_entries();
    }
 
    /// Update application state (called each tick)

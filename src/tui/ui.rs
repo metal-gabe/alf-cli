@@ -13,7 +13,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListSt
 use ratatui::Frame;
 
 use crate::models::EntryType;
-use crate::tui::app::{App, EntryFilter, InputMode, Panel};
+use crate::tui::app::{App, EntryFilter, GroupMode, InputMode, Panel, SortOrder};
 use crate::tui::syntax;
 
 /// Draw the complete TUI interface
@@ -36,7 +36,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
    draw_header(frame, app, outer_chunks[0]);
    draw_search_bar(frame, app, outer_chunks[1]);
    draw_main_body(frame, app, outer_chunks[2]);
-   draw_footer(frame, outer_chunks[3]);
+   draw_footer(frame, app, outer_chunks[3]);
 
    // Draw help modal overlay if active (must be last to overlay everything)
    if app.show_help {
@@ -291,8 +291,21 @@ fn draw_script_panel(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// Draw the footer bar with help text
-fn draw_footer(frame: &mut Frame, area: Rect) {
-   let left_text = "GROUP: all | SORT: asc";
+fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
+   // Format group mode
+   let group_text = match app.group_mode {
+      GroupMode::None => "none",
+      GroupMode::Aliases => "aliases",
+      GroupMode::Functions => "functions",
+   };
+
+   // Format sort order
+   let sort_text = match app.sort_order {
+      SortOrder::Ascending => "asc",
+      SortOrder::Descending => "desc",
+   };
+
+   let left_text = format!("GROUP: {} | SORT: {}", group_text, sort_text);
    let right_text = "Press \"?\" for Help ";
 
    // Calculate padding between left and right text
