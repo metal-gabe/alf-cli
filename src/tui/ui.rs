@@ -424,13 +424,70 @@ fn draw_help_modal(frame: &mut Frame) {
       .borders(Borders::ALL)
       .border_type(BorderType::Double)
       .border_style(Style::default().fg(Color::Rgb(220, 220, 220)).bold())
-      .title(Span::styled(" Help ", Style::default().fg(Color::Rgb(220, 220, 220)).bold()))
-      .style(Style::default().bg(Color::Rgb(17, 17, 17)));
+      .title(Span::styled(" Help ('q' or 'esc' to exit) ", Style::default().fg(Color::Rgb(220, 220, 220)).bold()))
+      .style(Style::default().bg(Color::Rgb(17, 17, 17)))
+      .padding(ratatui::widgets::Padding::horizontal(2));
 
    // Content with padding consistent with the app
-   let help_text = "Welcome to Getting Help!";
-   let content =
-      Paragraph::new(help_text).block(modal_block).style(Style::default().fg(Color::White).bg(Color::Rgb(17, 17, 17)));
+   let help_text = vec![
+      Line::from(vec![Span::styled(
+         "ALF - Alias & Function Search Tool",
+         Style::default().bold().fg(Color::Rgb(0, 199, 255)),
+      )]),
+      Line::from(""),
+      Line::from(vec![Span::styled("NAVIGATION", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
+      Line::from("  j / ↓          Scroll down 1 line in active panel"),
+      Line::from("  k / ↑          Scroll up 1 line in active panel"),
+      Line::from("  gg             Jump to top of list"),
+      Line::from("  G              Jump to bottom of list"),
+      Line::from("  Ctrl-f         Scroll down full page (20 lines)"),
+      Line::from("  Ctrl-b         Scroll up full page (20 lines)"),
+      Line::from("  Ctrl-j         Scroll down half page (10 lines)"),
+      Line::from("  Ctrl-k         Scroll up half page (10 lines)"),
+      Line::from(""),
+      Line::from(vec![Span::styled("PANELS & FILTERS", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
+      Line::from("  n              Cycle panel focus forward (List → Description → Script)"),
+      Line::from("  p              Cycle panel focus backward"),
+      Line::from("  h              Cycle filter backward (All ← Functions ← Aliases)"),
+      Line::from("  l              Cycle filter forward (All → Aliases → Functions)"),
+      Line::from("  1              Select 'Aliases' filter"),
+      Line::from("  2              Select 'Functions' filter"),
+      Line::from("  3              Select 'All' filter"),
+      Line::from(""),
+      Line::from(vec![Span::styled("GROUPING & SORTING", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
+      Line::from("  og / Ctrl-g    Cycle group mode forward (None → Aliases → Functions)"),
+      Line::from("  oG             Cycle group mode backward"),
+      Line::from("  os / Ctrl-s    Toggle sort order (Ascending ↔ Descending)"),
+      Line::from(""),
+      Line::from(vec![Span::styled("SEARCH", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
+      Line::from("  /              Enter search mode"),
+      Line::from("  Esc            Exit search mode (keep query)"),
+      Line::from("  Ctrl-u         Clear search query (any mode)"),
+      Line::from("  Shift-N        Cycle panels while in search mode"),
+      Line::from("  Shift-P        Cycle panels backward while in search mode"),
+      Line::from("  Shift-H        Cycle filters backward while in search mode"),
+      Line::from("  Shift-L        Cycle filters forward while in search mode"),
+      Line::from(""),
+      Line::from(vec![Span::styled("GENERAL", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
+      Line::from("  ?              Toggle this help screen"),
+      Line::from("  q              Quit application"),
+      Line::from("  Ctrl-c/Ctrl-d  Quit application (works anywhere)"),
+      Line::from("  Esc            Clear pending key state (when in normal mode)"),
+      Line::from(""),
+      Line::from(vec![Span::styled("TIPS", Style::default().bold().fg(Color::Rgb(0, 199, 255)))]),
+      Line::from("  • Search is case-insensitive (uppercase letters auto-convert to lowercase)"),
+      Line::from("  • Two-key sequences (gg, og, etc.) show hints in footer while waiting"),
+      Line::from("  • Active panel is indicated by double-line border"),
+      Line::from("  • Group mode: 'aliases' shows aliases first, 'functions' shows functions first"),
+      Line::from(""),
+      Line::from(vec![Span::styled("Close: ? / q / Esc", Style::default().dim())]),
+   ];
+
+   let content = Paragraph::new(help_text)
+      .block(modal_block)
+      .style(Style::default().fg(Color::White).bg(Color::Rgb(17, 17, 17)))
+      .wrap(Wrap { trim: false })
+      .scroll((0, 0));
 
    frame.render_widget(content, modal_area);
 }

@@ -83,6 +83,12 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
       }
 
       // Scrolling with modifiers (check these first before plain keys)
+      KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.scroll_down(20);
+      }
+      KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.scroll_up(20);
+      }
       KeyCode::Char('j') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.scroll_down(10);
       }
