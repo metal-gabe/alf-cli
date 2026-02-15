@@ -242,20 +242,46 @@ impl App {
       }
    }
 
-   /// Jump to the top of the list
+   /// Jump to the top of the active panel
    pub fn move_top(&mut self) {
-      self.selected_index = 0;
-      self.list_scroll_offset = 0;
-      self.description_scroll_offset = 0;
-      self.script_scroll_offset = 0;
+      match self.active_panel {
+         Panel::List => {
+            self.selected_index = 0;
+            self.list_scroll_offset = 0;
+            self.description_scroll_offset = 0;
+            self.script_scroll_offset = 0;
+         }
+         Panel::Description => {
+            self.description_scroll_offset = 0;
+         }
+         Panel::Script => {
+            self.script_scroll_offset = 0;
+         }
+      }
    }
 
-   /// Jump to the bottom of the list
+   /// Jump to the bottom of the active panel
    pub fn move_bottom(&mut self) {
-      if !self.visible_indices.is_empty() {
-         self.selected_index = self.visible_indices.len() - 1;
-         self.description_scroll_offset = 0;
-         self.script_scroll_offset = 0;
+      match self.active_panel {
+         Panel::List => {
+            if !self.visible_indices.is_empty() {
+               self.selected_index = self.visible_indices.len() - 1;
+               self.description_scroll_offset = 0;
+               self.script_scroll_offset = 0;
+            }
+         }
+         Panel::Description => {
+            // For description panel, we don't have a way to know the exact content height,
+            // so we set a large scroll offset that will be clamped by the rendering.
+            // Use a reasonable large value (10000 lines should be more than enough)
+            self.description_scroll_offset = 10000;
+         }
+         Panel::Script => {
+            // For script panel, we don't have a way to know the exact content height,
+            // so we set a large scroll offset that will be clamped by the rendering.
+            // Use a reasonable large value (10000 lines should be more than enough)
+            self.script_scroll_offset = 10000;
+         }
       }
    }
 
