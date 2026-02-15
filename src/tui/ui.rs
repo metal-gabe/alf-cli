@@ -48,8 +48,8 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
 
    // Place cursor in search bar when in search mode (and help is not showing)
    if app.input_mode == InputMode::Search && !app.show_help {
-      // Cursor position: inside the search block (1 char border + cursor_position)
-      frame.set_cursor_position((outer_chunks[1].x + 1 + app.cursor_position as u16, outer_chunks[1].y + 1));
+      // Cursor position: inside the search block (1 char border + 1 char padding + cursor_position)
+      frame.set_cursor_position((outer_chunks[1].x + 2 + app.cursor_position as u16, outer_chunks[1].y + 1));
    }
 }
 
@@ -124,10 +124,11 @@ fn draw_search_bar(frame: &mut Frame, app: &App, area: Rect) {
    let block = Block::default()
       .borders(Borders::ALL)
       .title(title)
-      .border_style(if app.input_mode == InputMode::Search { get_border_style(&app.filter) } else { Style::default() });
+      .border_style(if app.input_mode == InputMode::Search { get_border_style(&app.filter) } else { Style::default() })
+      .padding(ratatui::widgets::Padding::horizontal(1));
 
    let search_text = if app.search_query.is_empty() && app.input_mode == InputMode::Normal {
-      Paragraph::new(Span::styled(" Enter your search term...", Style::default().add_modifier(Modifier::DIM)))
+      Paragraph::new(Span::styled("Enter your search term...", Style::default().add_modifier(Modifier::DIM)))
    } else {
       Paragraph::new(Span::raw(&app.search_query))
    };
@@ -505,11 +506,11 @@ fn draw_help_modal(frame: &mut Frame, app: &mut App) {
       Line::from("  j / ↓          Scroll down 1 line in active panel"),
       Line::from("  k / ↑          Scroll up 1 line in active panel"),
       Line::from("  gg             Jump to top of list"),
-      Line::from("  G              Jump to bottom of list"),
-      Line::from("  Ctrl-f         Scroll down full page (20 lines)"),
-      Line::from("  Ctrl-b         Scroll up full page (20 lines)"),
-      Line::from("  Ctrl-j         Scroll down half page (10 lines)"),
-      Line::from("  Ctrl-k         Scroll up half page (10 lines)"),
+      Line::from("  shift-g        Jump to bottom of list"),
+      Line::from("  ctrl-f         Scroll down full page (20 lines)"),
+      Line::from("  ctrl-b         Scroll up full page (20 lines)"),
+      Line::from("  ctrl-j         Scroll down half page (10 lines)"),
+      Line::from("  ctrl-k         Scroll up half page (10 lines)"),
       Line::from(""),
       Line::from(vec![Span::styled("PANELS & FILTERS", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
       Line::from("  n              Cycle panel focus forward (List → Description → Script)"),
@@ -521,27 +522,27 @@ fn draw_help_modal(frame: &mut Frame, app: &mut App) {
       Line::from("  3              Select 'All' filter"),
       Line::from(""),
       Line::from(vec![Span::styled("GROUPING & SORTING", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
-      Line::from("  og / Ctrl-g    Cycle group mode forward (None → Aliases → Functions)"),
-      Line::from("  oG             Cycle group mode backward"),
-      Line::from("  os / Ctrl-s    Toggle sort order (Ascending ↔ Descending)"),
+      Line::from("  og / ctrl-g    Cycle group mode forward (None → Aliases → Functions)"),
+      Line::from("  o shift-g      Cycle group mode backward"),
+      Line::from("  os / ctrl-s    Toggle sort order (Ascending ↔ Descending)"),
       Line::from(""),
       Line::from(vec![Span::styled("SEARCH", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
       Line::from("  /              Enter search mode"),
-      Line::from("  Esc            Exit search mode (keep query)"),
-      Line::from("  Ctrl-u         Clear search query (any mode)"),
-      Line::from("  Shift-N        Cycle panels while in search mode"),
-      Line::from("  Shift-P        Cycle panels backward while in search mode"),
-      Line::from("  Shift-H        Cycle filters backward while in search mode"),
-      Line::from("  Shift-L        Cycle filters forward while in search mode"),
+      Line::from("  esc            Exit search mode (keep query)"),
+      Line::from("  ctrl-u         Clear search query (any mode)"),
+      Line::from("  shift-n        Cycle panels while in search mode"),
+      Line::from("  shift-p        Cycle panels backward while in search mode"),
+      Line::from("  shift-h        Cycle filters backward while in search mode"),
+      Line::from("  shift-l        Cycle filters forward while in search mode"),
       Line::from(""),
       Line::from(vec![Span::styled("QUIT", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
       Line::from("  q              Quit application (normal mode only)"),
-      Line::from("  Ctrl-c         Force quit (works in any mode, including search and help)"),
-      Line::from("  Ctrl-d         Force quit (works in any mode, including search and help)"),
+      Line::from("  ctrl-c         Force quit (works in any mode, including search and help)"),
+      Line::from("  ctrl-d         Force quit (works in any mode, including search and help)"),
       Line::from(""),
       Line::from(vec![Span::styled("GENERAL", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
       Line::from("  ?              Toggle this help screen"),
-      Line::from("  Esc            Exit search mode OR clear pending key state"),
+      Line::from("  esc            Exit search mode OR clear pending key state"),
       Line::from(""),
       Line::from(vec![Span::styled("TIPS", Style::default().bold().fg(Color::Rgb(0, 199, 255)))]),
       Line::from("  • Search is case-insensitive (uppercase letters auto-convert to lowercase)"),
@@ -549,7 +550,7 @@ fn draw_help_modal(frame: &mut Frame, app: &mut App) {
       Line::from("  • Active panel is indicated by double-line border"),
       Line::from("  • Group mode: 'aliases' shows aliases first, 'functions' shows functions first"),
       Line::from(""),
-      Line::from(vec![Span::styled("Close: ? / q / Esc", Style::default().dim())]),
+      Line::from(vec![Span::styled("Close: ? / q / esc", Style::default().dim())]),
    ];
 
    // Calculate content dimensions for scrollbar
