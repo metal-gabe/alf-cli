@@ -149,10 +149,48 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       return;
    }
 
-   // Calculate available width for content (accounting for borders, highlight symbol, and padding)
-   let content_width = area.width.saturating_sub(6); // 2 for borders, 2 for highlight symbol "▸ ", 2 for padding
-   let source_file = ".zshrc";
+   // Split area into header (1 line) and list (remaining)
+   let inner_area = block.inner(area);
+   let chunks = Layout::default()
+      .direction(Direction::Vertical)
+      .constraints([
+         Constraint::Length(1), // Header row
+         Constraint::Min(0),    // List entries
+      ])
+      .split(inner_area);
+
+   // Render the block border
+   frame.render_widget(block, area);
+
+   // Calculate available width for content (accounting for highlight symbol and padding)
+   let content_width = inner_area.width.saturating_sub(2); // 2 for highlight symbol "▸ ", 2 for padding
+   let source_file = ".zshrc  ";
    let badge_width = 4; // "[&] " or "[f] "
+
+   // Draw header row: "Name" on left (aligned with entry names after badge), "File Source" on right
+   let header_left_prefix = "  "; // 4 spaces to align with entry names after "[&] "
+   let header_left = "Name";
+   let header_right = "Source File";
+
+   // Calculate padding: total width - prefix - "Name" - "File Source"
+   let header_content_width = header_left_prefix.len() + header_left.len() + header_right.len();
+   let header_padding =
+      if content_width as usize > header_content_width { content_width as usize - header_content_width } else { 1 };
+
+   let header_line = Line::from(vec![
+      Span::raw(header_left_prefix),
+      Span::raw(header_left),
+      Span::raw(" ".repeat(header_padding)),
+      Span::raw(header_right),
+   ]);
+
+   let header = Paragraph::new(header_line).style(if is_active {
+      Style::default().add_modifier(Modifier::BOLD)
+   } else {
+      Style::default().add_modifier(Modifier::BOLD | Modifier::DIM)
+   });
+
+   frame.render_widget(header, chunks[0]);
 
    let items: Vec<ListItem> = app
       .visible_indices
@@ -196,7 +234,6 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       .collect();
 
    let list = List::new(items)
-      .block(block)
       .highlight_style(Style::default().fg(Color::Rgb(220, 220, 220)).bg(Color::Rgb(23, 148, 129)).bold())
       .highlight_symbol("▸ ");
 
@@ -206,7 +243,7 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       list_state.select(Some(app.selected_index));
    }
 
-   frame.render_stateful_widget(list, area, &mut list_state);
+   frame.render_stateful_widget(list, chunks[1], &mut list_state);
 }
 
 /// Draw the right detail panels: description (top) + script (bottom)
