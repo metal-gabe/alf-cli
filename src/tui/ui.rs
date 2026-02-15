@@ -62,7 +62,7 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    // Build the left side: filter badges
    let badges = vec![
-      Span::raw("FILTERS: "),
+      Span::styled("FILTERS: ", Style::default().bold()),
       Span::styled(" & ", if matches!(app.filter, EntryFilter::Aliases) { badge_style } else { Style::default() }),
       Span::raw(" "),
       Span::styled(" f ", if matches!(app.filter, EntryFilter::Functions) { badge_style } else { Style::default() }),
@@ -87,7 +87,7 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    let mut spans = badges;
    spans.push(Span::raw(" ".repeat(padding)));
-   spans.push(Span::raw(shell_label_prefix));
+   spans.push(Span::styled(shell_label_prefix, Style::default().bold()));
    spans.push(Span::styled(shell_name, Style::default().fg(filter_color)));
    spans.push(Span::raw(shell_label_suffix));
 
@@ -352,8 +352,6 @@ fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
       SortOrder::Descending => "desc",
    };
 
-   let left_text = format!("GROUP: {} | SORT: {}", group_text, sort_text);
-
    // Show pending key indicator or default help text
    let right_text = if let Some(pending) = app.pending_key {
       match pending {
@@ -365,11 +363,25 @@ fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
       "Press \"?\" for Help "
    };
 
+   // Build left side with bold labels
+   let left_spans = vec![
+      Span::styled("GROUP: ", Style::default().bold()),
+      Span::raw(group_text),
+      Span::raw(" | "),
+      Span::styled("SORT: ", Style::default().bold()),
+      Span::raw(sort_text),
+   ];
+
    // Calculate padding between left and right text
-   let total_text_width = left_text.len() + right_text.len();
+   let left_width: usize = left_spans.iter().map(|s| s.width()).sum();
+   let total_text_width = left_width + right_text.len();
    let padding = if area.width as usize > total_text_width { area.width as usize - total_text_width } else { 1 };
 
-   let footer_line = Line::from(vec![Span::raw(left_text), Span::raw(" ".repeat(padding)), Span::raw(right_text)]);
+   let mut footer_spans = left_spans;
+   footer_spans.push(Span::raw(" ".repeat(padding)));
+   footer_spans.push(Span::raw(right_text));
+
+   let footer_line = Line::from(footer_spans);
 
    let footer = Paragraph::new(footer_line);
    frame.render_widget(footer, area);

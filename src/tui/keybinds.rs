@@ -89,6 +89,12 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
       KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.scroll_up(10);
       }
+      KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.cycle_group_mode();
+      }
+      KeyCode::Char('s') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.toggle_sort_order();
+      }
 
       // Navigation (single line - plain keys, respects active panel)
       KeyCode::Char('j') | KeyCode::Down => app.scroll_down(1),
