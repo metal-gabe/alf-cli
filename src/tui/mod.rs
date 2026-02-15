@@ -13,7 +13,6 @@ pub use events::{Event, EventHandler};
 pub use themes::Theme;
 
 use anyhow::Result;
-use crossterm::event::DisableMouseCapture;
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
@@ -44,7 +43,7 @@ pub fn run() -> Result<()> {
 
    // Restore terminal regardless of result
    terminal::disable_raw_mode()?;
-   crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
+   crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
    terminal.show_cursor()?;
 
    result

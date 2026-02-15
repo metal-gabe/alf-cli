@@ -103,10 +103,9 @@ pub struct App {
 impl App {
    /// Create a new App instance with the given entries
    pub fn new(entries: Vec<AliasEntry>) -> Self {
-      let visible_indices: Vec<usize> = (0..entries.len()).collect();
-      Self {
+      let mut app = Self {
          entries,
-         visible_indices,
+         visible_indices: Vec::new(), // Will be populated by update_visible_entries()
          search_query: String::new(),
          cursor_position: 0,
          selected_index: 0,
@@ -126,7 +125,12 @@ impl App {
          help_max_scroll: 0,
          group_mode: GroupMode::Aliases,   // Default: aliases first
          sort_order: SortOrder::Ascending, // Default: A-Z
-      }
+      };
+
+      // Apply initial filtering, grouping, and sorting to populate visible_indices
+      app.update_visible_entries();
+
+      app
    }
 
    /// Get the currently selected entry, if any
@@ -408,7 +412,15 @@ impl App {
       // Convert uppercase letters to lowercase, leave special chars/symbols unchanged
       let char_to_insert = if c.is_ascii_uppercase() { c.to_ascii_lowercase() } else { c };
 
-      self.search_query.insert(self.cursor_position, char_to_insert);
+      // Map character index to byte index for safe UTF-8 insertion
+      let byte_index = self
+         .search_query
+         .char_indices()
+         .nth(self.cursor_position)
+         .map(|(idx, _)| idx)
+         .unwrap_or(self.search_query.len()); // If at end, use total byte length
+
+      self.search_query.insert(byte_index, char_to_insert);
       self.cursor_position += 1;
       self.update_visible_entries();
    }
@@ -416,9 +428,16 @@ impl App {
    /// Delete the character before the cursor in the search query
    pub fn search_delete_char(&mut self) {
       if self.cursor_position > 0 {
-         self.cursor_position -= 1;
-         self.search_query.remove(self.cursor_position);
-         self.update_visible_entries();
+         // Map character index to byte index for the character to delete
+         // We need to find the byte range of the character at position (cursor_position - 1)
+         if let Some((byte_idx, ch)) = self.search_query.char_indices().nth(self.cursor_position - 1) {
+            // Calculate the byte length of the character to remove
+            let char_len = ch.len_utf8();
+            // Remove the byte range for this character
+            self.search_query.drain(byte_idx..byte_idx + char_len);
+            self.cursor_position -= 1;
+            self.update_visible_entries();
+         }
       }
    }
 
@@ -431,7 +450,9 @@ impl App {
 
    /// Move search cursor right
    pub fn search_cursor_right(&mut self) {
-      if self.cursor_position < self.search_query.len() {
+      // Use character count, not byte length
+      let char_count = self.search_query.chars().count();
+      if self.cursor_position < char_count {
          self.cursor_position += 1;
       }
    }

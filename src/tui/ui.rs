@@ -82,7 +82,10 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    // Build the right side: shell indicator
    let shell_label_prefix = " $SHELL: ";
-   let shell_name = "zsh";
+
+   // Detect shell name from environment or entries
+   let shell_name = detect_shell_name(app);
+
    let shell_label_suffix = " ";
 
    // Calculate widths
@@ -113,6 +116,32 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    let header = Paragraph::new(Line::from(spans));
    frame.render_widget(header, area);
+}
+
+/// Detect the shell name from $0 or SHELL environment variable
+fn detect_shell_name(_app: &App) -> &'static str {
+   if let Ok(shell_path) = std::env::var("SHELL") {
+      if !shell_path.is_empty() {
+         // Extract basename from path (e.g., "/bin/zsh" -> "zsh")
+         if let Some(basename) = shell_path.split('/').next_back() {
+            if !basename.is_empty() {
+               return match basename {
+                  "bash" => "bash",
+                  "csh" => "csh",
+                  "fish" => "fish",
+                  "ksh" => "ksh",
+                  "sh" => "sh",
+                  "tcsh" => "tcsh",
+                  "zsh" => "zsh",
+                  _ => "unknown",
+               };
+            }
+         }
+      }
+   }
+
+   // Last resort
+   "unknown"
 }
 
 fn draw_search_bar(frame: &mut Frame, app: &App, area: Rect) {
@@ -186,8 +215,8 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
 
    // Calculate available width for content (accounting for highlight symbol and padding)
    let content_width = inner_area.width.saturating_sub(2); // 2 for highlight symbol "▸ ", 2 for padding
-   let source_file = ".zshrc  ";
    let badge_width = 4; // "[&] " or "[f] "
+   let source_file_max_width = 15; // Reserve space for source file display
 
    // Draw header row: "Name" on left (aligned with entry names after badge), "File Source" on right
    let header_left_prefix = "  "; // 4 spaces to align with entry names after "[&] "
@@ -251,12 +280,24 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
             if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
          );
 
+         // Format source file: extract filename and truncate/pad to fit
+         let source_filename = entry.source_file.file_name().and_then(|n| n.to_str()).unwrap_or("unknown");
+
+         // Truncate or pad the source filename to fit within source_file_max_width
+         // Right-align by padding on the left
+         let formatted_source = if source_filename.len() > source_file_max_width {
+            // Truncate from the left with ellipsis: "…long_filename"
+            format!("…{}", &source_filename[source_filename.len() - source_file_max_width + 1..])
+         } else {
+            format!("{:>width$}  ", source_filename, width = source_file_max_width)
+         };
+
          // Calculate padding between name and source file
-         let text_width = badge_width + entry.name.len() + source_file.len();
+         let text_width = badge_width + entry.name.len() + formatted_source.len();
          let padding_width = if content_width as usize > text_width { content_width as usize - text_width } else { 1 };
 
          let source = Span::styled(
-            source_file,
+            formatted_source,
             if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
          );
 
@@ -489,7 +530,7 @@ fn draw_help_modal(frame: &mut Frame, app: &mut App) {
       .borders(Borders::ALL)
       .border_type(BorderType::Double)
       .border_style(Style::default().fg(Color::Rgb(220, 220, 220)).bold())
-      .title(Span::styled(" Help ('q' or 'esc' to exit) ", Style::default().fg(Color::Rgb(220, 220, 220)).bold()))
+      .title(Span::styled(" Help ('?', 'q' or 'esc' to close) ", Style::default().fg(Color::Rgb(220, 220, 220)).bold()))
       .style(Style::default().bg(Color::Rgb(17, 17, 17)))
       .padding(ratatui::widgets::Padding::horizontal(2));
 
@@ -550,7 +591,6 @@ fn draw_help_modal(frame: &mut Frame, app: &mut App) {
       Line::from("  • Active panel is indicated by double-line border"),
       Line::from("  • Group mode: 'aliases' shows aliases first, 'functions' shows functions first"),
       Line::from(""),
-      Line::from(vec![Span::styled("Close: ? / q / esc", Style::default().dim())]),
    ];
 
    // Calculate content dimensions for scrollbar

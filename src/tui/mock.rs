@@ -47,7 +47,7 @@ pub fn mock_entries() -> Vec<AliasEntry> {
             "View compact git log with graph".to_string(),
             "Shows branch topology and tags".to_string(),
          ]),
-         source_file: PathBuf::from("~/.zshrc"),
+         source_file: PathBuf::from("~/.stupidlylongsourcefilenamerc"),
       },
       AliasEntry {
          name: "ll".to_string(),
@@ -68,7 +68,7 @@ pub fn mock_entries() -> Vec<AliasEntry> {
          entry_type: EntryType::Alias,
          value: "cd ../..".to_string(),
          comments: Some(vec!["Navigate up two directories".to_string()]),
-         source_file: PathBuf::from("~/.bashrc"),
+         source_file: PathBuf::from("~/.stupidlylongsourcefilenamerc"),
       },
       AliasEntry {
          name: "proj".to_string(),
@@ -160,7 +160,7 @@ pub fn mock_entries() -> Vec<AliasEntry> {
             "For a dry-run to see what would be deleted, use:".to_string(),
             "  docker system prune --dry-run".to_string(),
          ]),
-         source_file: PathBuf::from("~/.zshrc"),
+         source_file: PathBuf::from("~/.stupidlylongsourcefilenamerc"),
       },
       AliasEntry {
          name: "weather".to_string(),
