@@ -137,7 +137,7 @@ fn draw_search_bar(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// Draw the main body: left list panel + right detail panels
-fn draw_main_body(frame: &mut Frame, app: &App, area: Rect) {
+fn draw_main_body(frame: &mut Frame, app: &mut App, area: Rect) {
    // Horizontal split: left 40% list, right 60% detail
    let main_chunks = Layout::default()
       .direction(Direction::Horizontal)
@@ -277,7 +277,7 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// Draw the right detail panels: description (top) + script (bottom)
-fn draw_detail_panels(frame: &mut Frame, app: &App, area: Rect) {
+fn draw_detail_panels(frame: &mut Frame, app: &mut App, area: Rect) {
    // Vertical split: top 30% description, bottom 70% script
    let detail_chunks = Layout::default()
       .direction(Direction::Vertical)
@@ -289,7 +289,7 @@ fn draw_detail_panels(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// Draw the right-top panel: comments/description
-fn draw_description_panel(frame: &mut Frame, app: &App, area: Rect) {
+fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
    let is_active = app.active_panel == Panel::Description;
 
    let block = Block::default()
@@ -309,6 +309,14 @@ fn draw_description_panel(frame: &mut Frame, app: &App, area: Rect) {
       None => "(No entry selected)".to_string(),
    };
 
+   // Calculate content dimensions for scrollbar
+   let total_lines = description_text.lines().count();
+   let inner_area = block.inner(area);
+   let visible_lines = inner_area.height as usize;
+
+   // Update max scroll in app state
+   app.update_description_max_scroll(total_lines, visible_lines);
+
    let paragraph = Paragraph::new(Text::styled(
       description_text,
       if is_active { Style::default() } else { Style::default().add_modifier(Modifier::DIM) },
@@ -318,10 +326,24 @@ fn draw_description_panel(frame: &mut Frame, app: &App, area: Rect) {
    .scroll((app.description_scroll_offset as u16, 0));
 
    frame.render_widget(paragraph, area);
+
+   // Render scrollbar only if content extends beyond visible area
+   if total_lines > visible_lines {
+      let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+         .style(Style::default().fg(Color::Rgb(100, 100, 100)))
+         .begin_symbol(Some("↑"))
+         .end_symbol(Some("↓"));
+
+      let mut scrollbar_state =
+         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.description_scroll_offset);
+
+      // Render scrollbar inside the panel borders
+      frame.render_stateful_widget(scrollbar, inner_area, &mut scrollbar_state);
+   }
 }
 
 /// Draw the right-bottom panel: script/function body
-fn draw_script_panel(frame: &mut Frame, app: &App, area: Rect) {
+fn draw_script_panel(frame: &mut Frame, app: &mut App, area: Rect) {
    let is_active = app.active_panel == Panel::Script;
 
    let block = Block::default()
@@ -346,6 +368,14 @@ fn draw_script_panel(frame: &mut Frame, app: &App, area: Rect) {
       None => "(No entry selected)".to_string(),
    };
 
+   // Calculate content dimensions for scrollbar
+   let total_lines = script_text.lines().count();
+   let inner_area = block.inner(area);
+   let visible_lines = inner_area.height as usize;
+
+   // Update max scroll in app state
+   app.update_script_max_scroll(total_lines, visible_lines);
+
    // Apply syntax highlighting with optional dimming
    let highlighted_text = syntax::highlight_shell_script_with_style(&script_text, !is_active);
 
@@ -355,6 +385,20 @@ fn draw_script_panel(frame: &mut Frame, app: &App, area: Rect) {
       .scroll((app.script_scroll_offset as u16, 0));
 
    frame.render_widget(paragraph, area);
+
+   // Render scrollbar only if content extends beyond visible area
+   if total_lines > visible_lines {
+      let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+         .style(Style::default().fg(Color::Rgb(100, 100, 100)))
+         .begin_symbol(Some("↑"))
+         .end_symbol(Some("↓"));
+
+      let mut scrollbar_state =
+         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.script_scroll_offset);
+
+      // Render scrollbar inside the panel borders
+      frame.render_stateful_widget(scrollbar, inner_area, &mut scrollbar_state);
+   }
 }
 
 /// Draw the footer bar with help text
@@ -455,6 +499,7 @@ fn draw_help_modal(frame: &mut Frame, app: &mut App) {
          "ALF - Alias & Function Search Tool",
          Style::default().bold().fg(Color::Rgb(0, 199, 255)),
       )]),
+      Line::from("  Read the docs @ https://example.com"),
       Line::from(""),
       Line::from(vec![Span::styled("NAVIGATION", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
       Line::from("  j / ↓          Scroll down 1 line in active panel"),
@@ -503,7 +548,6 @@ fn draw_help_modal(frame: &mut Frame, app: &mut App) {
       Line::from("  • Two-key sequences (gg, og, etc.) show hints in footer while waiting"),
       Line::from("  • Active panel is indicated by double-line border"),
       Line::from("  • Group mode: 'aliases' shows aliases first, 'functions' shows functions first"),
-      Line::from("  • Read the Docs: https://example.com"),
       Line::from(""),
       Line::from(vec![Span::styled("Close: ? / q / Esc", Style::default().dim())]),
    ];

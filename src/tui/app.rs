@@ -76,8 +76,12 @@ pub struct App {
    pub list_scroll_offset: usize,
    /// Scroll offset for the description panel
    pub description_scroll_offset: usize,
+   /// Maximum scroll offset for description panel (updated during rendering)
+   pub description_max_scroll: usize,
    /// Scroll offset for the script panel
    pub script_scroll_offset: usize,
+   /// Maximum scroll offset for script panel (updated during rendering)
+   pub script_max_scroll: usize,
    /// Pending key for multi-key sequences (e.g. 'g' for 'gg')
    pub pending_key: Option<char>,
    /// Timestamp when pending key was set (for timeout handling)
@@ -111,7 +115,9 @@ impl App {
          filter: EntryFilter::All,
          list_scroll_offset: 0,
          description_scroll_offset: 0,
+         description_max_scroll: 0,
          script_scroll_offset: 0,
+         script_max_scroll: 0,
          pending_key: None,
          pending_key_time: None,
          should_quit: false,
@@ -277,16 +283,12 @@ impl App {
             }
          }
          Panel::Description => {
-            // For description panel, we don't have a way to know the exact content height,
-            // so we set a large scroll offset that will be clamped by the rendering.
-            // Use a reasonable large value (10000 lines should be more than enough)
-            self.description_scroll_offset = 10000;
+            // Jump to max scroll offset (updated during rendering)
+            self.description_scroll_offset = self.description_max_scroll;
          }
          Panel::Script => {
-            // For script panel, we don't have a way to know the exact content height,
-            // so we set a large scroll offset that will be clamped by the rendering.
-            // Use a reasonable large value (10000 lines should be more than enough)
-            self.script_scroll_offset = 10000;
+            // Jump to max scroll offset (updated during rendering)
+            self.script_scroll_offset = self.script_max_scroll;
          }
       }
    }
@@ -319,10 +321,12 @@ impl App {
             }
          }
          Panel::Description => {
-            self.description_scroll_offset += amount;
+            let new_offset = self.description_scroll_offset + amount;
+            self.description_scroll_offset = new_offset.min(self.description_max_scroll);
          }
          Panel::Script => {
-            self.script_scroll_offset += amount;
+            let new_offset = self.script_scroll_offset + amount;
+            self.script_scroll_offset = new_offset.min(self.script_max_scroll);
          }
       }
    }
@@ -453,9 +457,30 @@ impl App {
       self.help_scroll_offset = self.help_scroll_offset.saturating_sub(1);
    }
 
+   /// Jump to the top of the help modal
+   pub fn help_jump_top(&mut self) {
+      self.help_scroll_offset = 0;
+   }
+
+   /// Jump to the bottom of the help modal
+   pub fn help_jump_bottom(&mut self) {
+      self.help_scroll_offset = self.help_max_scroll;
+   }
+
    /// Update the maximum scroll offset for help modal based on content and visible area
    pub fn update_help_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
       self.help_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+   }
+
+   /// Update the maximum scroll offset for description panel based on content and visible area
+   pub fn update_description_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+      self.description_max_scroll =
+         if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+   }
+
+   /// Update the maximum scroll offset for script panel based on content and visible area
+   pub fn update_script_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+      self.script_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
    }
 
    /// Cycle to the next group mode
