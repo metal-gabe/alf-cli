@@ -9,7 +9,10 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap};
+use ratatui::widgets::{
+   Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Scrollbar, ScrollbarOrientation,
+   ScrollbarState, Wrap,
+};
 use ratatui::Frame;
 
 use crate::models::EntryType;
@@ -17,7 +20,7 @@ use crate::tui::app::{App, EntryFilter, GroupMode, InputMode, Panel, SortOrder};
 use crate::tui::syntax;
 
 /// Draw the complete TUI interface
-pub fn draw(frame: &mut Frame, app: &App) {
+pub fn draw(frame: &mut Frame, app: &mut App) {
    // Apply global background color to entire TUI
    let background = Block::default().style(Style::default().bg(Color::Rgb(17, 17, 17)));
    frame.render_widget(background, frame.area());
@@ -40,7 +43,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
    // Draw help modal overlay if active (must be last to overlay everything)
    if app.show_help {
-      draw_help_modal(frame);
+      draw_help_modal(frame, app);
    }
 
    // Place cursor in search bar when in search mode (and help is not showing)
@@ -50,7 +53,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
    }
 }
 
-/// Draw the header bar with filter badges and shell indicator
+/// Draw the header bar with filter badges, mode indicator, and shell indicator
 fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
    let filter_color: Color = match app.filter {
       EntryFilter::Aliases => Color::Rgb(253, 90, 30),
@@ -70,23 +73,40 @@ fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
       Span::styled(" * ", if matches!(app.filter, EntryFilter::All) { badge_style } else { Style::default() }),
    ];
 
+   // Build the middle: mode indicator
+   let (mode_text, mode_color) = match app.input_mode {
+      InputMode::Normal => ("NORMAL", Color::Rgb(144, 238, 144)), // Light green
+      InputMode::Search => ("-- SEARCH --", Color::Rgb(255, 200, 100)), // Light orange
+   };
+   let mode_span = Span::styled(mode_text, Style::default().fg(mode_color));
+
    // Build the right side: shell indicator
    let shell_label_prefix = " $SHELL: ";
    let shell_name = "zsh";
    let shell_label_suffix = " ";
 
-   // Calculate padding to right-align the shell label
+   // Calculate widths
    let badges_width: usize = badges.iter().map(|s| s.width()).sum();
+   let mode_width = mode_text.len();
    let shell_width = shell_label_prefix.len() + shell_name.len() + shell_label_suffix.len();
 
-   let padding = if area.width as usize > badges_width + shell_width {
-      area.width as usize - badges_width - shell_width
+   // Calculate padding to center the mode and right-align the shell
+   let total_width = area.width as usize;
+   let left_padding = if total_width > badges_width + mode_width {
+      (total_width - badges_width - mode_width - shell_width) / 2
+   } else {
+      1
+   };
+   let right_padding = if total_width > badges_width + left_padding + mode_width + shell_width {
+      total_width - badges_width - left_padding - mode_width - shell_width
    } else {
       1
    };
 
    let mut spans = badges;
-   spans.push(Span::raw(" ".repeat(padding)));
+   spans.push(Span::raw(" ".repeat(left_padding)));
+   spans.push(mode_span);
+   spans.push(Span::raw(" ".repeat(right_padding)));
    spans.push(Span::styled(shell_label_prefix, Style::default().bold()));
    spans.push(Span::styled(shell_name, Style::default().fg(filter_color)));
    spans.push(Span::raw(shell_label_suffix));
@@ -395,11 +415,11 @@ fn get_border_style(filter: &EntryFilter) -> Style {
    }
 }
 
-/// Draw the help modal overlay (75% width, 80% height, centered)
-fn draw_help_modal(frame: &mut Frame) {
+/// Draw the help modal overlay (70% width, 90% height, centered)
+fn draw_help_modal(frame: &mut Frame, app: &mut App) {
    let area = frame.area();
 
-   // Calculate modal dimensions: 75% width, 80% height
+   // Calculate modal dimensions: 70% width, 90% height
    let modal_width = (area.width as f32 * 0.70) as u16;
    let modal_height = (area.height as f32 * 0.90) as u16;
 
@@ -430,6 +450,7 @@ fn draw_help_modal(frame: &mut Frame) {
 
    // Content with padding consistent with the app
    let help_text = vec![
+      Line::from(""),
       Line::from(vec![Span::styled(
          "ALF - Alias & Function Search Tool",
          Style::default().bold().fg(Color::Rgb(0, 199, 255)),
@@ -468,26 +489,52 @@ fn draw_help_modal(frame: &mut Frame) {
       Line::from("  Shift-H        Cycle filters backward while in search mode"),
       Line::from("  Shift-L        Cycle filters forward while in search mode"),
       Line::from(""),
+      Line::from(vec![Span::styled("QUIT", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
+      Line::from("  q              Quit application (normal mode only)"),
+      Line::from("  Ctrl-c         Force quit (works in any mode, including search and help)"),
+      Line::from("  Ctrl-d         Force quit (works in any mode, including search and help)"),
+      Line::from(""),
       Line::from(vec![Span::styled("GENERAL", Style::default().bold().fg(Color::Rgb(253, 90, 30)))]),
       Line::from("  ?              Toggle this help screen"),
-      Line::from("  q              Quit application"),
-      Line::from("  Ctrl-c/Ctrl-d  Quit application (works anywhere)"),
-      Line::from("  Esc            Clear pending key state (when in normal mode)"),
+      Line::from("  Esc            Exit search mode OR clear pending key state"),
       Line::from(""),
       Line::from(vec![Span::styled("TIPS", Style::default().bold().fg(Color::Rgb(0, 199, 255)))]),
       Line::from("  • Search is case-insensitive (uppercase letters auto-convert to lowercase)"),
       Line::from("  • Two-key sequences (gg, og, etc.) show hints in footer while waiting"),
       Line::from("  • Active panel is indicated by double-line border"),
       Line::from("  • Group mode: 'aliases' shows aliases first, 'functions' shows functions first"),
+      Line::from("  • Read the Docs: https://example.com"),
       Line::from(""),
       Line::from(vec![Span::styled("Close: ? / q / Esc", Style::default().dim())]),
    ];
+
+   // Calculate content dimensions for scrollbar
+   let total_lines = help_text.len();
+   let inner_area = modal_block.inner(modal_area);
+   let visible_lines = inner_area.height as usize;
+
+   // Update max scroll in app state
+   app.update_help_max_scroll(total_lines, visible_lines);
 
    let content = Paragraph::new(help_text)
       .block(modal_block)
       .style(Style::default().fg(Color::White).bg(Color::Rgb(17, 17, 17)))
       .wrap(Wrap { trim: false })
-      .scroll((0, 0));
+      .scroll((app.help_scroll_offset as u16, 0));
 
    frame.render_widget(content, modal_area);
+
+   // Render scrollbar only if content extends beyond visible area
+   if total_lines > visible_lines {
+      let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+         .style(Style::default().fg(Color::Rgb(255, 200, 100)))
+         .begin_symbol(Some("↑"))
+         .end_symbol(Some("↓"));
+
+      let mut scrollbar_state =
+         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.help_scroll_offset);
+
+      // Render scrollbar inside the modal borders (use inner_area instead of modal_area)
+      frame.render_stateful_widget(scrollbar, inner_area, &mut scrollbar_state);
+   }
 }

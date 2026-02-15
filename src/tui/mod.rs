@@ -63,7 +63,7 @@ fn run_loop(
       }
 
       // Draw the UI
-      terminal.draw(|frame| ui::draw(frame, app))?;
+      terminal.draw(|frame| ui::draw(frame, &mut *app))?;
 
       // Handle events
       match event_handler.next()? {

@@ -86,6 +86,10 @@ pub struct App {
    pub should_quit: bool,
    /// Flag to show/hide the help modal
    pub show_help: bool,
+   /// Scroll offset for the help modal
+   pub help_scroll_offset: usize,
+   /// Maximum scroll offset for help modal (updated during rendering)
+   pub help_max_scroll: usize,
    /// Current grouping mode
    pub group_mode: GroupMode,
    /// Current sort order
@@ -112,6 +116,8 @@ impl App {
          pending_key_time: None,
          should_quit: false,
          show_help: false,
+         help_scroll_offset: 0,
+         help_max_scroll: 0,
          group_mode: GroupMode::Aliases,   // Default: aliases first
          sort_order: SortOrder::Ascending, // Default: A-Z
       }
@@ -429,6 +435,27 @@ impl App {
    /// Toggle the help modal
    pub fn toggle_help(&mut self) {
       self.show_help = !self.show_help;
+      // Reset scroll position when opening help
+      if self.show_help {
+         self.help_scroll_offset = 0;
+      }
+   }
+
+   /// Scroll help modal down by one line
+   pub fn help_scroll_down(&mut self) {
+      if self.help_scroll_offset < self.help_max_scroll {
+         self.help_scroll_offset += 1;
+      }
+   }
+
+   /// Scroll help modal up by one line
+   pub fn help_scroll_up(&mut self) {
+      self.help_scroll_offset = self.help_scroll_offset.saturating_sub(1);
+   }
+
+   /// Update the maximum scroll offset for help modal based on content and visible area
+   pub fn update_help_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+      self.help_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
    }
 
    /// Cycle to the next group mode

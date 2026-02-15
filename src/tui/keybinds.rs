@@ -217,6 +217,10 @@ fn handle_help_mode(app: &mut App, key: KeyEvent) {
       // Close help modal with '?', 'q', or Esc
       KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => app.toggle_help(),
 
+      // Scroll help content
+      KeyCode::Char('j') | KeyCode::Down => app.help_scroll_down(),
+      KeyCode::Char('k') | KeyCode::Up => app.help_scroll_up(),
+
       // Ignore all other keys (prevent propagation to underlying panels)
       _ => {}
    }
