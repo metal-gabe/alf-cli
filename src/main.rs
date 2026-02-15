@@ -1,34 +1,24 @@
-//! Main entry point for the alf CLI.
-
 use anyhow::Result;
 use clap::Parser;
 
 use alf::cli::{Cli, Commands};
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
+   let cli = Cli::parse();
 
-    match cli.command {
-        Some(Commands::Search) => {
-            println!("Launching TUI search interface...");
-            // TODO: Launch TUI
-            todo!("Implement TUI launch")
-        }
-        Some(Commands::Init) => {
-            println!("Running first-time configuration...");
-            // TODO: Run init wizard
-            todo!("Implement init wizard")
-        }
-        Some(Commands::Config { action }) => {
-            println!("Config command: {:?}", action);
-            // TODO: Handle config subcommands
-            todo!("Implement config commands")
-        }
-        None => {
-            // Default: launch search
-            println!("Launching TUI search interface (default)...");
-            // TODO: Launch TUI
-            todo!("Implement TUI launch")
-        }
-    }
+   match cli.command {
+      Some(Commands::Search) | None => {
+         alf::tui::run()
+      }
+      Some(Commands::Init) => {
+         println!("Running first-time configuration...");
+         // TODO: Run init wizard
+         todo!("Implement init wizard")
+      }
+      Some(Commands::Config { action }) => {
+         println!("Config command: {:?}", action);
+         // TODO: Handle config subcommands
+         todo!("Implement config commands")
+      }
+   }
 }

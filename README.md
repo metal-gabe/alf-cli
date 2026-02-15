@@ -5,11 +5,13 @@ A Rust-built CLI tool to search through & rediscover your custom-made shell alia
 ## Installation
 
 ### From Source
+
 ```bash
 cargo install --git https://github.com/metal-gabe/alf-cli
 ```
 
 ### From Crates.io (after publishing)
+
 ```bash
 cargo install alf
 ```
@@ -31,8 +33,9 @@ cargo install alf
 ## Configuration
 
 Configuration file location (created after `alf init`):
+
 - **Linux**: `~/.config/alf/config.toml`
-- **macOS**: `~/Library/Application Support/alf/config.toml`
+- **macOS**: `~/.config/alf/config.toml`
 - **Windows**: `%APPDATA%\alf\config.toml`
 
 ### Available Commands
@@ -59,26 +62,30 @@ Configuration file location (created after `alf init`):
 - `j/k` - Move down/up
 - `gg/G` - Jump to top/bottom
 - `Ctrl-u/d` - Scroll up/down
-- `/` - Focus search
-- `Esc` - Clear search
+- `/` - Focus search & activate search mode
+- `Esc` - Exit search mode
 - `q` - Quit
 
 ## Development
 
 ### Requirements
+
 - Rust 1.74.0 or later
 
 ### Build
+
 ```bash
 cargo build --release
 ```
 
 ### Run tests
+
 ```bash
 cargo test
 ```
 
 ### Run locally
+
 ```bash
 cargo run -- search
 ```
@@ -92,6 +99,7 @@ cargo run -- search
 ## License
 
 Licensed under either of:
+
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT License ([LICENSE-MIT](LICENSE-MIT))
 
