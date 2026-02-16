@@ -4,7 +4,8 @@
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::tui::app::{App, EntryFilter, InputMode};
+use crate::tui::app::App;
+use crate::tui::state::{EntryFilter, InputMode};
 
 /// Handle a key event based on the current input mode.
 ///
@@ -31,7 +32,7 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) {
    }
 
    // If help modal is open, handle help-specific keybinds
-   if app.show_help {
+   if app.show_help() {
       handle_help_mode(app, key);
       return;
    }
@@ -42,7 +43,7 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) {
    }
 
    // Then handle mode-specific keybinds
-   match app.input_mode {
+   match app.input_mode() {
       InputMode::Normal => handle_normal_mode(app, key),
       InputMode::Search => handle_search_mode(app, key),
    }
@@ -64,7 +65,7 @@ fn handle_global_keybinds(app: &mut App, key: &KeyEvent) -> bool {
 /// Handle key events in Normal (vim navigation) mode
 fn handle_normal_mode(app: &mut App, key: KeyEvent) {
    // Check for pending multi-key sequences first
-   if let Some(pending) = app.pending_key {
+   if let Some(pending) = app.pending_key() {
       handle_pending_key(app, pending, key);
       return;
    }
@@ -214,7 +215,7 @@ fn handle_search_mode(app: &mut App, key: KeyEvent) {
 /// Handle key events in Help modal mode
 fn handle_help_mode(app: &mut App, key: KeyEvent) {
    // Check for pending multi-key sequences first
-   if let Some(pending) = app.pending_key {
+   if let Some(pending) = app.pending_key() {
       match (pending, key.code) {
          // 'gg' sequence - go to top
          ('g', KeyCode::Char('g')) => {

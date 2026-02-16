@@ -17,7 +17,8 @@ use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::widgets::Block;
 use ratatui::Frame;
 
-use crate::tui::app::{App, EntryFilter, InputMode};
+use crate::tui::app::App;
+use crate::tui::state::{EntryFilter, InputMode};
 
 /// Get the border style for the current filter
 pub(self) fn get_border_style(filter: &EntryFilter) -> Style {
@@ -58,13 +59,13 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
    draw_footer(frame, app, outer_chunks[3]);
 
    // Draw help modal overlay if active (must be last to overlay everything)
-   if app.show_help {
+   if app.show_help() {
       draw_help_modal(frame, app);
    }
 
    // Place cursor in search bar when in search mode (and help is not showing)
-   if app.input_mode == InputMode::Search && !app.show_help {
+   if app.input_mode() == InputMode::Search && !app.show_help() {
       // Cursor position: inside the search block (1 char border + 1 char padding + cursor_position)
-      frame.set_cursor_position((outer_chunks[1].x + 2 + app.cursor_position as u16, outer_chunks[1].y + 1));
+      frame.set_cursor_position((outer_chunks[1].x + 2 + app.cursor_position() as u16, outer_chunks[1].y + 1));
    }
 }

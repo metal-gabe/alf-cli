@@ -12,7 +12,8 @@ use ratatui::widgets::{
 use ratatui::Frame;
 
 use crate::models::EntryType;
-use crate::tui::app::{App, EntryFilter, Panel};
+use crate::tui::app::App;
+use crate::tui::state::{EntryFilter, Panel};
 use crate::tui::syntax;
 
 use super::get_border_style;
@@ -31,7 +32,7 @@ pub fn draw_main_body(frame: &mut Frame, app: &mut App, area: Rect) {
 
 /// Draw the left panel: list of aliases/functions
 fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
-   let is_active = app.active_panel == Panel::List;
+   let is_active = app.active_panel() == Panel::List;
 
    let block = Block::default()
       .borders(Borders::ALL)
@@ -40,10 +41,10 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
          if is_active { Style::default().fg(Color::Rgb(220, 220, 220)) } else { Style::default() },
       ))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
-      .border_style(if is_active { get_border_style(&app.filter) } else { Style::default() });
+      .border_style(if is_active { get_border_style(&app.filter()) } else { Style::default() });
 
    // Check if we have no results after a search
-   if app.visible_indices.is_empty() && !app.search_query.is_empty() {
+   if app.visible_indices().is_empty() && !app.search_query().is_empty() {
       let no_results =
          Paragraph::new(Span::styled("(No results found)", Style::default().add_modifier(Modifier::DIM))).block(block);
       frame.render_widget(no_results, area);
@@ -104,10 +105,10 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
    frame.render_widget(divider, chunks[1]);
 
    let items: Vec<ListItem> = app
-      .visible_indices
+      .visible_indices()
       .iter()
       .map(|&idx| {
-         let entry = &app.entries[idx];
+         let entry = &app.entries()[idx];
          let badge = match entry.entry_type {
             EntryType::Alias => Span::styled(
                "[&] ",
@@ -162,8 +163,8 @@ fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
 
    let mut list_state = ListState::default();
 
-   if !app.visible_indices.is_empty() {
-      list_state.select(Some(app.selected_index));
+   if !app.visible_indices().is_empty() {
+      list_state.select(Some(app.selected_index()));
    }
 
    frame.render_stateful_widget(list, chunks[2], &mut list_state);
@@ -183,7 +184,7 @@ fn draw_detail_panels(frame: &mut Frame, app: &mut App, area: Rect) {
 
 /// Draw the right-top panel: comments/description
 fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
-   let is_active = app.active_panel == Panel::Description;
+   let is_active = app.active_panel() == Panel::Description;
 
    let block = Block::default()
       .borders(Borders::ALL)
@@ -192,7 +193,7 @@ fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
          if is_active { Style::default().fg(Color::Rgb(220, 220, 220)) } else { Style::default() },
       ))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
-      .border_style(if is_active { get_border_style(&app.filter) } else { Style::default() });
+      .border_style(if is_active { get_border_style(&app.filter()) } else { Style::default() });
 
    let description_text = match app.selected_entry() {
       Some(entry) => match &entry.comments {
@@ -216,7 +217,7 @@ fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
    ))
    .block(block)
    .wrap(Wrap { trim: false })
-   .scroll((app.description_scroll_offset as u16, 0));
+   .scroll((app.description_scroll_offset() as u16, 0));
 
    frame.render_widget(paragraph, area);
 
@@ -228,7 +229,7 @@ fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
          .end_symbol(Some("↓"));
 
       let mut scrollbar_state =
-         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.description_scroll_offset);
+         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.description_scroll_offset());
 
       // Render scrollbar inside the panel borders
       frame.render_stateful_widget(scrollbar, inner_area, &mut scrollbar_state);
@@ -237,7 +238,7 @@ fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
 
 /// Draw the right-bottom panel: script/function body
 fn draw_script_panel(frame: &mut Frame, app: &mut App, area: Rect) {
-   let is_active = app.active_panel == Panel::Script;
+   let is_active = app.active_panel() == Panel::Script;
 
    let block = Block::default()
       .borders(Borders::ALL)
@@ -247,7 +248,7 @@ fn draw_script_panel(frame: &mut Frame, app: &mut App, area: Rect) {
       ))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
       .border_style(if is_active {
-         match app.filter {
+         match app.filter() {
             EntryFilter::Aliases => Style::default().fg(Color::Rgb(253, 90, 30)).add_modifier(Modifier::BOLD),
             EntryFilter::Functions => Style::default().fg(Color::Rgb(0, 199, 255)).add_modifier(Modifier::BOLD),
             _ => Style::default().white().add_modifier(Modifier::BOLD),
@@ -275,7 +276,7 @@ fn draw_script_panel(frame: &mut Frame, app: &mut App, area: Rect) {
    let paragraph = Paragraph::new(highlighted_text)
       .block(block)
       .wrap(Wrap { trim: false })
-      .scroll((app.script_scroll_offset as u16, 0));
+      .scroll((app.script_scroll_offset() as u16, 0));
 
    frame.render_widget(paragraph, area);
 
@@ -287,7 +288,7 @@ fn draw_script_panel(frame: &mut Frame, app: &mut App, area: Rect) {
          .end_symbol(Some("↓"));
 
       let mut scrollbar_state =
-         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.script_scroll_offset);
+         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.script_scroll_offset());
 
       // Render scrollbar inside the panel borders
       frame.render_stateful_widget(scrollbar, inner_area, &mut scrollbar_state);
