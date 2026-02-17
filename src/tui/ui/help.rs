@@ -116,7 +116,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App) {
       .block(modal_block)
       .style(Style::default().fg(Color::White).bg(Color::Rgb(17, 17, 17)))
       .wrap(Wrap { trim: false })
-      .scroll((app.help_scroll_offset as u16, 0));
+      .scroll((app.help_scroll_offset() as u16, 0));
 
    frame.render_widget(content, modal_area);
 
@@ -128,7 +128,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App) {
          .end_symbol(Some("↓"));
 
       let mut scrollbar_state =
-         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.help_scroll_offset);
+         ScrollbarState::new(total_lines.saturating_sub(visible_lines)).position(app.help_scroll_offset());
 
       // Render scrollbar inside the modal borders (use inner_area instead of modal_area)
       frame.render_stateful_widget(scrollbar, inner_area, &mut scrollbar_state);

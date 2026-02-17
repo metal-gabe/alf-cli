@@ -1,130 +1,42 @@
 //! Application state management for the TUI.
 
-use crate::models::{AliasEntry, EntryType};
-use std::time::Instant;
+use crate::models::AliasEntry;
 
-/// Input mode for the application
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InputMode {
-   /// Normal vim navigation mode
-   Normal,
-   /// Typing in the search bar
-   Search,
-}
-
-/// Active panel for scroll context
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Panel {
-   /// Left panel: alias/function list
-   List,
-   /// Right-top panel: comments/description
-   Description,
-   /// Right-bottom panel: script/function body
-   Script,
-}
-
-/// Filter for entry types
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EntryFilter {
-   /// Show all entries (globe icon)
-   All,
-   /// Show only aliases (& icon)
-   Aliases,
-   /// Show only functions (f icon)
-   Functions,
-}
-
-/// Grouping mode for entries
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GroupMode {
-   /// All entries mixed together
-   None,
-   /// Aliases first, then functions
-   Aliases,
-   /// Functions first, then aliases
-   Functions,
-}
-
-/// Sorting order for entries
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SortOrder {
-   /// A-Z by name
-   Ascending,
-   /// Z-A by name
-   Descending,
-}
+// Import all state modules
+use super::state::{
+   EntryData, EntryFilter, FilterState, GroupMode, InputMode, InputState, NavigationState, Panel, ScrollManager,
+   SearchState, SortOrder, UiState,
+};
 
 /// Main application state
 pub struct App {
-   /// All loaded alias/function entries
-   pub entries: Vec<AliasEntry>,
-   /// Filtered and searched entries (indexes into `entries`)
-   pub visible_indices: Vec<usize>,
-   /// Current search query
-   pub search_query: String,
-   /// Cursor position within the search query
-   pub cursor_position: usize,
-   /// Index of selected item within `visible_indices`
-   pub selected_index: usize,
-   /// Current input mode
-   pub input_mode: InputMode,
-   /// Currently active panel (receives scroll commands)
-   pub active_panel: Panel,
-   /// Current entry type filter
-   pub filter: EntryFilter,
-   /// Scroll offset for the list panel
-   pub list_scroll_offset: usize,
-   /// Scroll offset for the description panel
-   pub description_scroll_offset: usize,
-   /// Maximum scroll offset for description panel (updated during rendering)
-   pub description_max_scroll: usize,
-   /// Scroll offset for the script panel
-   pub script_scroll_offset: usize,
-   /// Maximum scroll offset for script panel (updated during rendering)
-   pub script_max_scroll: usize,
-   /// Pending key for multi-key sequences (e.g. 'g' for 'gg')
-   pub pending_key: Option<char>,
-   /// Timestamp when pending key was set (for timeout handling)
-   pub pending_key_time: Option<Instant>,
+   /// Entry data storage
+   data: EntryData,
+   /// Search state
+   search: SearchState,
+   /// UI state (panels, scroll offsets, help modal)
+   ui: UiState,
+   /// Input state (mode, pending keys)
+   input: InputState,
+   /// Navigation state (selection)
+   navigation: NavigationState,
+   /// Filter/grouping/sorting state
+   filter: FilterState,
    /// Flag to signal application should quit
    pub should_quit: bool,
-   /// Flag to show/hide the help modal
-   pub show_help: bool,
-   /// Scroll offset for the help modal
-   pub help_scroll_offset: usize,
-   /// Maximum scroll offset for help modal (updated during rendering)
-   pub help_max_scroll: usize,
-   /// Current grouping mode
-   pub group_mode: GroupMode,
-   /// Current sort order
-   pub sort_order: SortOrder,
 }
 
 impl App {
    /// Create a new App instance with the given entries
    pub fn new(entries: Vec<AliasEntry>) -> Self {
       let mut app = Self {
-         entries,
-         visible_indices: Vec::new(), // Will be populated by update_visible_entries()
-         search_query: String::new(),
-         cursor_position: 0,
-         selected_index: 0,
-         input_mode: InputMode::Normal,
-         active_panel: Panel::List,
-         filter: EntryFilter::All,
-         list_scroll_offset: 0,
-         description_scroll_offset: 0,
-         description_max_scroll: 0,
-         script_scroll_offset: 0,
-         script_max_scroll: 0,
-         pending_key: None,
-         pending_key_time: None,
+         data: EntryData::new(entries),
+         search: SearchState::new(),
+         ui: UiState::default(),
+         input: InputState::default(),
+         navigation: NavigationState::default(),
+         filter: FilterState::default(),
          should_quit: false,
-         show_help: false,
-         help_scroll_offset: 0,
-         help_max_scroll: 0,
-         group_mode: GroupMode::Aliases,   // Default: aliases first
-         sort_order: SortOrder::Ascending, // Default: A-Z
       };
 
       // Apply initial filtering, grouping, and sorting to populate visible_indices
@@ -135,430 +47,317 @@ impl App {
 
    /// Get the currently selected entry, if any
    pub fn selected_entry(&self) -> Option<&AliasEntry> {
-      self.visible_indices.get(self.selected_index).and_then(|&idx| self.entries.get(idx))
+      self.data.get_visible_entry(self.navigation.selected_index())
    }
 
    /// Update visible entries based on current filter and search query
    pub fn update_visible_entries(&mut self) {
-      let query = self.search_query.to_lowercase();
-
-      self.visible_indices = self
-         .entries
-         .iter()
-         .enumerate()
-         .filter(|(_, entry)| match self.filter {
-            EntryFilter::All => true,
-            EntryFilter::Aliases => entry.entry_type == EntryType::Alias,
-            EntryFilter::Functions => entry.entry_type == EntryType::Function,
-         })
-         .filter(|(_, entry)| {
-            if query.is_empty() {
-               return true;
-            }
-            // Simple substring matching on name, value, and comments
-            let name_match = entry.name.to_lowercase().contains(&query);
-            let value_match = entry.value.to_lowercase().contains(&query);
-            let comment_match = entry
-               .comments
-               .as_ref()
-               .map(|comments| comments.iter().any(|c| c.to_lowercase().contains(&query)))
-               .unwrap_or(false);
-            name_match || value_match || comment_match
-         })
-         .map(|(idx, _)| idx)
-         .collect();
-
-      // Apply grouping and sorting
-      self.apply_grouping_and_sorting();
-
-      // Clamp selected index to valid range
-      if self.visible_indices.is_empty() {
-         self.selected_index = 0;
-      } else if self.selected_index >= self.visible_indices.len() {
-         self.selected_index = self.visible_indices.len() - 1;
-      }
-
-      // Reset detail panel scroll when results change
-      self.description_scroll_offset = 0;
-      self.script_scroll_offset = 0;
+      self.filter.update_visible_entries(&mut self.data, self.search.query());
+      self.navigation.clamp(self.data.visible_count());
+      self.ui.reset_detail_scroll();
    }
 
-   /// Apply grouping and sorting to visible_indices
-   fn apply_grouping_and_sorting(&mut self) {
-      match self.group_mode {
-         GroupMode::None => {
-            // All entries mixed together, sort by name
-            self.visible_indices.sort_by(|&a, &b| {
-               let name_a = &self.entries[a].name;
-               let name_b = &self.entries[b].name;
-               match self.sort_order {
-                  SortOrder::Ascending => name_a.cmp(name_b),
-                  SortOrder::Descending => name_b.cmp(name_a),
-               }
-            });
-         }
-         GroupMode::Aliases => {
-            // Aliases first, then functions, each group sorted by name
-            self.visible_indices.sort_by(|&a, &b| {
-               let entry_a = &self.entries[a];
-               let entry_b = &self.entries[b];
+   // ===== Accessor methods for state =====
 
-               // First, group by type (aliases before functions)
-               match (entry_a.entry_type, entry_b.entry_type) {
-                  (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Less,
-                  (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Greater,
-                  _ => {
-                     // Within same group, sort by name
-                     match self.sort_order {
-                        SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
-                        SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
-                     }
-                  }
-               }
-            });
-         }
-         GroupMode::Functions => {
-            // Functions first, then aliases, each group sorted by name
-            self.visible_indices.sort_by(|&a, &b| {
-               let entry_a = &self.entries[a];
-               let entry_b = &self.entries[b];
-
-               // First, group by type (functions before aliases)
-               match (entry_a.entry_type, entry_b.entry_type) {
-                  (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Less,
-                  (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Greater,
-                  _ => {
-                     // Within same group, sort by name
-                     match self.sort_order {
-                        SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
-                        SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
-                     }
-                  }
-               }
-            });
-         }
-      }
+   /// Get reference to all entries
+   pub fn entries(&self) -> &[AliasEntry] {
+      self.data.entries()
    }
+
+   /// Get reference to visible indices
+   pub fn visible_indices(&self) -> &[usize] {
+      self.data.visible_indices()
+   }
+
+   /// Get the search query
+   pub fn search_query(&self) -> &str {
+      self.search.query()
+   }
+
+   /// Get the cursor position
+   pub fn cursor_position(&self) -> usize {
+      self.search.cursor_position()
+   }
+
+   /// Get the selected index
+   pub fn selected_index(&self) -> usize {
+      self.navigation.selected_index()
+   }
+
+   /// Get the input mode
+   pub fn input_mode(&self) -> InputMode {
+      self.input.mode()
+   }
+
+   /// Get the active panel
+   pub fn active_panel(&self) -> Panel {
+      self.ui.active_panel()
+   }
+
+   /// Get the current filter
+   pub fn filter(&self) -> EntryFilter {
+      self.filter.filter()
+   }
+
+   /// Get list scroll offset
+   pub fn list_scroll_offset(&self) -> usize {
+      self.ui.list_scroll_offset()
+   }
+
+   /// Get description scroll offset
+   pub fn description_scroll_offset(&self) -> usize {
+      self.ui.description_scroll_offset()
+   }
+
+   /// Get description max scroll
+   pub fn description_max_scroll(&self) -> usize {
+      self.ui.description_max_scroll()
+   }
+
+   /// Get script scroll offset
+   pub fn script_scroll_offset(&self) -> usize {
+      self.ui.script_scroll_offset()
+   }
+
+   /// Get script max scroll
+   pub fn script_max_scroll(&self) -> usize {
+      self.ui.script_max_scroll()
+   }
+
+   /// Get pending key
+   pub fn pending_key(&self) -> Option<char> {
+      self.input.pending_key()
+   }
+
+   /// Get pending key time
+   pub fn pending_key_time(&self) -> Option<std::time::Instant> {
+      self.input.pending_key_time()
+   }
+
+   /// Get show help flag
+   pub fn show_help(&self) -> bool {
+      self.ui.show_help()
+   }
+
+   /// Get help scroll offset
+   pub fn help_scroll_offset(&self) -> usize {
+      self.ui.help_scroll_offset()
+   }
+
+   /// Get help max scroll
+   pub fn help_max_scroll(&self) -> usize {
+      self.ui.help_max_scroll()
+   }
+
+   /// Get group mode
+   pub fn group_mode(&self) -> GroupMode {
+      self.filter.group_mode()
+   }
+
+   /// Get sort order
+   pub fn sort_order(&self) -> SortOrder {
+      self.filter.sort_order()
+   }
+
+   // ===== Navigation methods =====
 
    /// Move selection up by one
    pub fn move_up(&mut self) {
-      if self.selected_index > 0 {
-         self.selected_index -= 1;
-         self.description_scroll_offset = 0;
-         self.script_scroll_offset = 0;
-      }
+      self.navigation.move_up();
+      self.ui.reset_detail_scroll();
    }
 
    /// Move selection down by one
    pub fn move_down(&mut self) {
-      if !self.visible_indices.is_empty() && self.selected_index < self.visible_indices.len() - 1 {
-         self.selected_index += 1;
-         self.description_scroll_offset = 0;
-         self.script_scroll_offset = 0;
-      }
+      self.navigation.move_down(self.data.visible_count());
+      self.ui.reset_detail_scroll();
    }
 
    /// Jump to the top of the active panel
    pub fn move_top(&mut self) {
-      match self.active_panel {
-         Panel::List => {
-            self.selected_index = 0;
-            self.list_scroll_offset = 0;
-            self.description_scroll_offset = 0;
-            self.script_scroll_offset = 0;
-         }
-         Panel::Description => {
-            self.description_scroll_offset = 0;
-         }
-         Panel::Script => {
-            self.script_scroll_offset = 0;
-         }
-      }
+      ScrollManager::move_top(&mut self.ui, &mut self.navigation);
    }
 
    /// Jump to the bottom of the active panel
    pub fn move_bottom(&mut self) {
-      match self.active_panel {
-         Panel::List => {
-            if !self.visible_indices.is_empty() {
-               self.selected_index = self.visible_indices.len() - 1;
-               self.description_scroll_offset = 0;
-               self.script_scroll_offset = 0;
-            }
-         }
-         Panel::Description => {
-            // Jump to max scroll offset (updated during rendering)
-            self.description_scroll_offset = self.description_max_scroll;
-         }
-         Panel::Script => {
-            // Jump to max scroll offset (updated during rendering)
-            self.script_scroll_offset = self.script_max_scroll;
-         }
-      }
+      ScrollManager::move_bottom(&mut self.ui, &mut self.navigation, self.data.visible_count());
    }
 
    /// Scroll the active panel up
    pub fn scroll_up(&mut self, amount: usize) {
-      match self.active_panel {
-         Panel::List => {
-            self.selected_index = self.selected_index.saturating_sub(amount);
-            self.description_scroll_offset = 0;
-            self.script_scroll_offset = 0;
-         }
-         Panel::Description => {
-            self.description_scroll_offset = self.description_scroll_offset.saturating_sub(amount);
-         }
-         Panel::Script => {
-            self.script_scroll_offset = self.script_scroll_offset.saturating_sub(amount);
-         }
-      }
+      ScrollManager::scroll_up(&mut self.ui, &mut self.navigation, amount);
    }
 
    /// Scroll the active panel down
    pub fn scroll_down(&mut self, amount: usize) {
-      match self.active_panel {
-         Panel::List => {
-            if !self.visible_indices.is_empty() {
-               self.selected_index = (self.selected_index + amount).min(self.visible_indices.len() - 1);
-               self.description_scroll_offset = 0;
-               self.script_scroll_offset = 0;
-            }
-         }
-         Panel::Description => {
-            let new_offset = self.description_scroll_offset + amount;
-            self.description_scroll_offset = new_offset.min(self.description_max_scroll);
-         }
-         Panel::Script => {
-            let new_offset = self.script_scroll_offset + amount;
-            self.script_scroll_offset = new_offset.min(self.script_max_scroll);
-         }
-      }
+      ScrollManager::scroll_down(&mut self.ui, &mut self.navigation, amount, self.data.visible_count());
    }
+
+   // ===== Panel methods =====
 
    /// Cycle to the next panel (forward)
    pub fn cycle_panel(&mut self) {
-      self.active_panel = match self.active_panel {
-         Panel::List => Panel::Description,
-         Panel::Description => Panel::Script,
-         Panel::Script => Panel::List,
-      };
+      self.ui.cycle_panel();
    }
 
    /// Cycle to the previous panel (backward)
    pub fn cycle_panel_backward(&mut self) {
-      self.active_panel = match self.active_panel {
-         Panel::List => Panel::Script,
-         Panel::Script => Panel::Description,
-         Panel::Description => Panel::List,
-      };
+      self.ui.cycle_panel_backward();
    }
+
+   // ===== Filter methods =====
 
    /// Cycle the entry type filter (forward)
    pub fn cycle_filter(&mut self) {
-      self.filter = match self.filter {
-         EntryFilter::All => EntryFilter::Aliases,
-         EntryFilter::Aliases => EntryFilter::Functions,
-         EntryFilter::Functions => EntryFilter::All,
-      };
+      self.filter.cycle_filter();
       self.update_visible_entries();
    }
 
    /// Cycle the entry type filter (backward)
    pub fn cycle_filter_backward(&mut self) {
-      self.filter = match self.filter {
-         EntryFilter::All => EntryFilter::Functions,
-         EntryFilter::Functions => EntryFilter::Aliases,
-         EntryFilter::Aliases => EntryFilter::All,
-      };
+      self.filter.cycle_filter_backward();
       self.update_visible_entries();
    }
 
    /// Set a specific filter
    pub fn set_filter(&mut self, filter: EntryFilter) {
-      if self.filter != filter {
-         self.filter = filter;
-         self.update_visible_entries();
-      }
+      self.filter.set_filter(filter);
+      self.update_visible_entries();
    }
+
+   // ===== Search methods =====
 
    /// Enter search mode
    pub fn enter_search_mode(&mut self) {
-      self.input_mode = InputMode::Search;
+      self.input.enter_search();
    }
 
    /// Exit search mode, keeping the current query
    pub fn exit_search_keep_query(&mut self) {
-      self.input_mode = InputMode::Normal;
+      self.input.exit_search();
    }
 
    /// Exit search mode, clearing the query
    pub fn exit_search_clear_query(&mut self) {
-      self.input_mode = InputMode::Normal;
-      self.search_query.clear();
-      self.cursor_position = 0;
+      self.input.exit_search();
+      self.search.clear();
       self.update_visible_entries();
    }
 
    /// Clear the search query without changing mode
    pub fn clear_search(&mut self) {
-      self.search_query.clear();
-      self.cursor_position = 0;
+      self.search.clear();
       self.update_visible_entries();
    }
 
    /// Insert a character at the cursor position in the search query
-   /// Uppercase letters are automatically converted to lowercase for case-insensitive search
    pub fn search_insert_char(&mut self, c: char) {
-      // Convert uppercase letters to lowercase, leave special chars/symbols unchanged
-      let char_to_insert = if c.is_ascii_uppercase() { c.to_ascii_lowercase() } else { c };
-
-      // Map character index to byte index for safe UTF-8 insertion
-      let byte_index = self
-         .search_query
-         .char_indices()
-         .nth(self.cursor_position)
-         .map(|(idx, _)| idx)
-         .unwrap_or(self.search_query.len()); // If at end, use total byte length
-
-      self.search_query.insert(byte_index, char_to_insert);
-      self.cursor_position += 1;
+      self.search.insert_char(c);
       self.update_visible_entries();
    }
 
    /// Delete the character before the cursor in the search query
    pub fn search_delete_char(&mut self) {
-      if self.cursor_position > 0 {
-         // Map character index to byte index for the character to delete
-         // We need to find the byte range of the character at position (cursor_position - 1)
-         if let Some((byte_idx, ch)) = self.search_query.char_indices().nth(self.cursor_position - 1) {
-            // Calculate the byte length of the character to remove
-            let char_len = ch.len_utf8();
-            // Remove the byte range for this character
-            self.search_query.drain(byte_idx..byte_idx + char_len);
-            self.cursor_position -= 1;
-            self.update_visible_entries();
-         }
-      }
+      self.search.delete_char();
+      self.update_visible_entries();
    }
 
    /// Move search cursor left
    pub fn search_cursor_left(&mut self) {
-      if self.cursor_position > 0 {
-         self.cursor_position -= 1;
-      }
+      self.search.move_cursor_left();
    }
 
    /// Move search cursor right
    pub fn search_cursor_right(&mut self) {
-      // Use character count, not byte length
-      let char_count = self.search_query.chars().count();
-      if self.cursor_position < char_count {
-         self.cursor_position += 1;
-      }
+      self.search.move_cursor_right();
    }
+
+   // ===== Help modal methods =====
 
    /// Toggle the help modal
    pub fn toggle_help(&mut self) {
-      self.show_help = !self.show_help;
-      // Reset scroll position when opening help
-      if self.show_help {
-         self.help_scroll_offset = 0;
-      }
+      self.ui.toggle_help();
    }
 
    /// Scroll help modal down by one line
    pub fn help_scroll_down(&mut self) {
-      if self.help_scroll_offset < self.help_max_scroll {
-         self.help_scroll_offset += 1;
-      }
+      ScrollManager::help_scroll_down(&mut self.ui);
    }
 
    /// Scroll help modal up by one line
    pub fn help_scroll_up(&mut self) {
-      self.help_scroll_offset = self.help_scroll_offset.saturating_sub(1);
+      ScrollManager::help_scroll_up(&mut self.ui);
    }
 
    /// Jump to the top of the help modal
    pub fn help_jump_top(&mut self) {
-      self.help_scroll_offset = 0;
+      ScrollManager::help_jump_top(&mut self.ui);
    }
 
    /// Jump to the bottom of the help modal
    pub fn help_jump_bottom(&mut self) {
-      self.help_scroll_offset = self.help_max_scroll;
+      ScrollManager::help_jump_bottom(&mut self.ui);
    }
 
    /// Update the maximum scroll offset for help modal based on content and visible area
    pub fn update_help_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
-      self.help_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.ui.update_help_max_scroll(total_lines, visible_lines);
    }
 
    /// Update the maximum scroll offset for description panel based on content and visible area
    pub fn update_description_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
-      self.description_max_scroll =
-         if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.ui.update_description_max_scroll(total_lines, visible_lines);
    }
 
    /// Update the maximum scroll offset for script panel based on content and visible area
    pub fn update_script_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
-      self.script_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.ui.update_script_max_scroll(total_lines, visible_lines);
    }
+
+   // ===== Grouping and sorting methods =====
 
    /// Cycle to the next group mode
    pub fn cycle_group_mode(&mut self) {
-      self.group_mode = match self.group_mode {
-         GroupMode::None => GroupMode::Aliases,
-         GroupMode::Aliases => GroupMode::Functions,
-         GroupMode::Functions => GroupMode::None,
-      };
+      self.filter.cycle_group_mode();
       self.update_visible_entries();
    }
 
    /// Cycle to the previous group mode
    pub fn cycle_group_mode_backward(&mut self) {
-      self.group_mode = match self.group_mode {
-         GroupMode::None => GroupMode::Functions,
-         GroupMode::Functions => GroupMode::Aliases,
-         GroupMode::Aliases => GroupMode::None,
-      };
+      self.filter.cycle_group_mode_backward();
       self.update_visible_entries();
    }
 
    /// Toggle sort order
    pub fn toggle_sort_order(&mut self) {
-      self.sort_order = match self.sort_order {
-         SortOrder::Ascending => SortOrder::Descending,
-         SortOrder::Descending => SortOrder::Ascending,
-      };
+      self.filter.toggle_sort_order();
       self.update_visible_entries();
    }
 
+   // ===== Pending key methods =====
+
    /// Check if pending key has timed out (2 seconds)
    pub fn is_pending_key_expired(&self) -> bool {
-      if let (Some(_), Some(time)) = (self.pending_key, self.pending_key_time) {
-         time.elapsed() > std::time::Duration::from_secs(2)
-      } else {
-         false
-      }
+      self.input.is_pending_key_expired()
    }
 
    /// Clear pending key state
    pub fn clear_pending_key(&mut self) {
-      self.pending_key = None;
-      self.pending_key_time = None;
+      self.input.clear_pending_key();
    }
 
    /// Set pending key with timestamp
    pub fn set_pending_key(&mut self, key: char) {
-      self.pending_key = Some(key);
-      self.pending_key_time = Some(Instant::now());
+      self.input.set_pending_key(key);
    }
+
+   // ===== Application lifecycle =====
 
    /// Update application state (called each tick)
    pub fn tick(&mut self) {
       // Check and clear expired pending keys
-      if self.is_pending_key_expired() {
-         self.clear_pending_key();
+      if self.input.is_pending_key_expired() {
+         self.input.clear_pending_key();
       }
    }
 }

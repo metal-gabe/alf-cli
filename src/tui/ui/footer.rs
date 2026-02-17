@@ -8,25 +8,26 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
-use crate::tui::app::{App, GroupMode, SortOrder};
+use crate::tui::app::App;
+use crate::tui::state::{GroupMode, SortOrder};
 
 /// Draw the footer bar with help text
 pub fn draw_footer(frame: &mut Frame, app: &App, area: Rect) {
    // Format group mode
-   let group_text = match app.group_mode {
+   let group_text = match app.group_mode() {
       GroupMode::None => "none",
       GroupMode::Aliases => "aliases",
       GroupMode::Functions => "functions",
    };
 
    // Format sort order
-   let sort_text = match app.sort_order {
+   let sort_text = match app.sort_order() {
       SortOrder::Ascending => "asc",
       SortOrder::Descending => "desc",
    };
 
    // Show pending key indicator or default help text
-   let right_text = if let Some(pending) = app.pending_key {
+   let right_text = if let Some(pending) = app.pending_key() {
       match pending {
          'g' => "Waiting: g (go to top) ",
          'o' => "Waiting: g (group), G (back), s (sort) ",

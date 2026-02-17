@@ -8,11 +8,12 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
-use crate::tui::app::{App, EntryFilter, InputMode};
+use crate::tui::app::App;
+use crate::tui::state::{EntryFilter, InputMode};
 
 /// Draw the header bar with filter badges, mode indicator, and shell indicator
 pub fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
-   let filter_color: Color = match app.filter {
+   let filter_color: Color = match app.filter() {
       EntryFilter::Aliases => Color::Rgb(253, 90, 30),
       EntryFilter::All => Color::Rgb(220, 220, 220),
       EntryFilter::Functions => Color::Rgb(0, 199, 255),
@@ -23,15 +24,15 @@ pub fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
    // Build the left side: filter badges
    let badges = vec![
       Span::styled("FILTERS: ", Style::default().bold()),
-      Span::styled(" & ", if matches!(app.filter, EntryFilter::Aliases) { badge_style } else { Style::default() }),
+      Span::styled(" & ", if matches!(app.filter(), EntryFilter::Aliases) { badge_style } else { Style::default() }),
       Span::raw(" "),
-      Span::styled(" f ", if matches!(app.filter, EntryFilter::Functions) { badge_style } else { Style::default() }),
+      Span::styled(" f ", if matches!(app.filter(), EntryFilter::Functions) { badge_style } else { Style::default() }),
       Span::raw(" "),
-      Span::styled(" * ", if matches!(app.filter, EntryFilter::All) { badge_style } else { Style::default() }),
+      Span::styled(" * ", if matches!(app.filter(), EntryFilter::All) { badge_style } else { Style::default() }),
    ];
 
    // Build the middle: mode indicator
-   let (mode_text, mode_color) = match app.input_mode {
+   let (mode_text, mode_color) = match app.input_mode() {
       InputMode::Normal => ("NORMAL", Color::Rgb(144, 238, 144)), // Light green
       InputMode::Search => ("-- SEARCH --", Color::Rgb(255, 200, 100)), // Light orange
    };
