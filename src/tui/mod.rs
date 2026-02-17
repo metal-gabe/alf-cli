@@ -32,9 +32,10 @@ pub fn run() -> Result<()> {
    let backend = CrosstermBackend::new(stdout);
    let mut terminal = Terminal::new(backend)?;
 
-   // Create app with mock data
-   let entries = mock::mock_entries();
-   let mut app = App::new(entries);
+    // Create app with mock data and default theme
+    let entries = mock::mock_entries();
+    let theme = Theme::default_theme();
+    let mut app = App::new(entries, theme);
 
    // Create event handler (tick every 250ms)
    let event_handler = EventHandler::new(Duration::from_millis(250));

@@ -10,14 +10,14 @@ use ratatui::Frame;
 
 use crate::tui::app::App;
 use crate::tui::state::Panel;
+use crate::tui::themes::Theme;
 
-use super::super::colors::*;
 use super::super::components::{active_style, panel_block, render_scrollbar};
 
 /// Draw the right-top panel: comments/description
-pub fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
+pub fn draw_description_panel(frame: &mut Frame, app: &mut App, theme: &Theme, area: Rect) {
    let is_active = app.active_panel() == Panel::Description;
-   let block = panel_block("[ Description ]", is_active, &app.filter());
+   let block = panel_block("[ Description ]", is_active, &app.filter(), theme);
 
    let description_text = match app.selected_entry() {
       Some(entry) => match &entry.comments {
@@ -43,5 +43,5 @@ pub fn draw_description_panel(frame: &mut Frame, app: &mut App, area: Rect) {
    frame.render_widget(paragraph, area);
 
    // Render scrollbar
-   render_scrollbar(frame, inner_area, total_lines, visible_lines, app.description_scroll_offset(), COLOR_SCROLLBAR);
+   render_scrollbar(frame, inner_area, total_lines, visible_lines, app.description_scroll_offset(), theme.border);
 }
