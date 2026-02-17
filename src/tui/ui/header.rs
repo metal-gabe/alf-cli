@@ -54,7 +54,7 @@ pub fn draw_header(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
 
    // Calculate padding to center the mode and right-align the shell
    let total_width = area.width as usize;
-   let left_padding = if total_width > badges_width + mode_width {
+   let left_padding = if total_width > badges_width + mode_width + shell_width {
       (total_width - badges_width - mode_width - shell_width) / 2
    } else {
       1

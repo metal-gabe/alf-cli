@@ -365,6 +365,28 @@ impl App {
       }
    }
 
+   // ===== Theme cycling methods =====
+
+   /// Cycle to the next theme in alphabetical order (wraps around)
+   pub fn cycle_theme_next(&mut self) {
+      let themes = Theme::available_themes();
+      let current = themes.iter().position(|n| n == &self.theme.name).unwrap_or(0);
+      let next = (current + 1) % themes.len();
+      if let Some(t) = Theme::from_name(&themes[next]) {
+         self.theme = t;
+      }
+   }
+
+   /// Cycle to the previous theme in alphabetical order (wraps around)
+   pub fn cycle_theme_prev(&mut self) {
+      let themes = Theme::available_themes();
+      let current = themes.iter().position(|n| n == &self.theme.name).unwrap_or(0);
+      let prev = (current + themes.len() - 1) % themes.len();
+      if let Some(t) = Theme::from_name(&themes[prev]) {
+         self.theme = t;
+      }
+   }
+
    // ===== Theme accessor =====
 
    /// Get reference to the current theme

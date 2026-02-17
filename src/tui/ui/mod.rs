@@ -61,7 +61,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
    draw_header(frame, app, &theme, outer_chunks[0]);
    draw_search_bar(frame, app, outer_chunks[1]);
    draw_main_body(frame, app, &theme, outer_chunks[2]);
-   draw_footer(frame, app, outer_chunks[3]);
+   draw_footer(frame, app, &theme, outer_chunks[3]);
 
    // Draw help modal overlay if active (must be last to overlay everything)
    if app.show_help() {
