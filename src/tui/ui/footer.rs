@@ -42,7 +42,6 @@ pub fn draw_footer(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
    // Build the middle: theme display
    let theme_label = "THEME: ";
    let theme_display_name = theme.display_name.as_str();
-   let theme_center_width = theme_label.len() + theme_display_name.len();
 
    // Build left side with bold labels
    let left_spans = vec![
@@ -53,21 +52,23 @@ pub fn draw_footer(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
       Span::raw(sort_text),
    ];
 
-   // Calculate widths for centering theme between left and right
+   // Calculate width for left section
    let left_width: usize = left_spans.iter().map(|s| s.width()).sum();
-   let right_width = right_text.len();
    let total_width = area.width as usize;
 
-   let left_padding = if total_width > left_width + theme_center_width + right_width {
-      (total_width - left_width - theme_center_width - right_width) / 2
-   } else {
-      1
-   };
-   let right_padding = if total_width > left_width + left_padding + theme_center_width + right_width {
-      total_width - left_width - left_padding - theme_center_width - right_width
-   } else {
-      1
-   };
+   // Calculate the theme section width
+   let theme_width = theme_label.len() + theme_display_name.len();
+
+   // Center the theme display based only on left width and total width
+   // This ensures it stays centered regardless of right text changes
+   let center_point = total_width / 2;
+   let theme_start = center_point.saturating_sub(theme_width / 2);
+   let left_padding = theme_start.saturating_sub(left_width);
+
+   // Calculate right padding: fill remaining space up to where right text starts
+   let right_section_start = theme_start + theme_width;
+   let right_padding =
+      if right_section_start < total_width { total_width - right_section_start - right_text.len() } else { 1 };
 
    let mut footer_spans = left_spans;
    footer_spans.push(Span::raw(" ".repeat(left_padding)));
