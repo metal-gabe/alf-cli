@@ -3,23 +3,24 @@
 //! Draws the top bar with filter badges, mode indicator, and shell indicator.
 
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style, Stylize};
+use ratatui::style::{Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
+use super::colors::*;
 use crate::tui::app::App;
 use crate::tui::state::{EntryFilter, InputMode};
 
 /// Draw the header bar with filter badges, mode indicator, and shell indicator
 pub fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
-   let filter_color: Color = match app.filter() {
-      EntryFilter::Aliases => Color::Rgb(253, 90, 30),
-      EntryFilter::All => Color::Rgb(220, 220, 220),
-      EntryFilter::Functions => Color::Rgb(0, 199, 255),
+   let filter_color = match app.filter() {
+      EntryFilter::Aliases => COLOR_ALIAS,
+      EntryFilter::All => COLOR_TEXT_ACTIVE,
+      EntryFilter::Functions => COLOR_FUNCTION,
    };
 
-   let badge_style = Style::default().fg(Color::Rgb(17, 17, 17)).bg(filter_color).bold();
+   let badge_style = Style::default().fg(COLOR_BACKGROUND).bg(filter_color).bold();
 
    // Build the left side: filter badges
    let badges = vec![
@@ -33,8 +34,8 @@ pub fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    // Build the middle: mode indicator
    let (mode_text, mode_color) = match app.input_mode() {
-      InputMode::Normal => ("NORMAL", Color::Rgb(144, 238, 144)), // Light green
-      InputMode::Search => ("-- SEARCH --", Color::Rgb(255, 200, 100)), // Light orange
+      InputMode::Normal => ("NORMAL", COLOR_MODE_NORMAL),
+      InputMode::Search => ("-- SEARCH --", COLOR_MODE_SEARCH),
    };
    let mode_span = Span::styled(mode_text, Style::default().fg(mode_color));
 

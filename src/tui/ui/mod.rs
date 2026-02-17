@@ -6,25 +6,28 @@
 //! - Main body: left list panel + right detail panels (description + script)
 //! - Footer bar with help text
 
-mod body;
+pub mod body;
+mod colors;
+mod components;
 mod footer;
 mod header;
 mod help;
 mod search;
 
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::style::{Modifier, Style, Stylize};
 use ratatui::widgets::Block;
 use ratatui::Frame;
 
 use crate::tui::app::App;
 use crate::tui::state::{EntryFilter, InputMode};
+use colors::*;
 
 /// Get the border style for the current filter
-pub(self) fn get_border_style(filter: &EntryFilter) -> Style {
+pub(super) fn get_border_style(filter: &EntryFilter) -> Style {
    match filter {
-      EntryFilter::Aliases => Style::default().fg(Color::Rgb(253, 90, 30)).add_modifier(Modifier::BOLD),
-      EntryFilter::Functions => Style::default().fg(Color::Rgb(0, 199, 255)).add_modifier(Modifier::BOLD),
+      EntryFilter::Aliases => Style::default().fg(COLOR_ALIAS).add_modifier(Modifier::BOLD),
+      EntryFilter::Functions => Style::default().fg(COLOR_FUNCTION).add_modifier(Modifier::BOLD),
       _ => Style::default().white().add_modifier(Modifier::BOLD),
    }
 }
@@ -39,7 +42,7 @@ pub use search::draw_search_bar;
 /// Draw the complete TUI interface
 pub fn draw(frame: &mut Frame, app: &mut App) {
    // Apply global background color to entire TUI
-   let background = Block::default().style(Style::default().bg(Color::Rgb(17, 17, 17)));
+   let background = Block::default().style(Style::default().bg(COLOR_BACKGROUND));
    frame.render_widget(background, frame.area());
 
    // Top-level vertical layout
