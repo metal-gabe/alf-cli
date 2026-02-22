@@ -41,3 +41,8 @@ lto = true
 codegen-units = 1
 strip = true
 opt-level = 3
+
+[profile.dev-release]
+inherits = "release"
+lto = false
+codegen-units = 16

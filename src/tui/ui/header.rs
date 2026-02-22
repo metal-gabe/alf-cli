@@ -25,9 +25,9 @@ pub fn draw_header(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
    // Build the left side: filter badges
    let badges = vec![
       Span::styled("FILTERS: ", Style::default().bold()),
-      Span::styled(" & ", if matches!(app.filter(), EntryFilter::Aliases) { badge_style } else { Style::default() }),
+      Span::styled(" @ ", if matches!(app.filter(), EntryFilter::Aliases) { badge_style } else { Style::default() }),
       Span::raw(" "),
-      Span::styled(" f ", if matches!(app.filter(), EntryFilter::Functions) { badge_style } else { Style::default() }),
+      Span::styled(" ƒ ", if matches!(app.filter(), EntryFilter::Functions) { badge_style } else { Style::default() }),
       Span::raw(" "),
       Span::styled(" * ", if matches!(app.filter(), EntryFilter::All) { badge_style } else { Style::default() }),
    ];

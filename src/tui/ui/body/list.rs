@@ -83,7 +83,7 @@ pub fn draw_entry_list(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) 
          let entry = &app.entries()[idx];
          let badge = match entry.entry_type {
             EntryType::Alias => Span::styled(
-               "[&] ",
+               "[@] ",
                if is_active {
                   Style::default().fg(theme.alias_color)
                } else {
@@ -91,7 +91,7 @@ pub fn draw_entry_list(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) 
                },
             ),
             EntryType::Function => Span::styled(
-               "[f] ",
+               "[ƒ] ",
                if is_active {
                   Style::default().fg(theme.function_color)
                } else {
