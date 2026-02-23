@@ -53,7 +53,7 @@ pub fn draw_entry_list(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) 
    // Draw header row: "Name" on left (aligned with entry names after badge), "File Source" on right
    let header_left_prefix = "  "; // 4 spaces to align with entry names after "[&] "
    let header_left = "Name";
-   let header_right = "Source File";
+   let header_right = "Source";
 
    // Calculate padding: total width - prefix - "Name" - "File Source"
    let header_content_width = header_left_prefix.len() + header_left.len() + header_right.len();

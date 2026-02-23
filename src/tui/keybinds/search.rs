@@ -29,7 +29,7 @@ pub fn handle_search_mode(app: &mut App, key: KeyEvent) {
       // Enter is reserved for future use
       KeyCode::Enter => {}
       // Tab is reserved for future use
-      KeyCode::Tab=> {}
+      KeyCode::Tab => {}
 
       _ => {}
    }
