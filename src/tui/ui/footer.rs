@@ -67,8 +67,7 @@ pub fn draw_footer(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
 
    // Calculate right padding: fill remaining space up to where right text starts
    let right_section_start = theme_start + theme_width;
-   let right_padding =
-      if right_section_start < total_width { total_width - right_section_start - right_text.len() } else { 1 };
+   let right_padding = (total_width).saturating_sub(right_section_start).saturating_sub(right_text.len()).max(1);
 
    let mut footer_spans = left_spans;
    footer_spans.push(Span::raw(" ".repeat(left_padding)));
