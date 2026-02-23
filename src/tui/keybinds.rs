@@ -117,6 +117,11 @@ fn handle_normal_mode(app: &mut App, key: KeyEvent) {
          app.set_pending_key('o');
       }
 
+      // Start of 'tj', 'tk' sequences
+      KeyCode::Char('t') => {
+         app.set_pending_key('t');
+      }
+
       // Enter search mode
       KeyCode::Char('/') => app.enter_search_mode(),
 
@@ -171,6 +176,20 @@ fn handle_pending_key(app: &mut App, pending: char, key: KeyEvent) {
       // 'os' sequence - toggle sort order
       ('o', KeyCode::Char('s')) => {
          app.toggle_sort_order();
+         app.clear_pending_key();
+         true
+      }
+
+      // 'tj' sequence - cycle to next theme
+      ('t', KeyCode::Char('j')) => {
+         app.cycle_theme_next();
+         app.clear_pending_key();
+         true
+      }
+
+      // 'tk' sequence - cycle to previous theme
+      ('t', KeyCode::Char('k')) => {
+         app.cycle_theme_prev();
          app.clear_pending_key();
          true
       }

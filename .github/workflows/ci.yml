@@ -1,33 +1,34 @@
 name: CI
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+   push:
+      branches: [ main, develop ]
+   pull_request:
+      branches: [ main ]
 
 jobs:
-  test:
-    name: Test Suite
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: ['1.74.0', stable]
-    steps:
-      - name: Echo test job
-        run: echo "Running tests on ${{ matrix.os }} with Rust ${{ matrix.rust }}"
+   test:
+      name: Test Suite
+      runs-on: ${{ matrix.os }}
+      strategy:
+         matrix:
+#            os: [ ubuntu-latest, windows-latest, macos-latest ]
+            os: [ ubuntu-latest ]
+            rust: [ '1.93.1', stable ]
+      steps:
+         -  name: Echo test job
+            run: echo "Running tests on ${{ matrix.os }} with Rust ${{ matrix.rust }}"
 
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - name: Echo fmt job
-        run: echo "Running rustfmt check"
+   fmt:
+      name: Rustfmt
+      runs-on: ubuntu-latest
+      steps:
+         -  name: Echo fmt job
+            run: echo "Running rustfmt check"
 
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Echo clippy job
-        run: echo "Running clippy lints"
+   clippy:
+      name: Clippy
+      runs-on: ubuntu-latest
+      steps:
+         -  name: Echo clippy job
+            run: echo "Running clippy lints"

@@ -11,14 +11,14 @@ use ratatui::Frame;
 use crate::models::EntryType;
 use crate::tui::app::App;
 use crate::tui::state::Panel;
+use crate::tui::themes::Theme;
 
-use super::super::colors::*;
 use super::super::components::{active_style, panel_block};
 
 /// Draw the left panel: list of aliases/functions
-pub fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
+pub fn draw_entry_list(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
    let is_active = app.active_panel() == Panel::List;
-   let block = panel_block("[ Entries ]", is_active, &app.filter());
+   let block = panel_block("[ Entries ]", is_active, &app.filter(), theme);
 
    // Check if we have no results after a search
    if app.visible_indices().is_empty() && !app.search_query().is_empty() {
@@ -83,19 +83,19 @@ pub fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
          let entry = &app.entries()[idx];
          let badge = match entry.entry_type {
             EntryType::Alias => Span::styled(
-               "[&] ",
+               "[@] ",
                if is_active {
-                  Style::default().fg(COLOR_ALIAS)
+                  Style::default().fg(theme.alias_color)
                } else {
-                  Style::default().fg(COLOR_ALIAS).add_modifier(Modifier::DIM)
+                  Style::default().fg(theme.alias_color).add_modifier(Modifier::DIM)
                },
             ),
             EntryType::Function => Span::styled(
-               "[f] ",
+               "[ƒ] ",
                if is_active {
-                  Style::default().fg(COLOR_FUNCTION)
+                  Style::default().fg(theme.function_color)
                } else {
-                  Style::default().fg(COLOR_FUNCTION).add_modifier(Modifier::DIM)
+                  Style::default().fg(theme.function_color).add_modifier(Modifier::DIM)
                },
             ),
          };
@@ -124,7 +124,7 @@ pub fn draw_entry_list(frame: &mut Frame, app: &App, area: Rect) {
       .collect();
 
    let list = List::new(items)
-      .highlight_style(Style::default().fg(COLOR_TEXT_ACTIVE).bg(COLOR_SELECTION_BG).bold())
+      .highlight_style(Style::default().fg(theme.foreground).bg(theme.selection).bold())
       .highlight_symbol("▸ ");
 
    let mut list_state = ListState::default();

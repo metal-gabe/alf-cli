@@ -8,34 +8,34 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
-use super::colors::*;
 use crate::tui::app::App;
 use crate::tui::state::{EntryFilter, InputMode};
+use crate::tui::themes::Theme;
 
 /// Draw the header bar with filter badges, mode indicator, and shell indicator
-pub fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
+pub fn draw_header(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
    let filter_color = match app.filter() {
-      EntryFilter::Aliases => COLOR_ALIAS,
-      EntryFilter::All => COLOR_TEXT_ACTIVE,
-      EntryFilter::Functions => COLOR_FUNCTION,
+      EntryFilter::Aliases => theme.alias_color,
+      EntryFilter::All => theme.foreground,
+      EntryFilter::Functions => theme.function_color,
    };
 
-   let badge_style = Style::default().fg(COLOR_BACKGROUND).bg(filter_color).bold();
+   let badge_style = Style::default().fg(theme.background).bg(filter_color).bold();
 
    // Build the left side: filter badges
    let badges = vec![
       Span::styled("FILTERS: ", Style::default().bold()),
-      Span::styled(" & ", if matches!(app.filter(), EntryFilter::Aliases) { badge_style } else { Style::default() }),
+      Span::styled(" @ ", if matches!(app.filter(), EntryFilter::Aliases) { badge_style } else { Style::default() }),
       Span::raw(" "),
-      Span::styled(" f ", if matches!(app.filter(), EntryFilter::Functions) { badge_style } else { Style::default() }),
+      Span::styled(" ƒ ", if matches!(app.filter(), EntryFilter::Functions) { badge_style } else { Style::default() }),
       Span::raw(" "),
       Span::styled(" * ", if matches!(app.filter(), EntryFilter::All) { badge_style } else { Style::default() }),
    ];
 
    // Build the middle: mode indicator
    let (mode_text, mode_color) = match app.input_mode() {
-      InputMode::Normal => ("NORMAL", COLOR_MODE_NORMAL),
-      InputMode::Search => ("-- SEARCH --", COLOR_MODE_SEARCH),
+      InputMode::Normal => ("NORMAL", theme.mode_normal_color),
+      InputMode::Search => ("-- SEARCH --", theme.highlight),
    };
    let mode_span = Span::styled(mode_text, Style::default().fg(mode_color));
 
@@ -54,7 +54,7 @@ pub fn draw_header(frame: &mut Frame, app: &App, area: Rect) {
 
    // Calculate padding to center the mode and right-align the shell
    let total_width = area.width as usize;
-   let left_padding = if total_width > badges_width + mode_width {
+   let left_padding = if total_width > badges_width + mode_width + shell_width {
       (total_width - badges_width - mode_width - shell_width) / 2
    } else {
       1

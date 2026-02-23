@@ -7,7 +7,6 @@
 //! - Footer bar with help text
 
 pub mod body;
-mod colors;
 mod components;
 mod footer;
 mod header;
@@ -21,13 +20,13 @@ use ratatui::Frame;
 
 use crate::tui::app::App;
 use crate::tui::state::{EntryFilter, InputMode};
-use colors::*;
+use crate::tui::themes::Theme;
 
 /// Get the border style for the current filter
-pub(super) fn get_border_style(filter: &EntryFilter) -> Style {
+pub(super) fn get_border_style(filter: &EntryFilter, theme: &Theme) -> Style {
    match filter {
-      EntryFilter::Aliases => Style::default().fg(COLOR_ALIAS).add_modifier(Modifier::BOLD),
-      EntryFilter::Functions => Style::default().fg(COLOR_FUNCTION).add_modifier(Modifier::BOLD),
+      EntryFilter::Aliases => Style::default().fg(theme.alias_color).add_modifier(Modifier::BOLD),
+      EntryFilter::Functions => Style::default().fg(theme.function_color).add_modifier(Modifier::BOLD),
       _ => Style::default().white().add_modifier(Modifier::BOLD),
    }
 }
@@ -41,8 +40,11 @@ pub use search::draw_search_bar;
 
 /// Draw the complete TUI interface
 pub fn draw(frame: &mut Frame, app: &mut App) {
+   // Get theme for this render pass
+   let theme = app.theme().clone();
+
    // Apply global background color to entire TUI
-   let background = Block::default().style(Style::default().bg(COLOR_BACKGROUND));
+   let background = Block::default().style(Style::default().bg(theme.background));
    frame.render_widget(background, frame.area());
 
    // Top-level vertical layout
@@ -56,14 +58,14 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
       ])
       .split(frame.area());
 
-   draw_header(frame, app, outer_chunks[0]);
+   draw_header(frame, app, &theme, outer_chunks[0]);
    draw_search_bar(frame, app, outer_chunks[1]);
-   draw_main_body(frame, app, outer_chunks[2]);
-   draw_footer(frame, app, outer_chunks[3]);
+   draw_main_body(frame, app, &theme, outer_chunks[2]);
+   draw_footer(frame, app, &theme, outer_chunks[3]);
 
    // Draw help modal overlay if active (must be last to overlay everything)
    if app.show_help() {
-      draw_help_modal(frame, app);
+      draw_help_modal(frame, app, &theme);
    }
 
    // Place cursor in search bar when in search mode (and help is not showing)

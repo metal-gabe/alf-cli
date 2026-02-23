@@ -1,17 +1,18 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+   push:
+      tags:
+         - 'v*'
 
 jobs:
-  build:
-    name: Build Release Binaries
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    steps:
-      - name: Echo build job
-        run: echo "Building release binary for ${{ matrix.os }}"
+   build:
+      name: Build Release Binaries
+      runs-on: ${{ matrix.os }}
+      strategy:
+         matrix:
+#            os: [ ubuntu-latest, windows-latest, macos-latest ]
+            os: [ ubuntu-latest ]
+      steps:
+         -  name: Echo build job
+            run: echo "Building release binary for ${{ matrix.os }}"

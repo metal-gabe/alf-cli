@@ -1,5 +1,6 @@
 //! Application state management for the TUI.
 
+use super::themes::Theme;
 use crate::models::AliasEntry;
 
 // Import all state modules
@@ -22,13 +23,15 @@ pub struct App {
    navigation: NavigationState,
    /// Filter/grouping/sorting state
    filter: FilterState,
+   /// Color theme
+   theme: Theme,
    /// Flag to signal application should quit
    pub should_quit: bool,
 }
 
 impl App {
-   /// Create a new App instance with the given entries
-   pub fn new(entries: Vec<AliasEntry>) -> Self {
+   /// Create a new App instance with the given entries and theme
+   pub fn new(entries: Vec<AliasEntry>, theme: Theme) -> Self {
       let mut app = Self {
          data: EntryData::new(entries),
          search: SearchState::new(),
@@ -36,6 +39,7 @@ impl App {
          input: InputState::default(),
          navigation: NavigationState::default(),
          filter: FilterState::default(),
+         theme,
          should_quit: false,
       };
 
@@ -359,5 +363,34 @@ impl App {
       if self.input.is_pending_key_expired() {
          self.input.clear_pending_key();
       }
+   }
+
+   // ===== Theme cycling methods =====
+
+   /// Cycle to the next theme in alphabetical order (wraps around)
+   pub fn cycle_theme_next(&mut self) {
+      let themes = Theme::available_themes();
+      let current = themes.iter().position(|n| n == &self.theme.name).unwrap_or(0);
+      let next = (current + 1) % themes.len();
+      if let Some(t) = Theme::from_name(&themes[next]) {
+         self.theme = t;
+      }
+   }
+
+   /// Cycle to the previous theme in alphabetical order (wraps around)
+   pub fn cycle_theme_prev(&mut self) {
+      let themes = Theme::available_themes();
+      let current = themes.iter().position(|n| n == &self.theme.name).unwrap_or(0);
+      let prev = (current + themes.len() - 1) % themes.len();
+      if let Some(t) = Theme::from_name(&themes[prev]) {
+         self.theme = t;
+      }
+   }
+
+   // ===== Theme accessor =====
+
+   /// Get reference to the current theme
+   pub fn theme(&self) -> &Theme {
+      &self.theme
    }
 }

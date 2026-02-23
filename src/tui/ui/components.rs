@@ -10,9 +10,9 @@ use ratatui::{
    Frame,
 };
 
-use super::colors::*;
 use super::get_border_style;
 use crate::tui::state::EntryFilter;
+use crate::tui::themes::Theme;
 
 /// Build a standard panel block with borders, title, and active/inactive styling.
 ///
@@ -20,12 +20,13 @@ use crate::tui::state::EntryFilter;
 /// * `title` - The title text to display (e.g., "[ Entries ]")
 /// * `is_active` - Whether this panel is currently active
 /// * `filter` - The current entry filter for border color styling
-pub fn panel_block<'a>(title: &'a str, is_active: bool, filter: &EntryFilter) -> Block<'a> {
+/// * `theme` - The current theme for color selection
+pub fn panel_block<'a>(title: &'a str, is_active: bool, filter: &EntryFilter, theme: &Theme) -> Block<'a> {
    Block::default()
       .borders(Borders::ALL)
-      .title(Span::styled(title, if is_active { Style::default().fg(COLOR_TEXT_ACTIVE) } else { Style::default() }))
+      .title(Span::styled(title, if is_active { Style::default().fg(theme.foreground) } else { Style::default() }))
       .border_type(if is_active { BorderType::Double } else { BorderType::Plain })
-      .border_style(if is_active { get_border_style(filter) } else { Style::default() })
+      .border_style(if is_active { get_border_style(filter, theme) } else { Style::default() })
 }
 
 /// Render a vertical scrollbar if content overflows the visible area.
