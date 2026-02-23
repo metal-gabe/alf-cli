@@ -81,6 +81,11 @@ pub fn handle_normal_mode(app: &mut App, key: KeyEvent) {
       KeyCode::Char('2') => app.set_filter(EntryFilter::Functions),
       KeyCode::Char('3') => app.set_filter(EntryFilter::All),
 
+      // Enter is reserved for future use
+      KeyCode::Enter => {}
+      // Tab is reserved for future use
+      KeyCode::Tab=> {}
+
       _ => {}
    }
 }
