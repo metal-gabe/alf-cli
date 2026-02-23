@@ -87,6 +87,10 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from("  shift-h        Cycle filters backward while in search mode"),
       Line::from("  shift-l        Cycle filters forward while in search mode"),
       Line::from(""),
+      Line::from(vec![Span::styled("THEMES", Style::default().bold().fg(theme.alias_color))]),
+      Line::from("  tj             Cycle to next theme"),
+      Line::from("  tk             Cycle to previous theme"),
+      Line::from(""),
       Line::from(vec![Span::styled("QUIT", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  q              Quit application (normal mode only)"),
       Line::from("  ctrl-c         Force quit (works in any mode, including search and help)"),
@@ -100,7 +104,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from("  • Search is case-insensitive (uppercase letters auto-convert to lowercase)"),
       Line::from("  • Two-key sequences (gg, og, etc.) show hints in footer while waiting"),
       Line::from("  • Active panel is indicated by double-line border"),
-      Line::from("  • Group mode: 'aliases' shows aliases first, 'functions' shows functions first"),
+      Line::from("  • Group mode: '@' shows aliases first, 'ƒ' shows functions first"),
       Line::from(""),
    ];
 
