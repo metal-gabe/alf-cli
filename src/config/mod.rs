@@ -2,6 +2,7 @@
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::path::PathBuf;
 
 /// Main configuration structure
@@ -85,28 +86,41 @@ impl Default for Config {
 
 /// Get the platform-specific configuration file path
 ///
-/// - Linux: `~/.config/alf/config.toml`
-/// - macOS: `~/.config/alf/config.toml`
+/// - Linux/macOS: `~/.config/alf/config.toml`
 /// - Windows: `%APPDATA%\alf\config.toml`
 pub fn get_config_path() -> Result<PathBuf> {
-   // TODO: Implement using directories crate
-   todo!("Implement config path resolution")
+   let home = std::env::var("HOME")
+      .or_else(|_| std::env::var("USERPROFILE")) // Windows fallback
+      .unwrap_or_else(|_| ".".to_string());
+
+   let config_dir = PathBuf::from(home).join(".config").join("alf");
+   Ok(config_dir.join("config.toml"))
 }
 
 /// Load configuration from disk
 pub fn load_config() -> Result<Config> {
-   // TODO: Implement config loading
-   todo!("Implement config loading")
+   let path = get_config_path()?;
+   let content = fs::read_to_string(&path)?;
+   let config: Config = toml::from_str(&content)?;
+   Ok(config)
 }
 
 /// Save configuration to disk
-pub fn save_config(_config: &Config) -> Result<()> {
-   // TODO: Implement config saving
-   todo!("Implement config saving")
+pub fn save_config(config: &Config) -> Result<()> {
+   let path = get_config_path()?;
+
+   // Create the config directory if it doesn't exist
+   if let Some(parent) = path.parent() {
+      fs::create_dir_all(parent)?;
+   }
+
+   let content = toml::to_string_pretty(config)?;
+   fs::write(&path, content)?;
+   Ok(())
 }
 
 /// Check if this is the first run (config doesn't exist)
 pub fn is_first_run() -> Result<bool> {
-   // TODO: Implement first-run detection
-   todo!("Implement first-run detection")
+   let path = get_config_path()?;
+   Ok(!path.exists())
 }

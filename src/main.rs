@@ -7,18 +7,16 @@ fn main() -> Result<()> {
    let cli = Cli::parse();
 
    match cli.command {
-      Some(Commands::Search) | None => {
-         alf::tui::run()
+      Some(Commands::Search { query }) => {
+         if query.is_none() {
+            eprintln!("Error: search query required");
+            eprintln!("Usage: alf search <QUERY>");
+            std::process::exit(1);
+         }
+         alf::tui::run(query)
       }
-      Some(Commands::Init) => {
-         println!("Running first-time configuration...");
-         // TODO: Run init wizard
-         todo!("Implement init wizard")
-      }
-      Some(Commands::Config { action }) => {
-         println!("Config command: {:?}", action);
-         // TODO: Handle config subcommands
-         todo!("Implement config commands")
-      }
+      None => alf::tui::run(None),
+      Some(Commands::Init) => alf::cli::init::run_init_wizard(),
+      Some(Commands::Config { action }) => alf::cli::config_cmd::run_config_action(action),
    }
 }

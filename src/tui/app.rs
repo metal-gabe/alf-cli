@@ -1,4 +1,4 @@
-//! Application state management for the TUI.
+//n! Application state management for the TUI.
 
 use super::themes::Theme;
 use crate::models::AliasEntry;
@@ -251,6 +251,12 @@ impl App {
    /// Clear the search query without changing mode
    pub fn clear_search(&mut self) {
       self.search.clear();
+      self.update_visible_entries();
+   }
+
+   /// Set the search query directly and update visible entries
+   pub fn set_search_query(&mut self, query: String) {
+      self.search.set_query(query);
       self.update_visible_entries();
    }
 
