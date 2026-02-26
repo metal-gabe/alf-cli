@@ -67,12 +67,8 @@ pub fn fuzzy_search(entries: &[AliasEntry], query: &str, opts: &SearchOptions) -
 
 /// Create and configure a nucleo Matcher based on search options
 fn create_matcher(_opts: &SearchOptions) -> Matcher {
-   let config = Config::DEFAULT;
-   let matcher = Matcher::new(config);
-
    // Note: nucleo-matcher has limited API for case matching configuration
    // The default Smart case matching should work well for most users
    // Future versions may expose more configurability
-
-   matcher
+   Matcher::new(Config::DEFAULT)
 }
