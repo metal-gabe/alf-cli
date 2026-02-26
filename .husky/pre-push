@@ -1,0 +1,13 @@
+#!/bin/sh
+[ "$HUSKY" = "0" ] && exit 0
+
+EXIT_CODE=0
+
+echo '=====[ Running the `TYPE:CHECK` script... ]=====';
+cargo check || EXIT_CODE=$?
+
+echo '=====[ Running the `TEST` script... ]=====';
+cargo test --quiet || EXIT_CODE=$?;
+
+echo "The \`pre-push\` script has completed. Exiting with a code of ${EXIT_CODE}"
+exit $EXIT_CODE

@@ -8,9 +8,14 @@ use crate::tui::app::App;
 /// Returns true if a global keybind was handled.
 pub fn handle_global_keybinds(app: &mut App, key: &KeyEvent) -> bool {
    match key.code {
-      // Clear search (Ctrl-u)
+      // Scroll down (Ctrl-d, same as Ctrl-j)
+      KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+         app.scroll_down(10);
+         true
+      }
+      // Scroll up (Ctrl-u, same as Ctrl-k)
       KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-         app.clear_search();
+         app.scroll_up(10);
          true
       }
       _ => false,
