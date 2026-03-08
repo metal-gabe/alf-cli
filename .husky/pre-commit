@@ -7,14 +7,14 @@ echo "=====[ Running the \`SECRETS:CHECK\` script... ]=====";
 #ggshield secret scan path . --recursive --yes || EXIT_CODE=$?;
 
 echo "=====[ Running the \`LINT\` script... ]=====";
-#cargo clippy --all-targets --all-features -- -D warnings || EXIT_CODE=$?;
-#cargo clippy || EXIT_CODE=$?;
-#cargo fmt --check || EXIT_CODE=$?;
+cargo clippy --all-targets --all-features -- -D warnings || EXIT_CODE=$?;
+cargo clippy || EXIT_CODE=$?;
+cargo fmt --check || EXIT_CODE=$?;
 
 # this doesn't/shouldn't work because `madge` is intended for JS/TS,
 # but keeping it around for reference until I can find the proper alternative
 echo "=====[ Running the \`CIRC:CHECK\` script... ]=====";
-#madge --circular . || EXIT_CODE=$?;
+madge --circular . || EXIT_CODE=$?;
 
 echo "The \`pre-commit\` script has completed. Exiting with a code of ${EXIT_CODE}";
 exit $EXIT_CODE;
