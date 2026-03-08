@@ -85,8 +85,7 @@ fn test_case_sensitive_search() {
       create_test_entry("myalias", EntryType::Alias, "another command", None),
    ];
 
-   let mut options = SearchOptions::default();
-   options.case_matching = CaseMatching::Respect;
+   let options = SearchOptions { case_matching: CaseMatching::Respect, ..Default::default() };
 
    let results = fuzzy_search(&entries, "My", &options);
 
@@ -100,8 +99,7 @@ fn test_smart_case_search() {
       create_test_entry("myalias", EntryType::Alias, "another command", None),
    ];
 
-   let mut options = SearchOptions::default();
-   options.case_matching = CaseMatching::Smart;
+   let options = SearchOptions { case_matching: CaseMatching::Smart, ..Default::default() };
 
    // Lowercase query in smart mode should match both
    let results_lower = fuzzy_search(&entries, "my", &options);

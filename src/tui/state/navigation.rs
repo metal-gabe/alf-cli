@@ -1,17 +1,17 @@
 //! List navigation state and methods
 
 /// Navigation state for list selection
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct NavigationState {
    /// Index of selected item within visible entries
    selected_index: usize,
 }
 
-impl Default for NavigationState {
-   fn default() -> Self {
-      Self { selected_index: 0 }
-   }
-}
+// impl Default for NavigationState {
+//    fn default() -> Self {
+//       Self { selected_index: 0 }
+//    }
+// }
 
 impl NavigationState {
    /// Create a new NavigationState

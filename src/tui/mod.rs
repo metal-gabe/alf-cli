@@ -53,8 +53,7 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
    };
 
    // Get theme from config or use default
-   let theme =
-      config.as_ref().and_then(|cfg| Theme::from_name(&cfg.ui.theme)).unwrap_or_else(|| Theme::default_theme());
+   let theme = config.as_ref().and_then(|cfg| Theme::from_name(&cfg.ui.theme)).unwrap_or_else(Theme::default_theme);
 
    let mut app = App::new(entries, theme);
 

@@ -255,7 +255,7 @@ fn test_empty_line_stops_multiline_comment_parsing() {
    writeln!(temp_file, "function lsfp() {{").expect("Failed to write to temp file");
    writeln!(temp_file, "  find . -type f").expect("Failed to write to temp file");
    writeln!(temp_file, "}}").expect("Failed to write to temp file");
-   writeln!(temp_file, "").expect("Failed to write to temp file"); // Empty line between functions
+   writeln!(temp_file).expect("Failed to write to temp file"); // Empty line between functions
    writeln!(temp_file, "function md() {{").expect("Failed to write to temp file");
    writeln!(temp_file, "  mkdir -p \"$1\"").expect("Failed to write to temp file");
    writeln!(temp_file, "}}").expect("Failed to write to temp file");
