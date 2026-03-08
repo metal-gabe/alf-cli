@@ -4,6 +4,7 @@ use clap::Parser;
 use alf::cli::{Cli, Commands};
 
 fn main() -> Result<()> {
+   env_logger::init();
    let cli = Cli::parse();
 
    match cli.command {

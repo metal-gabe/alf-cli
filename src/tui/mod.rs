@@ -110,7 +110,9 @@ fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<
 
    // Parse each shell file from config
    for file_path_str in &config.general.shell_files {
-      let shell_file = PathBuf::from(file_path_str);
+      let shell_file = expand_path(file_path_str);
+      log::debug!("Handled file path string:\n- orig: {},\n- expanded: {}", file_path_str, shell_file.display());
+
       if shell_file.exists() {
          match crate::parser::parse_shell_file(&shell_file) {
             Ok(file_entries) => entries.extend(file_entries),
@@ -126,6 +128,18 @@ fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<
    }
 
    Ok(entries)
+}
+
+fn expand_path(file_path_str: &str) -> PathBuf {
+   let expanded = if let Some(home_dir) = dirs::home_dir() {
+      let home_str = home_dir.to_string_lossy();
+      let expanded = file_path_str.replace("~", &home_str).replace("$HOME", &home_str);
+      PathBuf::from(expanded)
+   } else {
+      PathBuf::from(file_path_str)
+   };
+
+   expanded
 }
 
 /// Try to load entries from shell configuration files
