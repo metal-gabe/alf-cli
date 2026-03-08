@@ -79,7 +79,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from("  os / ctrl-s    Toggle sort order (Ascending ↔ Descending)"),
       Line::from(""),
       Line::from(vec![Span::styled("SEARCH", Style::default().bold().fg(theme.alias_color))]),
-      Line::from("  /              Enter search mode"),
+      Line::from("  / or i         Enter search mode"),
       Line::from("  esc            Exit search mode (keep query)"),
       Line::from("  ctrl-u         Clear search query (any mode)"),
       Line::from("  shift-n        Cycle panels while in search mode"),

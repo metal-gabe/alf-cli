@@ -66,7 +66,7 @@ pub fn handle_normal_mode(app: &mut App, key: KeyEvent) {
       }
 
       // Enter search mode
-      KeyCode::Char('/') => app.enter_search_mode(),
+      KeyCode::Char('/') | KeyCode::Char('i') => app.enter_search_mode(),
 
       // Panel cycling
       KeyCode::Char('n') => app.cycle_panel(),
