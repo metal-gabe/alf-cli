@@ -86,6 +86,8 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from("  shift-p        Cycle panels backward while in search mode"),
       Line::from("  shift-h        Cycle filters backward while in search mode"),
       Line::from("  shift-l        Cycle filters forward while in search mode"),
+      Line::from("  ctrl-j         Scroll down 1 line in list while in search mode"),
+      Line::from("  ctrl-k         Scroll up 1 line in list while in search mode"),
       Line::from(""),
       Line::from(vec![Span::styled("THEMES", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  tj             Cycle to next theme"),
