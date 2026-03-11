@@ -17,10 +17,10 @@ pub struct Cli {
 /// Available subcommands
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-   /// Launch the interactive TUI search interface with optional query
+   /// Launch the interactive TUI search interface with required query
    Search {
-      /// Search query to filter results on startup
-      query: Option<String>,
+      /// Required search query to filter results on startup
+      query: String,
    },
 
    /// Initialize configuration (first-run setup)

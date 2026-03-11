@@ -7,12 +7,6 @@ pub struct NavigationState {
    selected_index: usize,
 }
 
-// impl Default for NavigationState {
-//    fn default() -> Self {
-//       Self { selected_index: 0 }
-//    }
-// }
-
 impl NavigationState {
    /// Create a new NavigationState
    pub fn new() -> Self {

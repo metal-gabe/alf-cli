@@ -37,7 +37,12 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
    let mut terminal = Terminal::new(backend)?;
 
    // Try to load configuration
-   let config = crate::config::load_config().ok();
+   let config = crate::config::load_config()
+      .map_err(|e| {
+         log::debug!("Failed to load config, using defaults: {}", e);
+         e
+      })
+      .ok();
 
    // Try to load real shell configuration files, fall back to mock data
    let entries = if let Some(ref cfg) = config {
@@ -132,9 +137,18 @@ fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<
 
 fn expand_path(file_path_str: &str) -> PathBuf {
    let expanded = if let Some(home_dir) = dirs::home_dir() {
-      let home_str = home_dir.to_string_lossy();
-      let expanded = file_path_str.replace("~", &home_str).replace("$HOME", &home_str);
-      PathBuf::from(expanded)
+      let path = if let Some(rest) = file_path_str.strip_prefix("~/") {
+         home_dir.join(rest)
+      } else if file_path_str == "~" {
+         home_dir.clone()
+      } else if let Some(rest) = file_path_str.strip_prefix("$HOME/") {
+         home_dir.join(rest)
+      } else if file_path_str == "$HOME" {
+         home_dir.clone()
+      } else {
+         PathBuf::from(file_path_str)
+      };
+      path
    } else {
       PathBuf::from(file_path_str)
    };

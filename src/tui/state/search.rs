@@ -32,7 +32,7 @@ impl SearchState {
 
    /// Set the search query directly (with lowercase conversion for case-insensitive search)
    pub fn set_query(&mut self, query: String) {
-      self.query = query.to_lowercase();
+      self.query = query.to_ascii_lowercase();
       self.cursor_position = self.query.chars().count();
    }
 

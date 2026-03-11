@@ -86,12 +86,12 @@ impl Default for Config {
 
 /// Get the platform-specific configuration file path
 ///
-/// - Linux/macOS: `~/.config/alf/config.toml`
-/// - Windows: `%APPDATA%\alf\config.toml`
+/// - Linux/macOS: `$HOME/.config/alf/config.toml`
+/// - Windows: `%USERPROFILE%\.config\alf\config.toml`
 pub fn get_config_path() -> Result<PathBuf> {
    let home = std::env::var("HOME")
-      .or_else(|_| std::env::var("USERPROFILE")) // Windows fallback
-      .unwrap_or_else(|_| ".".to_string());
+      .or_else(|_| std::env::var("USERPROFILE"))
+      .map_err(|_| anyhow::anyhow!("HOME or USERPROFILE environment variable not set"))?;
 
    let config_dir = PathBuf::from(home).join(".config").join("alf");
    Ok(config_dir.join("config.toml"))

@@ -7,13 +7,13 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 /// Standard shell configuration files to check
-const STANDARD_SHELL_FILES: &[&str] = &[".bashrc", ".zshrc", ".kshrc", ".fishrc", ".profile", ".zprofile"];
+const STANDARD_SHELL_FILES: &[&str] = &[".bashrc", ".zshrc", ".kshrc", "config.fish", ".profile", ".zprofile"];
 
 /// Run the initialization wizard
 pub fn run_init_wizard() -> Result<()> {
    // Check if already configured
    if !is_first_run()? {
-      eprintln!("Config already exists at ~/.config/alf/config.toml");
+      eprintln!("Config already exists at $HOME/.config/alf/config.toml");
       eprintln!("To reconfigure, run: alf config reset");
       return Ok(());
    }
@@ -21,8 +21,10 @@ pub fn run_init_wizard() -> Result<()> {
    println!("Welcome to alf!\n");
 
    // Auto-detect standard shell files
-   let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-   let detected_files = detect_shell_files(&home);
+   let home = std::env::var("HOME").map_err(|_| {
+      let _ = anyhow::anyhow!("HOME environment variable not set");
+   });
+   let detected_files = detect_shell_files(&home.unwrap());
 
    println!("Detected shell files:");
    if detected_files.is_empty() {
@@ -67,7 +69,10 @@ pub fn run_init_wizard() -> Result<()> {
    io::stdin().read_line(&mut choice)?;
 
    let theme_idx = choice.trim().parse::<usize>().unwrap_or(1).saturating_sub(1);
-   let selected_theme = themes.get(theme_idx).cloned().unwrap_or_else(|| "default".to_string());
+   let selected_theme = themes.get(theme_idx).cloned().unwrap_or_else(|| {
+      eprintln!("Invalid selection, using default theme.");
+      "default".to_string()
+   });
 
    println!();
 
@@ -92,7 +97,12 @@ pub fn detect_shell_files(home: &str) -> Vec<String> {
    STANDARD_SHELL_FILES
       .iter()
       .filter_map(|filename| {
-         let path = PathBuf::from(home).join(filename);
+         let mut path = PathBuf::from(home).join(filename);
+
+         if *filename == "config.fish" {
+            path = PathBuf::from(home).join(".config/fish").join(filename);
+         }
+
          if path.exists() {
             Some(path.to_string_lossy().to_string())
          } else {

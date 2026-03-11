@@ -41,7 +41,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       .borders(Borders::ALL)
       .border_type(BorderType::Double)
       .border_style(Style::default().fg(theme.foreground).bold())
-      .title(Span::styled(" Help ('?', 'q' or 'esc' to close) ", Style::default().fg(theme.foreground).bold()))
+      .title(Span::styled(" Help ('?', 'q' or 'esc' to close)", Style::default().fg(theme.foreground).bold()))
       .style(Style::default().bg(theme.background))
       .padding(ratatui::widgets::Padding::horizontal(2));
 
@@ -57,7 +57,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from(vec![Span::styled("NAVIGATION", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  j / ↓          Scroll down 1 line in active panel"),
       Line::from("  k / ↑          Scroll up 1 line in active panel"),
-      Line::from("  gg             Jump to top of list"),
+      Line::from("  g              Jump to top of list"),
       Line::from("  shift-g        Jump to bottom of list"),
       Line::from("  ctrl-f         Scroll down full page (20 lines)"),
       Line::from("  ctrl-b         Scroll up full page (20 lines)"),

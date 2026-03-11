@@ -8,14 +8,7 @@ fn main() -> Result<()> {
    let cli = Cli::parse();
 
    match cli.command {
-      Some(Commands::Search { query }) => {
-         if query.is_none() {
-            eprintln!("Error: search query required");
-            eprintln!("Usage: alf search <QUERY>");
-            std::process::exit(1);
-         }
-         alf::tui::run(query)
-      }
+      Some(Commands::Search { query }) => alf::tui::run(Some(query)),
       None => alf::tui::run(None),
       Some(Commands::Init) => alf::cli::init::run_init_wizard(),
       Some(Commands::Config { action }) => alf::cli::config_cmd::run_config_action(action),

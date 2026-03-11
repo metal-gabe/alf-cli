@@ -9,12 +9,6 @@ pub fn handle_help_mode(app: &mut App, key: KeyEvent) {
    // Check for pending multi-key sequences first
    if let Some(pending) = app.pending_key() {
       match (pending, key.code) {
-         // 'gg' sequence - go to top
-         ('g', KeyCode::Char('g')) => {
-            app.help_jump_top();
-            app.clear_pending_key();
-            return;
-         }
          // Esc clears pending key
          (_, KeyCode::Esc) => {
             app.clear_pending_key();
@@ -42,10 +36,8 @@ pub fn handle_help_mode(app: &mut App, key: KeyEvent) {
       // Jump to bottom
       KeyCode::Char('G') => app.help_jump_bottom(),
 
-      // Start of 'gg' sequence
-      KeyCode::Char('g') => {
-         app.set_pending_key('g');
-      }
+      // Jump to top
+      KeyCode::Char('g') => app.help_jump_top(),
 
       // Ignore all other keys (prevent propagation to underlying panels)
       _ => {}

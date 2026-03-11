@@ -1,4 +1,4 @@
-//n! Application state management for the TUI.
+//! Application state management for the TUI.
 
 use super::themes::Theme;
 use crate::models::AliasEntry;
