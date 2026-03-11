@@ -50,10 +50,7 @@ pub fn handle_normal_mode(app: &mut App, key: KeyEvent) {
       KeyCode::Char('j') | KeyCode::Down => app.scroll_down(1),
       KeyCode::Char('k') | KeyCode::Up => app.scroll_up(1),
       KeyCode::Char('G') => app.move_bottom(),
-      KeyCode::Char('g') => {
-         // Start of 'gg' sequence
-         app.set_pending_key('g');
-      }
+      KeyCode::Char('g') => app.move_top(),
 
       // Start of 'og', 'oG', 'os' sequences
       KeyCode::Char('o') => {
@@ -66,7 +63,7 @@ pub fn handle_normal_mode(app: &mut App, key: KeyEvent) {
       }
 
       // Enter search mode
-      KeyCode::Char('/') => app.enter_search_mode(),
+      KeyCode::Char('/') | KeyCode::Char('i') => app.enter_search_mode(),
 
       // Panel cycling
       KeyCode::Char('n') => app.cycle_panel(),

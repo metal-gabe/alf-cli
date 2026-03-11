@@ -1,6 +1,6 @@
 //! Search mode keybinds (text input and search navigation).
 
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::tui::app::App;
 
@@ -17,6 +17,10 @@ pub fn handle_search_mode(app: &mut App, key: KeyEvent) {
       // Filter cycling (Shift+h/l sends uppercase H/L)
       KeyCode::Char('L') => app.cycle_filter(),
       KeyCode::Char('H') => app.cycle_filter_backward(),
+
+      // List navigation while in search mode
+      KeyCode::Char('j') if key.modifiers.contains(KeyModifiers::CONTROL) => app.scroll_down(1),
+      KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => app.scroll_up(1),
 
       // Text editing (captures all other characters including lowercase n,p,h,l)
       KeyCode::Char(c) => app.search_insert_char(c),

@@ -16,8 +16,8 @@ use super::get_border_style;
 pub fn draw_search_bar(frame: &mut Frame, app: &App, area: Rect) {
    let theme = app.theme();
    let (title, style) = match app.input_mode() {
-      InputMode::Normal => (" Search (press / to search) ", Style::default()),
-      InputMode::Search => (" Search ", Style::default().add_modifier(Modifier::BOLD)),
+      InputMode::Normal => (" Search (press 'i' or '/' to search)", Style::default()),
+      InputMode::Search => (" Search", Style::default().add_modifier(Modifier::BOLD)),
    };
 
    let block = Block::default()

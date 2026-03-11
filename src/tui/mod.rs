@@ -23,9 +23,12 @@ use std::time::Duration;
 
 /// Initialize and run the TUI application.
 ///
-/// Sets up the terminal, attempts to load shell configuration files,
+/// Sets up the terminal, loads configuration, attempts to load shell configuration files,
 /// falls back to mock data if parsing fails, and runs the main event loop.
-pub fn run() -> Result<()> {
+///
+/// # Arguments
+/// * `initial_query` - Optional search query to populate and filter results on startup
+pub fn run(initial_query: Option<String>) -> Result<()> {
    // Setup terminal
    terminal::enable_raw_mode()?;
    let mut stdout = io::stdout();
@@ -33,13 +36,36 @@ pub fn run() -> Result<()> {
    let backend = CrosstermBackend::new(stdout);
    let mut terminal = Terminal::new(backend)?;
 
+   // Try to load configuration
+   let config = crate::config::load_config()
+      .map_err(|e| {
+         log::debug!("Failed to load config, using defaults: {}", e);
+         e
+      })
+      .ok();
+
    // Try to load real shell configuration files, fall back to mock data
-   let entries = load_shell_entries().unwrap_or_else(|_| {
-      eprintln!("Failed to load shell files, using mock data");
-      mock::mock_entries()
-   });
-   let theme = Theme::default_theme();
+   let entries = if let Some(ref cfg) = config {
+      load_shell_entries_from_config(cfg).unwrap_or_else(|_| {
+         eprintln!("Failed to load shell files from config, using mock data");
+         mock::mock_entries()
+      })
+   } else {
+      load_shell_entries().unwrap_or_else(|_| {
+         eprintln!("Failed to load shell files, using mock data");
+         mock::mock_entries()
+      })
+   };
+
+   // Get theme from config or use default
+   let theme = config.as_ref().and_then(|cfg| Theme::from_name(&cfg.ui.theme)).unwrap_or_else(Theme::default_theme);
+
    let mut app = App::new(entries, theme);
+
+   // If an initial query was provided, populate it and search
+   if let Some(query) = initial_query {
+      app.set_search_query(query);
+   }
 
    // Create event handler (tick every 250ms)
    let event_handler = EventHandler::new(Duration::from_millis(250));
@@ -81,6 +107,53 @@ fn run_loop(
    }
 
    Ok(())
+}
+
+/// Try to load entries from shell configuration files specified in config
+fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<crate::models::AliasEntry>> {
+   let mut entries = Vec::new();
+
+   // Parse each shell file from config
+   for file_path_str in &config.general.shell_files {
+      let shell_file = expand_path(file_path_str);
+      log::debug!("Handled file path string:\n- orig: {},\n- expanded: {}", file_path_str, shell_file.display());
+
+      if shell_file.exists() {
+         match crate::parser::parse_shell_file(&shell_file) {
+            Ok(file_entries) => entries.extend(file_entries),
+            Err(e) => eprintln!("Warning: Failed to parse {}: {}", shell_file.display(), e),
+         }
+      } else {
+         eprintln!("Warning: Shell file not found: {}", shell_file.display());
+      }
+   }
+
+   if entries.is_empty() {
+      anyhow::bail!("No shell configuration files found or parsed successfully")
+   }
+
+   Ok(entries)
+}
+
+fn expand_path(file_path_str: &str) -> PathBuf {
+   let expanded = if let Some(home_dir) = dirs::home_dir() {
+      let path = if let Some(rest) = file_path_str.strip_prefix("~/") {
+         home_dir.join(rest)
+      } else if file_path_str == "~" {
+         home_dir.clone()
+      } else if let Some(rest) = file_path_str.strip_prefix("$HOME/") {
+         home_dir.join(rest)
+      } else if file_path_str == "$HOME" {
+         home_dir.clone()
+      } else {
+         PathBuf::from(file_path_str)
+      };
+      path
+   } else {
+      PathBuf::from(file_path_str)
+   };
+
+   expanded
 }
 
 /// Try to load entries from shell configuration files

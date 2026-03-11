@@ -18,7 +18,8 @@ use super::super::components::{active_style, panel_block};
 /// Draw the left panel: list of aliases/functions
 pub fn draw_entry_list(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
    let is_active = app.active_panel() == Panel::List;
-   let block = panel_block("[ Entries ]", is_active, &app.filter(), theme);
+   let entries_title = format!("[ Entries ({}) ]", app.visible_indices().len());
+   let block = panel_block(&entries_title, is_active, &app.filter(), theme);
 
    // Check if we have no results after a search
    if app.visible_indices().is_empty() && !app.search_query().is_empty() {

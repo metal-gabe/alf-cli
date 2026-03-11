@@ -25,8 +25,8 @@ use crate::tui::app::App;
 pub fn handle_key_event(app: &mut App, key: KeyEvent) {
    // Check for truly global keybinds first - these work ALWAYS or are reserved
    match key.code {
-      // Quit app (only Ctrl-C)
-      KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+      // Quit app (Ctrl-C or Ctrl-D)
+      KeyCode::Char('c') | KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.should_quit = true;
          return;
       }

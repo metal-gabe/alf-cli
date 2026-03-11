@@ -254,6 +254,12 @@ impl App {
       self.update_visible_entries();
    }
 
+   /// Set the search query directly and update visible entries
+   pub fn set_search_query(&mut self, query: String) {
+      self.search.set_query(query);
+      self.update_visible_entries();
+   }
+
    /// Insert a character at the cursor position in the search query
    pub fn search_insert_char(&mut self, c: char) {
       self.search.insert_char(c);

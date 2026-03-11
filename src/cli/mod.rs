@@ -1,5 +1,8 @@
 //! CLI argument parsing and command handling.
 
+pub mod config_cmd;
+pub mod init;
+
 use clap::{Parser, Subcommand};
 
 /// Alias & Function CLI Searching Tool
@@ -7,35 +10,38 @@ use clap::{Parser, Subcommand};
 #[command(name = "alf")]
 #[command(version, about, long_about = None)]
 pub struct Cli {
-    #[command(subcommand)]
-    pub command: Option<Commands>,
+   #[command(subcommand)]
+   pub command: Option<Commands>,
 }
 
 /// Available subcommands
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    /// Launch the interactive TUI search interface (default)
-    Search,
+   /// Launch the interactive TUI search interface with required query
+   Search {
+      /// Required search query to filter results on startup
+      query: String,
+   },
 
-    /// Initialize configuration (first-run setup)
-    Init,
+   /// Initialize configuration (first-run setup)
+   Init,
 
-    /// Manage configuration
-    Config {
-        #[command(subcommand)]
-        action: ConfigAction,
-    },
+   /// Manage configuration
+   Config {
+      #[command(subcommand)]
+      action: ConfigAction,
+   },
 }
 
 /// Configuration management actions
 #[derive(Debug, Subcommand)]
 pub enum ConfigAction {
-    /// Show current configuration
-    Show,
+   /// Show current configuration
+   Show,
 
-    /// Edit configuration file
-    Edit,
+   /// Edit configuration file
+   Edit,
 
-    /// Reset to default configuration
-    Reset,
+   /// Reset to default configuration
+   Reset,
 }

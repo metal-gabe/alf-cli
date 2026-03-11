@@ -41,7 +41,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       .borders(Borders::ALL)
       .border_type(BorderType::Double)
       .border_style(Style::default().fg(theme.foreground).bold())
-      .title(Span::styled(" Help ('?', 'q' or 'esc' to close) ", Style::default().fg(theme.foreground).bold()))
+      .title(Span::styled(" Help ('?', 'q' or 'esc' to close)", Style::default().fg(theme.foreground).bold()))
       .style(Style::default().bg(theme.background))
       .padding(ratatui::widgets::Padding::horizontal(2));
 
@@ -57,12 +57,12 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from(vec![Span::styled("NAVIGATION", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  j / ↓          Scroll down 1 line in active panel"),
       Line::from("  k / ↑          Scroll up 1 line in active panel"),
-      Line::from("  gg             Jump to top of list"),
+      Line::from("  g              Jump to top of list"),
       Line::from("  shift-g        Jump to bottom of list"),
       Line::from("  ctrl-f         Scroll down full page (20 lines)"),
       Line::from("  ctrl-b         Scroll up full page (20 lines)"),
-      Line::from("  ctrl-j / ctrl-d  Scroll down half page (10 lines)"),
-      Line::from("  ctrl-k / ctrl-u  Scroll up half page (10 lines)"),
+      Line::from("  ctrl-j         Scroll down half page (10 lines)"),
+      Line::from("  ctrl-k         Scroll up half page (10 lines)"),
       Line::from(""),
       Line::from(vec![Span::styled("PANELS & FILTERS", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  n              Cycle panel focus forward (List → Description → Script)"),
@@ -79,12 +79,15 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from("  os / ctrl-s    Toggle sort order (Ascending ↔ Descending)"),
       Line::from(""),
       Line::from(vec![Span::styled("SEARCH", Style::default().bold().fg(theme.alias_color))]),
-      Line::from("  /              Enter search mode"),
+      Line::from("  / or i         Enter search mode"),
       Line::from("  esc            Exit search mode (keep query)"),
+      Line::from("  ctrl-u         Clear search query (any mode)"),
       Line::from("  shift-n        Cycle panels while in search mode"),
       Line::from("  shift-p        Cycle panels backward while in search mode"),
       Line::from("  shift-h        Cycle filters backward while in search mode"),
       Line::from("  shift-l        Cycle filters forward while in search mode"),
+      Line::from("  ctrl-j         Scroll down 1 line in list while in search mode"),
+      Line::from("  ctrl-k         Scroll up 1 line in list while in search mode"),
       Line::from(""),
       Line::from(vec![Span::styled("THEMES", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  tj             Cycle to next theme"),
@@ -92,7 +95,7 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
       Line::from(""),
       Line::from(vec![Span::styled("QUIT", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  q              Quit application (normal mode only)"),
-      Line::from("  ctrl-c         Force quit (works in any mode, including search and help)"),
+      Line::from("  ctrl-c / ctrl-d  Force quit (works in any mode, including search and help)"),
       Line::from(""),
       Line::from(vec![Span::styled("GENERAL", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  ?              Toggle this help screen"),
