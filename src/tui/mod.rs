@@ -73,6 +73,19 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
    // Main event loop
    let result = run_loop(&mut terminal, &mut app, &event_handler);
 
+   // Write selected entry to output file if applicable
+   if let Some(action) = &app.exit_action {
+      if let Some(entry) = app.selected_entry() {
+         let action_str = match action {
+            crate::tui::app::ExitAction::Execute => "execute",
+            crate::tui::app::ExitAction::Populate => "populate",
+         };
+         if let Ok(output_path) = std::env::var("ALF_OUTPUT") {
+            let _ = std::fs::write(&output_path, format!("{}\n{}", action_str, entry.name));
+         }
+      }
+   }
+
    // Restore terminal regardless of result
    terminal::disable_raw_mode()?;
    crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen)?;

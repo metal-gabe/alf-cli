@@ -2,7 +2,7 @@
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::tui::app::App;
+use crate::tui::app::{App, ExitAction};
 
 /// Handle key events in Search (text input) mode
 pub fn handle_search_mode(app: &mut App, key: KeyEvent) {
@@ -30,10 +30,10 @@ pub fn handle_search_mode(app: &mut App, key: KeyEvent) {
       KeyCode::Left => app.search_cursor_left(),
       KeyCode::Right => app.search_cursor_right(),
 
-      // Enter is reserved for future use
-      KeyCode::Enter => {}
-      // Tab is reserved for future use
-      KeyCode::Tab => {}
+      // Enter - select entry and execute
+      KeyCode::Enter => app.select_entry(ExitAction::Execute),
+      // Tab - select entry and populate (without executing)
+      KeyCode::Tab => app.select_entry(ExitAction::Populate),
 
       _ => {}
    }

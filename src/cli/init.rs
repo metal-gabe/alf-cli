@@ -87,9 +87,84 @@ pub fn run_init_wizard() -> Result<()> {
 
    let config_path = crate::config::get_config_path()?;
    println!("Config saved to {}", config_path.display());
+   println!();
+   println!("Shell integration");
+   println!("─────────────────");
+   println!("Add the following function to your shell config to enable command-line population:\n");
+
+   println!("For zsh (add to ~/.zshrc):");
+   println!("{}\n", get_shell_hook("zsh"));
+
+   println!("For bash (add to ~/.bashrc):");
+   println!("{}\n", get_shell_hook("bash"));
+
+   println!("Or run: eval \"$(alf shell-hook <zsh|bash>)\"");
+   println!();
    println!("Run `alf` to start.");
 
    Ok(())
+}
+
+/// Print the shell integration wrapper for a given shell
+pub fn print_shell_hook(shell: &str) -> Result<()> {
+   match shell.to_lowercase().as_str() {
+      "zsh" | "bash" => {
+         println!("{}", get_shell_hook(shell));
+         Ok(())
+      }
+      _ => {
+         eprintln!("Unsupported shell: {}. Use 'zsh' or 'bash'.", shell);
+         Err(anyhow::anyhow!("Unsupported shell: {}", shell))
+      }
+   }
+}
+
+fn get_shell_hook(shell: &str) -> &'static str {
+   match shell.to_lowercase().as_str() {
+      "zsh" => {
+         r#"alf() {
+  local tmp
+  tmp="$(mktemp)"
+  ALF_OUTPUT="$tmp" command alf "$@"
+  if [[ -f "$tmp" ]]; then
+    local action entry
+    action="$(head -1 "$tmp")"
+    entry="$(sed -n '2p' "$tmp")"
+    rm -f "$tmp"
+    if [[ -n "$entry" ]]; then
+      if [[ "$action" == "execute" ]]; then
+        print -z "$entry"
+        zle accept-line 2>/dev/null || true
+      else
+        print -z "$entry"
+      fi
+    fi
+  fi
+}"#
+      }
+      "bash" => {
+         r#"alf() {
+  local tmp
+  tmp="$(mktemp)"
+  ALF_OUTPUT="$tmp" command alf "$@"
+  if [[ -f "$tmp" ]]; then
+    local action entry
+    action="$(head -1 "$tmp")"
+    entry="$(sed -n '2p' "$tmp")"
+    rm -f "$tmp"
+    if [[ -n "$entry" ]]; then
+      READLINE_LINE="$entry"
+      READLINE_POINT="${#entry}"
+      if [[ "$action" == "execute" ]]; then
+        history -s "$entry"
+        eval "$entry"
+      fi
+    fi
+  fi
+}"#
+      }
+      _ => "",
+   }
 }
 
 /// Detect which standard shell files exist in the home directory
