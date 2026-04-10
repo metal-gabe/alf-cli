@@ -80,8 +80,21 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
             crate::tui::app::ExitAction::Execute => "execute",
             crate::tui::app::ExitAction::Populate => "populate",
          };
+         let alias_expansion = config
+            .as_ref()
+            .map(|c| c.general.alias_expansion)
+            .unwrap_or_default();
+         let output_value = match action {
+            crate::tui::app::ExitAction::Populate
+               if entry.entry_type == crate::models::EntryType::Alias
+                  && matches!(alias_expansion, crate::config::AliasExpansion::Script) =>
+            {
+               &entry.value
+            }
+            _ => &entry.name,
+         };
          if let Ok(output_path) = std::env::var("ALF_OUTPUT") {
-            let _ = std::fs::write(&output_path, format!("{}\n{}", action_str, entry.name));
+            let _ = std::fs::write(&output_path, format!("{}\n{}", action_str, output_value));
          }
       }
    }

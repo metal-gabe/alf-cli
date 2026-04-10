@@ -78,7 +78,7 @@ pub fn run_init_wizard() -> Result<()> {
 
    // Create and save config
    let config = Config {
-      general: GeneralConfig { shell_files: all_files },
+      general: GeneralConfig { shell_files: all_files, ..Default::default() },
       ui: UiConfig { theme: selected_theme, keybind_mode: "vim".to_string() },
       ..Default::default()
    };
@@ -90,7 +90,8 @@ pub fn run_init_wizard() -> Result<()> {
    println!();
    println!("Shell integration");
    println!("─────────────────");
-   println!("Add the following function to your shell config to enable command-line population:\n");
+   println!("Add the following to your shell config to enable command-line population.");
+   println!("This installs both the `alf` command wrapper and a Ctrl-G keybinding.\n");
 
    println!("For zsh (add to ~/.zshrc):");
    println!("{}\n", get_shell_hook("zsh"));
@@ -99,6 +100,14 @@ pub fn run_init_wizard() -> Result<()> {
    println!("{}\n", get_shell_hook("bash"));
 
    println!("Or run: eval \"$(alf shell-hook <zsh|bash>)\"");
+   println!();
+   println!("Usage:");
+   println!("  - Type `alf` at the prompt, or press Ctrl-G to open the picker.");
+   println!("  - In the TUI, Tab populates the prompt with the entry; Enter runs it.");
+   println!("  - To rebind from Ctrl-G, in zsh: `bindkey '^T' __alf_widget`;");
+   println!("    in bash: `bind -x '\"\\C-t\": __alf_widget'`.");
+   println!("  - Note: in bash, `alf` + Tab cannot populate the readline buffer");
+   println!("    (only the Ctrl-G binding can); it will print the entry instead.");
    println!();
    println!("Run `alf` to start.");
 
@@ -123,45 +132,100 @@ fn get_shell_hook(shell: &str) -> &'static str {
    match shell.to_lowercase().as_str() {
       "zsh" => {
          r#"alf() {
-  local tmp
-  tmp="$(mktemp)"
+  local tmp action entry rc
+  tmp="$(mktemp)" || return 1
   ALF_OUTPUT="$tmp" command alf "$@"
-  if [[ -f "$tmp" ]]; then
-    local action entry
-    action="$(head -1 "$tmp")"
+  rc=$?
+  if [[ -s "$tmp" ]]; then
+    action="$(sed -n '1p' "$tmp")"
     entry="$(sed -n '2p' "$tmp")"
     rm -f "$tmp"
     if [[ -n "$entry" ]]; then
       if [[ "$action" == "execute" ]]; then
-        print -z "$entry"
-        zle accept-line 2>/dev/null || true
+        print -s -- "$entry"
+        eval -- "$entry"
+        return
       else
-        print -z "$entry"
+        print -z -- "$entry"
       fi
     fi
+  else
+    rm -f "$tmp"
   fi
-}"#
+  return $rc
+}
+
+__alf_widget() {
+  local tmp action entry
+  tmp="$(mktemp)" || return 1
+  ALF_OUTPUT="$tmp" command alf </dev/tty
+  if [[ -s "$tmp" ]]; then
+    action="$(sed -n '1p' "$tmp")"
+    entry="$(sed -n '2p' "$tmp")"
+    rm -f "$tmp"
+    if [[ -n "$entry" ]]; then
+      BUFFER="$entry"
+      CURSOR=${#BUFFER}
+      [[ "$action" == "execute" ]] && zle accept-line
+    fi
+  else
+    rm -f "$tmp"
+  fi
+  zle reset-prompt
+}
+zle -N __alf_widget
+bindkey '^G' __alf_widget"#
       }
       "bash" => {
          r#"alf() {
-  local tmp
-  tmp="$(mktemp)"
+  local tmp action entry rc
+  tmp="$(mktemp)" || return 1
   ALF_OUTPUT="$tmp" command alf "$@"
-  if [[ -f "$tmp" ]]; then
-    local action entry
-    action="$(head -1 "$tmp")"
+  rc=$?
+  if [[ -s "$tmp" ]]; then
+    action="$(sed -n '1p' "$tmp")"
     entry="$(sed -n '2p' "$tmp")"
     rm -f "$tmp"
     if [[ -n "$entry" ]]; then
-      READLINE_LINE="$entry"
-      READLINE_POINT="${#entry}"
       if [[ "$action" == "execute" ]]; then
-        history -s "$entry"
-        eval "$entry"
+        history -s -- "$entry"
+        eval -- "$entry"
+        return
+      else
+        printf '%s\n' "$entry"
       fi
     fi
+  else
+    rm -f "$tmp"
   fi
-}"#
+  return $rc
+}
+
+__alf_widget() {
+  local tmp action entry
+  tmp="$(mktemp)" || return 1
+  ALF_OUTPUT="$tmp" command alf </dev/tty
+  if [[ -s "$tmp" ]]; then
+    action="$(sed -n '1p' "$tmp")"
+    entry="$(sed -n '2p' "$tmp")"
+    rm -f "$tmp"
+    if [[ -n "$entry" ]]; then
+      if [[ "$action" == "execute" ]]; then
+        echo
+        history -s -- "$entry"
+        eval -- "$entry"
+        READLINE_LINE=""
+        READLINE_POINT=0
+      else
+        READLINE_LINE="$entry"
+        READLINE_POINT=${#READLINE_LINE}
+      fi
+    fi
+  else
+    rm -f "$tmp"
+  fi
+}
+bind -x '"\C-g": __alf_widget' 2>/dev/null"#
       }
       _ => "",
    }

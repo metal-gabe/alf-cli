@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
 /// Alias & Function CLI Searching Tool
 #[derive(Debug, Parser)]
 #[command(name = "alf")]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, disable_help_subcommand = true)]
 pub struct Cli {
    #[command(subcommand)]
    pub command: Option<Commands>,
