@@ -80,10 +80,7 @@ pub struct DisplayConfig {
 impl Default for Config {
    fn default() -> Self {
       Self {
-         general: GeneralConfig {
-            shell_files: Vec::new(),
-            alias_expansion: AliasExpansion::default(),
-         },
+         general: GeneralConfig { shell_files: Vec::new(), alias_expansion: AliasExpansion::default() },
          search: SearchConfig {
             case_matching: CaseMatching::Smart,
             normalize: true,
