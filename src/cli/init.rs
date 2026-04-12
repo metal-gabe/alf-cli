@@ -141,6 +141,7 @@ fn get_shell_hook(shell: &str) -> &'static str {
     if [[ -n "$entry" ]]; then
       if [[ "$action" == "execute" ]]; then
         print -s -- "$entry"
+        fc -AI "$HISTFILE"
         eval -- "$entry"
         return
       else
@@ -166,6 +167,7 @@ fn get_shell_hook(shell: &str) -> &'static str {
     if [[ -n "$entry" ]]; then
       if [[ "$action" == "execute" ]]; then
         history -s -- "$entry"
+        history -a
         eval -- "$entry"
         return
       else
