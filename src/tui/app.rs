@@ -3,6 +3,15 @@
 use super::themes::Theme;
 use crate::models::AliasEntry;
 
+/// Action to take when the user selects an entry
+#[derive(Debug, Clone, Copy)]
+pub enum ExitAction {
+   /// Populate shell with entry and execute it immediately
+   Execute,
+   /// Populate shell with entry but do not execute
+   Populate,
+}
+
 // Import all state modules
 use super::state::{
    EntryData, EntryFilter, FilterState, GroupMode, InputMode, InputState, NavigationState, Panel, ScrollManager,
@@ -27,6 +36,8 @@ pub struct App {
    theme: Theme,
    /// Flag to signal application should quit
    pub should_quit: bool,
+   /// Action to take when exiting (if entry was selected)
+   pub exit_action: Option<ExitAction>,
 }
 
 impl App {
@@ -41,6 +52,7 @@ impl App {
          filter: FilterState::default(),
          theme,
          should_quit: false,
+         exit_action: None,
       };
 
       // Apply initial filtering, grouping, and sorting to populate visible_indices
@@ -362,6 +374,14 @@ impl App {
    }
 
    // ===== Application lifecycle =====
+
+   /// Select the current entry with the given action and exit gracefully
+   pub fn select_entry(&mut self, action: ExitAction) {
+      if self.selected_entry().is_some() {
+         self.exit_action = Some(action);
+      }
+      self.should_quit = true;
+   }
 
    /// Update application state (called each tick)
    pub fn tick(&mut self) {

@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
 /// Alias & Function CLI Searching Tool
 #[derive(Debug, Parser)]
 #[command(name = "alf")]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, disable_help_subcommand = true)]
 pub struct Cli {
    #[command(subcommand)]
    pub command: Option<Commands>,
@@ -24,7 +24,17 @@ pub enum Commands {
    },
 
    /// Initialize configuration (first-run setup)
-   Init,
+   Init {
+      /// Print shell integration wrapper for the given shell and exit
+      #[arg(long, value_name = "SHELL")]
+      print_shell_hook: Option<String>,
+   },
+
+   /// Print shell integration wrapper function
+   ShellHook {
+      /// Shell to generate the wrapper for (zsh, bash)
+      shell: String,
+   },
 
    /// Manage configuration
    Config {

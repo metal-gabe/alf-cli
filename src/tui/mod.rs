@@ -29,7 +29,6 @@ use std::time::Duration;
 /// # Arguments
 /// * `initial_query` - Optional search query to populate and filter results on startup
 pub fn run(initial_query: Option<String>) -> Result<()> {
-   // Setup terminal
    terminal::enable_raw_mode()?;
    let mut stdout = io::stdout();
    crossterm::execute!(stdout, EnterAlternateScreen)?;
@@ -61,6 +60,7 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
    let theme = config.as_ref().and_then(|cfg| Theme::from_name(&cfg.ui.theme)).unwrap_or_else(Theme::default_theme);
 
    let mut app = App::new(entries, theme);
+   app.enter_search_mode();
 
    // If an initial query was provided, populate it and search
    if let Some(query) = initial_query {
@@ -72,6 +72,31 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
 
    // Main event loop
    let result = run_loop(&mut terminal, &mut app, &event_handler);
+
+   // Write selected entry to output file if applicable
+   if let Some(action) = &app.exit_action {
+      if let Some(entry) = app.selected_entry() {
+         let action_str = match action {
+            crate::tui::app::ExitAction::Execute => "execute",
+            crate::tui::app::ExitAction::Populate => "populate",
+         };
+         let alias_expansion = config.as_ref().map(|c| c.general.alias_expansion).unwrap_or_default();
+         let output_value = match action {
+            crate::tui::app::ExitAction::Populate
+               if entry.entry_type == crate::models::EntryType::Alias
+                  && matches!(alias_expansion, crate::config::AliasExpansion::Script) =>
+            {
+               &entry.value
+            }
+            _ => &entry.name,
+         };
+         if let Ok(output_path) = std::env::var("ALF_OUTPUT") {
+            if let Err(e) = std::fs::write(&output_path, format!("{}\n{}", action_str, output_value)) {
+               log::warn!("Failed to write output to {}: {}", output_path, e);
+            }
+         }
+      }
+   }
 
    // Restore terminal regardless of result
    terminal::disable_raw_mode()?;

@@ -60,7 +60,13 @@ fn reset_config() -> Result<()> {
    let home = std::env::var("HOME").map_err(|_| anyhow::anyhow!("HOME environment variable is not set"))?;
    let detected_files = init::detect_shell_files(&home);
 
-   let config = Config { general: GeneralConfig { shell_files: detected_files }, ..Default::default() };
+   let config = Config { 
+      general: GeneralConfig { 
+         shell_files: detected_files, 
+         ..Default::default() 
+      }, 
+      ..Default::default()
+   };
 
    save_config(&config)?;
 

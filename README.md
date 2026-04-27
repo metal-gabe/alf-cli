@@ -64,7 +64,45 @@ Configuration file location (created after `alf init`):
 - `Ctrl-u/d` - Scroll up/down
 - `/` - Focus search & activate search mode
 - `Esc` - Exit search mode
+- `Tab` - Populate the parent shell prompt with the selected entry
+- `Enter` - Execute the selected entry in the parent shell
 - `q` - Quit
+
+## Shell Integration
+
+`Tab` and `Enter` only affect the parent shell when the `alf` shell hook is sourced. Add this to your shell config:
+
+```bash
+# zsh (~/.zshrc)
+eval "$(alf shell-hook zsh)"
+
+# bash (~/.bashrc)
+eval "$(alf shell-hook bash)"
+```
+
+The hook installs two things:
+
+1. An `alf` shell function that wraps the binary so selections feed back into the prompt.
+2. A `Ctrl-G` keybinding that opens the picker directly from the prompt (zle widget for zsh, `bind -x` for bash).
+
+Tab vs Enter semantics:
+
+- **Tab** — populate the prompt with the selected entry; do not run it.
+- **Enter** — run the selected entry immediately (and add it to history).
+
+Rebind `Ctrl-G` if it conflicts with another binding:
+
+```zsh
+# zsh
+bindkey '^T' __alf_widget
+```
+
+```bash
+# bash
+bind -x '"\C-t": __alf_widget'
+```
+
+Note: in **bash**, typing `alf` at the prompt and pressing `Tab` cannot populate the readline buffer (a limitation of bash readline outside `bind -x` handlers); it prints the entry instead. Use the `Ctrl-G` binding for in-place population in bash.
 
 ## Development
 

@@ -14,11 +14,22 @@ pub struct Config {
    pub display: DisplayConfig,
 }
 
+/// Controls what gets populated when Tab is pressed on an alias
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum AliasExpansion {
+   #[default]
+   Name,
+   Script,
+}
+
 /// General configuration options
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GeneralConfig {
    /// List of shell files to parse (supports glob patterns)
    pub shell_files: Vec<String>,
+   pub alias_expansion: AliasExpansion,
 }
 
 /// Search behavior configuration
@@ -69,9 +80,7 @@ pub struct DisplayConfig {
 impl Default for Config {
    fn default() -> Self {
       Self {
-         general: GeneralConfig {
-            shell_files: Vec::new(), // Configured on first run
-         },
+         general: GeneralConfig::default(),
          search: SearchConfig {
             case_matching: CaseMatching::Smart,
             normalize: true,
