@@ -91,7 +91,9 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
             _ => &entry.name,
          };
          if let Ok(output_path) = std::env::var("ALF_OUTPUT") {
-            let _ = std::fs::write(&output_path, format!("{}\n{}", action_str, output_value));
+            if let Err(e) = std::fs::write(&output_path, format!("{}\n{}", action_str, output_value)) {
+               log::warn!("Failed to write output to {}: {}", output_path, e);
+            }
          }
       }
    }

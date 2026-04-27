@@ -25,10 +25,10 @@ pub enum AliasExpansion {
 
 /// General configuration options
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GeneralConfig {
    /// List of shell files to parse (supports glob patterns)
    pub shell_files: Vec<String>,
-   #[serde(default)]
    pub alias_expansion: AliasExpansion,
 }
 
@@ -80,7 +80,7 @@ pub struct DisplayConfig {
 impl Default for Config {
    fn default() -> Self {
       Self {
-         general: GeneralConfig { shell_files: Vec::new(), alias_expansion: AliasExpansion::default() },
+         general: GeneralConfig::default(),
          search: SearchConfig {
             case_matching: CaseMatching::Smart,
             normalize: true,
