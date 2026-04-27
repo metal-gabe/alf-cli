@@ -141,8 +141,14 @@ fn get_shell_hook(shell: &str) -> &'static str {
     if [[ -n "$entry" ]]; then
       if [[ "$action" == "execute" ]]; then
         print -s -- "$entry"
-        fc -AI "$HISTFILE"
-        eval -- "$entry"
+        fc -A
+        if (( ${+functions[_atuin_preexec]} )); then
+          _atuin_preexec "$entry"
+          eval -- "$entry"
+          _atuin_precmd
+        else
+          eval -- "$entry"
+        fi
         return
       else
         print -z -- "$entry"
