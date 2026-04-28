@@ -1,0 +1,17 @@
+# LINK: https://nexte.st/docs/configuration/reference/
+nextest-version = "0.9.133"
+experimental = ["benchmarks"]
+
+[profile.default]
+bench.global-timeout = "15m"
+bench.slow-timeout = { period = "30s", terminate-after = 4 }
+flaky-result = "fail"
+global-timeout = "15m"
+slow-timeout = { period = "30s", terminate-after = 4 }
+
+[profile.ci]
+bench.global-timeout = "10m"
+bench.slow-timeout = { period = "15s", terminate-after = 3 }
+flaky-result = "fail"
+global-timeout = "10m"
+slow-timeout = { period = "15s", terminate-after = 3, grace-period = "15s" }
