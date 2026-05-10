@@ -72,3 +72,6 @@ fn create_matcher(_opts: &SearchOptions) -> Matcher {
    // Future versions may expose more configurability
    Matcher::new(Config::DEFAULT)
 }
+
+#[cfg(test)]
+mod search_tests;

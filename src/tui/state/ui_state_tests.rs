@@ -1,6 +1,7 @@
 //! Tests for UiState and ScrollManager
 
-use alf::tui::state::{NavigationState, Panel, ScrollManager, UiState};
+use crate::tui::state::{NavigationState, ScrollManager};
+use super::{Panel, UiState};
 
 // ===== UiState defaults =====
 
@@ -97,17 +98,17 @@ fn test_toggle_help_resets_scroll_when_opening() {
     let mut ui = UiState::new();
     ui.update_help_max_scroll(20, 5);
     ui.set_help_scroll_offset(3);
-    ui.toggle_help(); // open
+    ui.toggle_help();
     assert_eq!(ui.help_scroll_offset(), 0, "Opening help should reset scroll");
 }
 
 #[test]
 fn test_toggle_help_does_not_reset_scroll_when_closing() {
     let mut ui = UiState::new();
-    ui.toggle_help(); // open
+    ui.toggle_help();
     ui.update_help_max_scroll(20, 5);
     ui.set_help_scroll_offset(3);
-    ui.toggle_help(); // close
+    ui.toggle_help();
     assert_eq!(ui.help_scroll_offset(), 3, "Closing help should preserve scroll offset");
 }
 
@@ -182,7 +183,7 @@ fn test_scroll_up_on_list_panel_moves_navigation() {
 fn test_scroll_up_on_description_panel_decrements_offset() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
-    ui.cycle_panel(); // List -> Description
+    ui.cycle_panel();
     ui.set_description_scroll_offset(5);
     ScrollManager::scroll_up(&mut ui, &mut nav, 2);
     assert_eq!(ui.description_scroll_offset(), 3);
@@ -192,7 +193,7 @@ fn test_scroll_up_on_description_panel_decrements_offset() {
 fn test_scroll_up_on_description_panel_saturates_at_zero() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
-    ui.cycle_panel(); // Description
+    ui.cycle_panel();
     ui.set_description_scroll_offset(1);
     ScrollManager::scroll_up(&mut ui, &mut nav, 10);
     assert_eq!(ui.description_scroll_offset(), 0);
@@ -203,7 +204,7 @@ fn test_scroll_up_on_script_panel_decrements_offset() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
     ui.cycle_panel();
-    ui.cycle_panel(); // Script
+    ui.cycle_panel();
     ui.set_script_scroll_offset(8);
     ScrollManager::scroll_up(&mut ui, &mut nav, 3);
     assert_eq!(ui.script_scroll_offset(), 5);
@@ -223,7 +224,7 @@ fn test_scroll_down_on_list_panel_moves_navigation() {
 fn test_scroll_down_on_description_panel_increments_offset() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
-    ui.cycle_panel(); // Description
+    ui.cycle_panel();
     ui.update_description_max_scroll(20, 5);
     ScrollManager::scroll_down(&mut ui, &mut nav, 3, 10);
     assert_eq!(ui.description_scroll_offset(), 3);
@@ -233,8 +234,8 @@ fn test_scroll_down_on_description_panel_increments_offset() {
 fn test_scroll_down_on_description_panel_clamped_to_max() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
-    ui.cycle_panel(); // Description
-    ui.update_description_max_scroll(20, 15); // max = 5
+    ui.cycle_panel();
+    ui.update_description_max_scroll(20, 15);
     ScrollManager::scroll_down(&mut ui, &mut nav, 100, 10);
     assert_eq!(ui.description_scroll_offset(), 5, "Should clamp to max scroll");
 }
@@ -244,7 +245,7 @@ fn test_scroll_down_on_script_panel_increments_offset() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
     ui.cycle_panel();
-    ui.cycle_panel(); // Script
+    ui.cycle_panel();
     ui.update_script_max_scroll(20, 5);
     ScrollManager::scroll_down(&mut ui, &mut nav, 4, 10);
     assert_eq!(ui.script_scroll_offset(), 4);
@@ -265,7 +266,7 @@ fn test_move_top_on_list_resets_navigation() {
 fn test_move_top_on_description_zeroes_offset() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
-    ui.cycle_panel(); // Description
+    ui.cycle_panel();
     ui.set_description_scroll_offset(7);
     ScrollManager::move_top(&mut ui, &mut nav);
     assert_eq!(ui.description_scroll_offset(), 0);
@@ -276,7 +277,7 @@ fn test_move_top_on_script_zeroes_offset() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
     ui.cycle_panel();
-    ui.cycle_panel(); // Script
+    ui.cycle_panel();
     ui.set_script_scroll_offset(4);
     ScrollManager::move_top(&mut ui, &mut nav);
     assert_eq!(ui.script_scroll_offset(), 0);
@@ -294,8 +295,8 @@ fn test_move_bottom_on_list_moves_navigation_to_last() {
 fn test_move_bottom_on_description_sets_max() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
-    ui.cycle_panel(); // Description
-    ui.update_description_max_scroll(20, 5); // max = 15
+    ui.cycle_panel();
+    ui.update_description_max_scroll(20, 5);
     ScrollManager::move_bottom(&mut ui, &mut nav, 10);
     assert_eq!(ui.description_scroll_offset(), ui.description_max_scroll());
 }
@@ -305,8 +306,8 @@ fn test_move_bottom_on_script_sets_max() {
     let mut ui = UiState::new();
     let mut nav = NavigationState::new();
     ui.cycle_panel();
-    ui.cycle_panel(); // Script
-    ui.update_script_max_scroll(30, 10); // max = 20
+    ui.cycle_panel();
+    ui.update_script_max_scroll(30, 10);
     ScrollManager::move_bottom(&mut ui, &mut nav, 10);
     assert_eq!(ui.script_scroll_offset(), ui.script_max_scroll());
 }
@@ -340,7 +341,7 @@ fn test_help_scroll_down_increments_offset() {
 #[test]
 fn test_help_scroll_down_clamped_to_max() {
     let mut ui = UiState::new();
-    ui.update_help_max_scroll(20, 15); // max = 5
+    ui.update_help_max_scroll(20, 15);
     ui.set_help_scroll_offset(5);
     ScrollManager::help_scroll_down(&mut ui);
     assert_eq!(ui.help_scroll_offset(), 5, "Should not exceed max");
@@ -357,7 +358,7 @@ fn test_help_jump_top_sets_offset_to_zero() {
 #[test]
 fn test_help_jump_bottom_sets_offset_to_max() {
     let mut ui = UiState::new();
-    ui.update_help_max_scroll(30, 10); // max = 20
+    ui.update_help_max_scroll(30, 10);
     ScrollManager::help_jump_bottom(&mut ui);
     assert_eq!(ui.help_scroll_offset(), 20);
 }

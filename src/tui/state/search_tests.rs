@@ -1,6 +1,6 @@
 //! Tests for SearchState (query manipulation and cursor tracking)
 
-use alf::tui::state::SearchState;
+use super::SearchState;
 
 // ===== is_empty / new =====
 

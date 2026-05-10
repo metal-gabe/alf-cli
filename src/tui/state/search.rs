@@ -87,3 +87,7 @@ impl SearchState {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "search_tests.rs"]
+mod search_tests;

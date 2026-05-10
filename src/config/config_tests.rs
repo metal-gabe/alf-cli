@@ -1,6 +1,6 @@
 //! Tests for configuration loading, saving, and defaults
 
-use alf::config::{get_config_path, is_first_run, load_config, save_config, CaseMatching, Config};
+use super::{get_config_path, is_first_run, load_config, save_config, AliasExpansion, CaseMatching, Config, GeneralConfig};
 
 static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
@@ -132,6 +132,50 @@ fn test_config_parse_invalid_toml_returns_error() {
     let invalid_toml = "this is not valid [[[ toml !!!";
     let result: Result<Config, _> = toml::from_str(invalid_toml);
     assert!(result.is_err(), "Invalid TOML should fail to parse");
+}
+
+// ===== AliasExpansion tests =====
+
+#[test]
+fn test_config_default_alias_expansion_is_name() {
+    let config = Config::default();
+    assert!(matches!(config.general.alias_expansion, AliasExpansion::Name));
+}
+
+#[test]
+fn test_config_alias_expansion_toml_roundtrip_script() {
+    let config = Config {
+        general: GeneralConfig { alias_expansion: AliasExpansion::Script, ..Default::default() },
+        ..Config::default()
+    };
+    let toml_str = toml::to_string_pretty(&config).expect("Should serialize");
+    let parsed: Config = toml::from_str(&toml_str).expect("Should deserialize");
+    assert!(matches!(parsed.general.alias_expansion, AliasExpansion::Script));
+}
+
+#[test]
+fn test_config_parse_toml_with_alias_expansion_script() {
+    let toml_content = r#"
+[general]
+alias_expansion = "script"
+
+[search]
+case_matching = "smart"
+normalize = true
+enable_regex = true
+substring_matching = true
+
+[ui]
+theme = "default"
+keybind_mode = "vim"
+
+[display]
+show_type_badges = true
+syntax_highlighting = true
+parse_comments = true
+"#;
+    let config: Config = toml::from_str(toml_content).expect("Should parse");
+    assert!(matches!(config.general.alias_expansion, AliasExpansion::Script));
 }
 
 // ===== File path tests =====

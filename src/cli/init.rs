@@ -191,7 +191,7 @@ fn get_shell_hook(shell: &str) -> &'static str {
 }
 
 /// Detect which standard shell files exist in the home directory
-pub fn detect_shell_files(home: &str) -> Vec<String> {
+pub(super) fn detect_shell_files(home: &str) -> Vec<String> {
    STANDARD_SHELL_FILES
       .iter()
       .filter_map(|filename| {
@@ -209,3 +209,7 @@ pub fn detect_shell_files(home: &str) -> Vec<String> {
       })
       .collect()
 }
+
+#[cfg(test)]
+#[path = "init_tests.rs"]
+mod init_tests;

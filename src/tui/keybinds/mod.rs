@@ -12,6 +12,9 @@ mod help;
 mod normal;
 mod search;
 
+#[cfg(test)]
+mod keybind_tests;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::tui::app::App;
@@ -22,7 +25,7 @@ use crate::tui::app::App;
 /// 1. Check for truly global keybinds (Ctrl-C, Ctrl-D to quit)
 /// 2. If help modal is open, use help mode handlers
 /// 3. Otherwise, use mode-specific handlers (Normal or Search)
-pub fn handle_key_event(app: &mut App, key: KeyEvent) {
+pub(super) fn handle_key_event(app: &mut App, key: KeyEvent) {
    // Check for truly global keybinds first - these work ALWAYS or are reserved
    match key.code {
       // Quit app (Ctrl-C or Ctrl-D)

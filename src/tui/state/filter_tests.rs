@@ -1,8 +1,8 @@
 //! Tests for FilterState (filter cycling, grouping, sorting, and visible entry updates)
 
-use alf::models::{AliasEntry, EntryType};
-use alf::tui::state::{EntryData, EntryFilter, FilterState, GroupMode, SortOrder};
+use crate::models::{AliasEntry, EntryType};
 use std::path::PathBuf;
+use super::{EntryData, EntryFilter, FilterState, GroupMode, SortOrder};
 
 fn make_entry(name: &str, entry_type: EntryType) -> AliasEntry {
     AliasEntry {
@@ -92,7 +92,6 @@ fn test_set_filter_directly() {
 #[test]
 fn test_cycle_group_mode_none_to_aliases() {
     let mut state = FilterState::new();
-    // Default is GroupMode::Aliases, so cycle to Functions first, then back to None
     state.cycle_group_mode();
     state.cycle_group_mode();
     assert_eq!(state.group_mode(), GroupMode::None);
@@ -103,7 +102,6 @@ fn test_cycle_group_mode_none_to_aliases() {
 #[test]
 fn test_cycle_group_mode_full_cycle() {
     let mut state = FilterState::new();
-    // Start: Aliases (default)
     assert_eq!(state.group_mode(), GroupMode::Aliases);
     state.cycle_group_mode();
     assert_eq!(state.group_mode(), GroupMode::Functions);
@@ -118,7 +116,6 @@ fn test_cycle_group_mode_full_cycle() {
 #[test]
 fn test_cycle_group_mode_backward_full_cycle() {
     let mut state = FilterState::new();
-    // Start: Aliases (default)
     state.cycle_group_mode_backward();
     assert_eq!(state.group_mode(), GroupMode::None);
     state.cycle_group_mode_backward();
@@ -204,7 +201,6 @@ fn test_search_query_no_match_returns_empty() {
 fn test_search_query_matches_by_value() {
     let state = FilterState::new();
     let mut data = make_mixed_data();
-    // value_for_alpha and value_for_beta both contain "value_for_al" (only alpha)
     state.update_visible_entries(&mut data, "value_for_alpha");
     assert_eq!(data.visible_count(), 1);
     assert_eq!(data.get_visible_entry(0).unwrap().name, "alpha");
@@ -216,16 +212,13 @@ fn test_search_query_matches_by_value() {
 fn test_group_mode_aliases_first_puts_aliases_before_functions() {
     let mut state = FilterState::new();
     state.set_filter(EntryFilter::All);
-    // Default group_mode is Aliases (aliases first)
     assert_eq!(state.group_mode(), GroupMode::Aliases);
     let mut data = make_mixed_data();
     state.update_visible_entries(&mut data, "");
-    // First two entries should be aliases
     let first = data.get_visible_entry(0).unwrap();
     let second = data.get_visible_entry(1).unwrap();
     assert_eq!(first.entry_type, EntryType::Alias);
     assert_eq!(second.entry_type, EntryType::Alias);
-    // Last two should be functions
     let third = data.get_visible_entry(2).unwrap();
     let fourth = data.get_visible_entry(3).unwrap();
     assert_eq!(third.entry_type, EntryType::Function);
@@ -235,7 +228,7 @@ fn test_group_mode_aliases_first_puts_aliases_before_functions() {
 #[test]
 fn test_group_mode_functions_first_puts_functions_before_aliases() {
     let mut state = FilterState::new();
-    state.cycle_group_mode(); // Aliases -> Functions
+    state.cycle_group_mode();
     assert_eq!(state.group_mode(), GroupMode::Functions);
     let mut data = make_mixed_data();
     state.update_visible_entries(&mut data, "");
@@ -253,10 +246,9 @@ fn test_group_mode_functions_first_puts_functions_before_aliases() {
 
 #[test]
 fn test_sort_ascending_orders_aliases_a_to_z() {
-    let state = FilterState::new(); // Ascending + Aliases first
+    let state = FilterState::new();
     let mut data = make_mixed_data();
     state.update_visible_entries(&mut data, "");
-    // Aliases should be: alpha, beta (a-z)
     assert_eq!(data.get_visible_entry(0).unwrap().name, "alpha");
     assert_eq!(data.get_visible_entry(1).unwrap().name, "beta");
 }
@@ -268,7 +260,6 @@ fn test_sort_descending_orders_aliases_z_to_a() {
     assert_eq!(state.sort_order(), SortOrder::Descending);
     let mut data = make_mixed_data();
     state.update_visible_entries(&mut data, "");
-    // Aliases first (GroupMode::Aliases), sorted z-a: beta, alpha
     assert_eq!(data.get_visible_entry(0).unwrap().name, "beta");
     assert_eq!(data.get_visible_entry(1).unwrap().name, "alpha");
 }
@@ -277,11 +268,10 @@ fn test_sort_descending_orders_aliases_z_to_a() {
 fn test_sort_ascending_no_grouping_all_a_to_z() {
     let mut state = FilterState::new();
     state.cycle_group_mode();
-    state.cycle_group_mode(); // Aliases -> Functions -> None
+    state.cycle_group_mode();
     assert_eq!(state.group_mode(), GroupMode::None);
     let mut data = make_mixed_data();
     state.update_visible_entries(&mut data, "");
-    // All sorted A-Z: alpha, beta, delta, gamma
     assert_eq!(data.get_visible_entry(0).unwrap().name, "alpha");
     assert_eq!(data.get_visible_entry(1).unwrap().name, "beta");
     assert_eq!(data.get_visible_entry(2).unwrap().name, "delta");

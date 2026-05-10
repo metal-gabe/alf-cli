@@ -217,3 +217,7 @@ impl FilterState {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "filter_tests.rs"]
+mod filter_tests;

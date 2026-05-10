@@ -133,3 +133,6 @@ pub fn is_first_run() -> Result<bool> {
    let path = get_config_path()?;
    Ok(!path.exists())
 }
+
+#[cfg(test)]
+mod config_tests;

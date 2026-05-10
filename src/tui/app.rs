@@ -420,3 +420,7 @@ impl App {
       &self.theme
    }
 }
+
+#[cfg(test)]
+#[path = "app_tests.rs"]
+mod app_tests;

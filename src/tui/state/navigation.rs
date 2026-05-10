@@ -65,3 +65,7 @@ impl NavigationState {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "navigation_tests.rs"]
+mod navigation_tests;

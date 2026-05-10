@@ -1,6 +1,6 @@
 //! Tests for Theme loading and cycling
 
-use alf::tui::Theme;
+use super::Theme;
 
 // ===== available_themes =====
 

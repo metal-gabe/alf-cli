@@ -85,3 +85,7 @@ impl InputState {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "input_tests.rs"]
+mod input_tests;

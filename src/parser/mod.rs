@@ -204,3 +204,6 @@ fn extract_multiline_comment(lines: &[&str], mut line_number: usize) -> Option<V
 
    None
 }
+
+#[cfg(test)]
+mod parser_tests;

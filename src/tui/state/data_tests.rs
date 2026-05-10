@@ -1,8 +1,8 @@
 //! Tests for EntryData (entry storage and visible index management)
 
-use alf::models::{AliasEntry, EntryType};
-use alf::tui::state::EntryData;
+use crate::models::{AliasEntry, EntryType};
 use std::path::PathBuf;
+use super::EntryData;
 
 fn make_entry(name: &str) -> AliasEntry {
     AliasEntry {
@@ -61,7 +61,6 @@ fn test_visible_count_reflects_indices() {
 #[test]
 fn test_get_visible_entry_returns_correct_entry() {
     let mut data = EntryData::new(vec![make_entry("alpha"), make_entry("beta"), make_entry("gamma")]);
-    // visible index 0 → entry index 2 (gamma)
     data.visible_indices_mut().push(2);
     let entry = data.get_visible_entry(0).unwrap();
     assert_eq!(entry.name, "gamma");
@@ -85,7 +84,6 @@ fn test_get_visible_entry_empty_visible_returns_none() {
 #[test]
 fn test_sort_visible_indices_by_name_ascending() {
     let mut data = EntryData::new(vec![make_entry("charlie"), make_entry("alice"), make_entry("bob")]);
-    // All three visible: indices 0, 1, 2
     data.visible_indices_mut().extend([0, 1, 2]);
     data.sort_visible_indices(|a, b| a.name.cmp(&b.name));
     assert_eq!(data.get_visible_entry(0).unwrap().name, "alice");
@@ -107,7 +105,6 @@ fn test_sort_visible_indices_by_name_descending() {
 fn test_sort_visible_indices_subset_of_entries() {
     let mut data =
         EntryData::new(vec![make_entry("charlie"), make_entry("alice"), make_entry("bob"), make_entry("diana")]);
-    // Only show indices 0 and 2 (charlie and bob)
     data.visible_indices_mut().extend([0, 2]);
     data.sort_visible_indices(|a, b| a.name.cmp(&b.name));
     assert_eq!(data.get_visible_entry(0).unwrap().name, "bob");

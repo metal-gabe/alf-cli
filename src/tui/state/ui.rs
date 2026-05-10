@@ -170,3 +170,7 @@ impl UiState {
       self.help_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
    }
 }
+
+#[cfg(test)]
+#[path = "ui_state_tests.rs"]
+mod ui_state_tests;

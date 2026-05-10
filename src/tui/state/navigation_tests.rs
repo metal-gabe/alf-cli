@@ -1,6 +1,6 @@
 //! Tests for NavigationState
 
-use alf::tui::state::NavigationState;
+use super::NavigationState;
 
 // ===== move_up =====
 

@@ -1,6 +1,6 @@
 //! Tests for InputState (mode transitions and pending key handling)
 
-use alf::tui::state::{InputMode, InputState};
+use super::{InputMode, InputState};
 
 // ===== Default state =====
 

@@ -1,9 +1,9 @@
-//! Integration tests for the App state manager
+//! Tests for the App state manager
 
-pub use alf::models::{AliasEntry, EntryType};
-pub use alf::tui::app::{App, ExitAction};
-pub use alf::tui::state::{EntryFilter, GroupMode, InputMode, Panel, SortOrder};
-pub use alf::tui::Theme;
+pub use crate::models::{AliasEntry, EntryType};
+pub use super::{App, ExitAction};
+pub use crate::tui::state::{EntryFilter, GroupMode, InputMode, Panel, SortOrder};
+pub use crate::tui::themes::Theme;
 use std::path::PathBuf;
 
 pub fn make_entry(name: &str, entry_type: EntryType, value: &str) -> AliasEntry {
@@ -16,10 +16,6 @@ pub fn make_entry(name: &str, entry_type: EntryType, value: &str) -> AliasEntry 
    }
 }
 
-/// Creates an App with 2 aliases and 2 functions.
-/// Default ordering (GroupMode::Aliases first, A-Z):
-///   alpha (Alias), beta (Alias), gamma (Function), delta (Function)
-/// Wait - sorted A-Z within groups: alpha, beta for aliases; delta, gamma for functions
 pub fn make_app() -> App {
    let entries = vec![
       make_entry("beta", EntryType::Alias, "cmd_beta"),
@@ -34,16 +30,29 @@ pub fn make_empty_app() -> App {
    App::new(vec![], Theme::default())
 }
 
+#[path = "app_tests/filter.rs"]
 mod filter;
+#[path = "app_tests/group_mode_and_sort_order.rs"]
 mod group_mode_and_sort_order;
+#[path = "app_tests/help_modal.rs"]
 mod help_modal;
+#[path = "app_tests/initial_state.rs"]
 mod initial_state;
+#[path = "app_tests/navigation.rs"]
 mod navigation;
+#[path = "app_tests/panel_cycling.rs"]
 mod panel_cycling;
+#[path = "app_tests/pending_key.rs"]
 mod pending_key;
+#[path = "app_tests/scroll.rs"]
 mod scroll;
+#[path = "app_tests/search_mode.rs"]
 mod search_mode;
+#[path = "app_tests/select_entry.rs"]
 mod select_entry;
+#[path = "app_tests/selected_entry.rs"]
 mod selected_entry;
+#[path = "app_tests/theme_cycling.rs"]
 mod theme_cycling;
+#[path = "app_tests/tick.rs"]
 mod tick;
