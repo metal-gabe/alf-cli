@@ -69,31 +69,9 @@ fn test_config_default_shell_files_empty() {
 // ===== TOML serialization tests =====
 
 #[test]
-fn test_config_toml_roundtrip_preserves_theme() {
-    let original = Config::default();
-    let toml_str = toml::to_string_pretty(&original).expect("Should serialize");
-    let parsed: Config = toml::from_str(&toml_str).expect("Should deserialize");
-    assert_eq!(parsed.ui.theme, original.ui.theme);
-}
-
-#[test]
-fn test_config_toml_roundtrip_preserves_display_settings() {
-    let original = Config::default();
-    let toml_str = toml::to_string_pretty(&original).expect("Should serialize");
-    let parsed: Config = toml::from_str(&toml_str).expect("Should deserialize");
-    assert_eq!(parsed.display.show_type_badges, original.display.show_type_badges);
-    assert_eq!(parsed.display.syntax_highlighting, original.display.syntax_highlighting);
-    assert_eq!(parsed.display.parse_comments, original.display.parse_comments);
-}
-
-#[test]
-fn test_config_toml_roundtrip_preserves_search_settings() {
-    let original = Config::default();
-    let toml_str = toml::to_string_pretty(&original).expect("Should serialize");
-    let parsed: Config = toml::from_str(&toml_str).expect("Should deserialize");
-    assert_eq!(parsed.search.normalize, original.search.normalize);
-    assert_eq!(parsed.search.enable_regex, original.search.enable_regex);
-    assert_eq!(parsed.search.substring_matching, original.search.substring_matching);
+fn test_config_default_toml_format() {
+    let toml_str = toml::to_string_pretty(&Config::default()).expect("Should serialize");
+    insta::assert_snapshot!(toml_str);
 }
 
 #[test]
@@ -143,14 +121,13 @@ fn test_config_default_alias_expansion_is_name() {
 }
 
 #[test]
-fn test_config_alias_expansion_toml_roundtrip_script() {
+fn test_config_script_expansion_toml_format() {
     let config = Config {
         general: GeneralConfig { alias_expansion: AliasExpansion::Script, ..Default::default() },
         ..Config::default()
     };
     let toml_str = toml::to_string_pretty(&config).expect("Should serialize");
-    let parsed: Config = toml::from_str(&toml_str).expect("Should deserialize");
-    assert!(matches!(parsed.general.alias_expansion, AliasExpansion::Script));
+    insta::assert_snapshot!(toml_str);
 }
 
 #[test]

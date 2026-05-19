@@ -1,0 +1,24 @@
+---
+source: src/parser/parser_tests.rs
+expression: entries
+---
+[
+    AliasEntry {
+        name: "lsfp",
+        entry_type: Function,
+        value: "function lsfp() {\n  find . -type f\n}",
+        comments: Some(
+            [
+                "search for file paths",
+            ],
+        ),
+        source_file: [REDACTED]
+    },
+    AliasEntry {
+        name: "md",
+        entry_type: Function,
+        value: "function md() {\n  mkdir -p \"$1\"\n}",
+        comments: None,
+        source_file: [REDACTED]
+    },
+]

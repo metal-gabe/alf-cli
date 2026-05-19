@@ -1,0 +1,22 @@
+---
+source: src/config/config_tests.rs
+expression: toml_str
+---
+[general]
+shell_files = []
+alias_expansion = "script"
+
+[search]
+case_matching = "smart"
+normalize = true
+enable_regex = true
+substring_matching = true
+
+[ui]
+theme = "default"
+keybind_mode = "vim"
+
+[display]
+show_type_badges = true
+syntax_highlighting = true
+parse_comments = true

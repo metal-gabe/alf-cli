@@ -1,0 +1,28 @@
+---
+source: src/parser/parser_tests.rs
+expression: entries
+---
+[
+    AliasEntry {
+        name: "grep",
+        entry_type: Alias,
+        value: "grep --color=auto",
+        comments: Some(
+            [
+                "search with color highlighting",
+            ],
+        ),
+        source_file: [REDACTED]
+    },
+    AliasEntry {
+        name: "ll",
+        entry_type: Alias,
+        value: "ls -lah",
+        comments: Some(
+            [
+                "list files with long format",
+            ],
+        ),
+        source_file: [REDACTED]
+    },
+]

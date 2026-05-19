@@ -1,0 +1,20 @@
+---
+source: src/parser/parser_tests.rs
+expression: entries
+---
+[
+    AliasEntry {
+        name: "t.helper",
+        entry_type: Function,
+        value: "t.helper() {\n  echo \"helper function\"\n}",
+        comments: None,
+        source_file: [REDACTED]
+    },
+    AliasEntry {
+        name: "my-alias",
+        entry_type: Function,
+        value: "my-alias() {\n  echo \"alias with dash\"\n}",
+        comments: None,
+        source_file: [REDACTED]
+    },
+]
