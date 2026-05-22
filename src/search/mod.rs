@@ -59,8 +59,7 @@ pub fn fuzzy_search(entries: &[AliasEntry], query: &str, opts: &SearchOptions) -
       }
    }
 
-   // Sort by score descending (higher scores first)
-   results.sort_by(|a, b| b.score.cmp(&a.score));
+   results.sort_by_key(|r| std::cmp::Reverse(r.score));
 
    results
 }

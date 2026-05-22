@@ -1,9 +1,9 @@
 //! Tests for fuzzy search functionality
 
+use super::{fuzzy_search, SearchOptions};
 use crate::config::CaseMatching;
 use crate::models::{AliasEntry, EntryType};
 use std::path::PathBuf;
-use super::{fuzzy_search, SearchOptions};
 
 fn create_test_entry(name: &str, entry_type: EntryType, value: &str, comments: Option<Vec<String>>) -> AliasEntry {
    AliasEntry {

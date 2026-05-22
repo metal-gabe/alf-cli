@@ -4,11 +4,11 @@ use crate::models::{AliasEntry, EntryType};
 use std::path::Path;
 
 fn assert_entries_snapshot(name: &str, entries: &[AliasEntry]) {
-    insta::with_settings!({
-        filters => vec![(r"source_file: [^\n]+", "source_file: [REDACTED]")]
-    }, {
-        insta::assert_debug_snapshot!(name, entries);
-    });
+   insta::with_settings!({
+       filters => vec![(r"source_file: [^\n]+", "source_file: [REDACTED]")]
+   }, {
+       insta::assert_debug_snapshot!(name, entries);
+   });
 }
 
 #[test]

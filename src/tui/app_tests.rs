@@ -1,7 +1,7 @@
 //! Tests for the App state manager
 
-pub use crate::models::{AliasEntry, EntryType};
 pub use super::{App, ExitAction};
+pub use crate::models::{AliasEntry, EntryType};
 pub use crate::tui::state::{EntryFilter, GroupMode, InputMode, Panel, SortOrder};
 pub use crate::tui::themes::Theme;
 use std::path::PathBuf;
