@@ -8,7 +8,10 @@ fn make_home() -> TempDir {
    tempfile::tempdir().unwrap()
 }
 
-fn touch(dir: &TempDir, name: &str) {
+fn touch(
+   dir: &TempDir,
+   name: &str,
+) {
    fs::File::create(dir.path().join(name)).unwrap();
 }
 

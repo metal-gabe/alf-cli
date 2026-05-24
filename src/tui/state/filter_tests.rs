@@ -4,7 +4,10 @@ use super::{EntryData, EntryFilter, FilterState, GroupMode, SortOrder};
 use crate::models::{AliasEntry, EntryType};
 use std::path::PathBuf;
 
-fn make_entry(name: &str, entry_type: EntryType) -> AliasEntry {
+fn make_entry(
+   name: &str,
+   entry_type: EntryType,
+) -> AliasEntry {
    AliasEntry {
       name: name.to_string(),
       entry_type,

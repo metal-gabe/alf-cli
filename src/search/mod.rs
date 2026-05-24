@@ -16,7 +16,10 @@ pub struct SearchOptions {
 
 impl Default for SearchOptions {
    fn default() -> Self {
-      Self { case_matching: CaseMatching::Smart, normalize: true }
+      Self {
+         case_matching: CaseMatching::Smart,
+         normalize: true,
+      }
    }
 }
 
@@ -29,10 +32,20 @@ impl Default for SearchOptions {
 ///
 /// # Returns
 /// A vector of search results sorted by match score (highest first)
-pub fn fuzzy_search(entries: &[AliasEntry], query: &str, opts: &SearchOptions) -> Vec<SearchResult> {
+pub fn fuzzy_search(
+   entries: &[AliasEntry],
+   query: &str,
+   opts: &SearchOptions,
+) -> Vec<SearchResult> {
    if query.is_empty() {
       // Empty query matches all entries with equal score
-      return entries.iter().map(|entry| SearchResult { entry: entry.clone(), score: 0 }).collect();
+      return entries
+         .iter()
+         .map(|entry| SearchResult {
+            entry: entry.clone(),
+            score: 0,
+         })
+         .collect();
    }
 
    let mut matcher = create_matcher(opts);
@@ -55,7 +68,10 @@ pub fn fuzzy_search(entries: &[AliasEntry], query: &str, opts: &SearchOptions) -
 
       // Use name score if available, otherwise use comment score
       if let Some(score) = name_score.or(comment_score) {
-         results.push(SearchResult { entry: entry.clone(), score: score as u32 });
+         results.push(SearchResult {
+            entry: entry.clone(),
+            score: score as u32,
+         });
       }
    }
 

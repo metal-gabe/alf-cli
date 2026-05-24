@@ -87,7 +87,7 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
                   && matches!(alias_expansion, crate::config::AliasExpansion::Script) =>
             {
                &entry.value
-            }
+            },
             _ => &entry.name,
          };
          if let Ok(output_path) = std::env::var("ALF_OUTPUT") {
@@ -126,7 +126,7 @@ fn run_loop(
          Event::Key(key) => keybinds::handle_key_event(app, key),
          Event::Resize(_, _) => {
             // ratatui handles terminal resize automatically on next draw
-         }
+         },
          Event::Tick => app.tick(),
       }
    }

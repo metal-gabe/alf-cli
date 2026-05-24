@@ -21,7 +21,12 @@ use crate::tui::themes::Theme;
 /// * `is_active` - Whether this panel is currently active
 /// * `filter` - The current entry filter for border color styling
 /// * `theme` - The current theme for color selection
-pub fn panel_block<'a>(title: &'a str, is_active: bool, filter: &EntryFilter, theme: &Theme) -> Block<'a> {
+pub fn panel_block<'a>(
+   title: &'a str,
+   is_active: bool,
+   filter: &EntryFilter,
+   theme: &Theme,
+) -> Block<'a> {
    Block::default()
       .borders(Borders::ALL)
       .title(Span::styled(title, if is_active { Style::default().fg(theme.foreground) } else { Style::default() }))
@@ -71,7 +76,10 @@ pub fn render_scrollbar(
 /// * If `is_active` and `use_bold` is false: empty Style
 /// * If inactive and `use_bold` is true: BOLD | DIM
 /// * If inactive and `use_bold` is false: DIM only
-pub fn active_style(is_active: bool, use_bold: bool) -> Style {
+pub fn active_style(
+   is_active: bool,
+   use_bold: bool,
+) -> Style {
    match (is_active, use_bold) {
       (true, true) => Style::default().add_modifier(Modifier::BOLD),
       (true, false) => Style::default(),

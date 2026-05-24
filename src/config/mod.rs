@@ -87,8 +87,15 @@ impl Default for Config {
             enable_regex: true,
             substring_matching: true,
          },
-         ui: UiConfig { theme: "default".to_string(), keybind_mode: "vim".to_string() },
-         display: DisplayConfig { show_type_badges: true, syntax_highlighting: true, parse_comments: true },
+         ui: UiConfig {
+            theme: "default".to_string(),
+            keybind_mode: "vim".to_string(),
+         },
+         display: DisplayConfig {
+            show_type_badges: true,
+            syntax_highlighting: true,
+            parse_comments: true,
+         },
       }
    }
 }

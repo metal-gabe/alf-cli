@@ -15,7 +15,12 @@ use crate::tui::themes::Theme;
 use super::super::components::{active_style, panel_block, render_scrollbar};
 
 /// Draw the right-top panel: comments/description
-pub fn draw_description_panel(frame: &mut Frame, app: &mut App, theme: &Theme, area: Rect) {
+pub fn draw_description_panel(
+   frame: &mut Frame,
+   app: &mut App,
+   theme: &Theme,
+   area: Rect,
+) {
    let is_active = app.active_panel() == Panel::Description;
    let block = panel_block("[ Description ]", is_active, &app.filter(), theme);
 
@@ -37,7 +42,9 @@ pub fn draw_description_panel(frame: &mut Frame, app: &mut App, theme: &Theme, a
 
    let paragraph = Paragraph::new(Text::styled(description_text, active_style(is_active, false)))
       .block(block)
-      .wrap(Wrap { trim: false })
+      .wrap(Wrap {
+         trim: false,
+      })
       .scroll((app.description_scroll_offset() as u16, 0));
 
    frame.render_widget(paragraph, area);

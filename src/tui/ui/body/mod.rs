@@ -14,7 +14,12 @@ use crate::tui::app::App;
 use crate::tui::themes::Theme;
 
 /// Draw the main body: left list panel + right detail panels
-pub fn draw_main_body(frame: &mut Frame, app: &mut App, theme: &Theme, area: Rect) {
+pub fn draw_main_body(
+   frame: &mut Frame,
+   app: &mut App,
+   theme: &Theme,
+   area: Rect,
+) {
    // Horizontal split: left 40% list, right 60% detail
    let main_chunks = Layout::default()
       .direction(Direction::Horizontal)
@@ -26,7 +31,12 @@ pub fn draw_main_body(frame: &mut Frame, app: &mut App, theme: &Theme, area: Rec
 }
 
 /// Draw the right detail panels: description (top) + script (bottom)
-fn draw_detail_panels(frame: &mut Frame, app: &mut App, theme: &Theme, area: Rect) {
+fn draw_detail_panels(
+   frame: &mut Frame,
+   app: &mut App,
+   theme: &Theme,
+   area: Rect,
+) {
    // Vertical split: top 30% description, bottom 70% script
    let detail_chunks = Layout::default()
       .direction(Direction::Vertical)

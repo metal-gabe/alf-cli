@@ -42,7 +42,10 @@ pub struct App {
 
 impl App {
    /// Create a new App instance with the given entries and theme
-   pub fn new(entries: Vec<AliasEntry>, theme: Theme) -> Self {
+   pub fn new(
+      entries: Vec<AliasEntry>,
+      theme: Theme,
+   ) -> Self {
       let mut app = Self {
          data: EntryData::new(entries),
          search: SearchState::new(),
@@ -200,12 +203,18 @@ impl App {
    }
 
    /// Scroll the active panel up
-   pub fn scroll_up(&mut self, amount: usize) {
+   pub fn scroll_up(
+      &mut self,
+      amount: usize,
+   ) {
       ScrollManager::scroll_up(&mut self.ui, &mut self.navigation, amount);
    }
 
    /// Scroll the active panel down
-   pub fn scroll_down(&mut self, amount: usize) {
+   pub fn scroll_down(
+      &mut self,
+      amount: usize,
+   ) {
       ScrollManager::scroll_down(&mut self.ui, &mut self.navigation, amount, self.data.visible_count());
    }
 
@@ -236,7 +245,10 @@ impl App {
    }
 
    /// Set a specific filter
-   pub fn set_filter(&mut self, filter: EntryFilter) {
+   pub fn set_filter(
+      &mut self,
+      filter: EntryFilter,
+   ) {
       self.filter.set_filter(filter);
       self.update_visible_entries();
    }
@@ -267,13 +279,19 @@ impl App {
    }
 
    /// Set the search query directly and update visible entries
-   pub fn set_search_query(&mut self, query: String) {
+   pub fn set_search_query(
+      &mut self,
+      query: String,
+   ) {
       self.search.set_query(query);
       self.update_visible_entries();
    }
 
    /// Insert a character at the cursor position in the search query
-   pub fn search_insert_char(&mut self, c: char) {
+   pub fn search_insert_char(
+      &mut self,
+      c: char,
+   ) {
       self.search.insert_char(c);
       self.update_visible_entries();
    }
@@ -322,17 +340,29 @@ impl App {
    }
 
    /// Update the maximum scroll offset for help modal based on content and visible area
-   pub fn update_help_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+   pub fn update_help_max_scroll(
+      &mut self,
+      total_lines: usize,
+      visible_lines: usize,
+   ) {
       self.ui.update_help_max_scroll(total_lines, visible_lines);
    }
 
    /// Update the maximum scroll offset for description panel based on content and visible area
-   pub fn update_description_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+   pub fn update_description_max_scroll(
+      &mut self,
+      total_lines: usize,
+      visible_lines: usize,
+   ) {
       self.ui.update_description_max_scroll(total_lines, visible_lines);
    }
 
    /// Update the maximum scroll offset for script panel based on content and visible area
-   pub fn update_script_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+   pub fn update_script_max_scroll(
+      &mut self,
+      total_lines: usize,
+      visible_lines: usize,
+   ) {
       self.ui.update_script_max_scroll(total_lines, visible_lines);
    }
 
@@ -369,14 +399,20 @@ impl App {
    }
 
    /// Set pending key with timestamp
-   pub fn set_pending_key(&mut self, key: char) {
+   pub fn set_pending_key(
+      &mut self,
+      key: char,
+   ) {
       self.input.set_pending_key(key);
    }
 
    // ===== Application lifecycle =====
 
    /// Select the current entry with the given action and exit gracefully
-   pub fn select_entry(&mut self, action: ExitAction) {
+   pub fn select_entry(
+      &mut self,
+      action: ExitAction,
+   ) {
       if self.selected_entry().is_some() {
          self.exit_action = Some(action);
       }

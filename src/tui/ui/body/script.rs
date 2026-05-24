@@ -15,7 +15,12 @@ use crate::tui::themes::Theme;
 use super::super::components::{panel_block, render_scrollbar};
 
 /// Draw the right-bottom panel: script/function body
-pub fn draw_script_panel(frame: &mut Frame, app: &mut App, theme: &Theme, area: Rect) {
+pub fn draw_script_panel(
+   frame: &mut Frame,
+   app: &mut App,
+   theme: &Theme,
+   area: Rect,
+) {
    let is_active = app.active_panel() == Panel::Script;
    let block = panel_block("[ Script ]", is_active, &app.filter(), theme);
 
@@ -37,7 +42,9 @@ pub fn draw_script_panel(frame: &mut Frame, app: &mut App, theme: &Theme, area: 
 
    let paragraph = Paragraph::new(highlighted_text)
       .block(block)
-      .wrap(Wrap { trim: false })
+      .wrap(Wrap {
+         trim: false,
+      })
       .scroll((app.script_scroll_offset() as u16, 0));
 
    frame.render_widget(paragraph, area);

@@ -5,7 +5,10 @@ use crossterm::event::{KeyCode, KeyEvent};
 use crate::tui::app::App;
 
 /// Handle key events in Help modal mode
-pub fn handle_help_mode(app: &mut App, key: KeyEvent) {
+pub fn handle_help_mode(
+   app: &mut App,
+   key: KeyEvent,
+) {
    // Check for pending multi-key sequences first
    if let Some(pending) = app.pending_key() {
       match (pending, key.code) {
@@ -13,12 +16,12 @@ pub fn handle_help_mode(app: &mut App, key: KeyEvent) {
          (_, KeyCode::Esc) => {
             app.clear_pending_key();
             return;
-         }
+         },
          // Any other key - invalid sequence, clear pending
          _ => {
             app.clear_pending_key();
             // Fall through to process the current key normally
-         }
+         },
       }
    }
 
@@ -27,7 +30,7 @@ pub fn handle_help_mode(app: &mut App, key: KeyEvent) {
       KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => {
          app.toggle_help();
          app.clear_pending_key();
-      }
+      },
 
       // Scroll help content
       KeyCode::Char('j') | KeyCode::Down => app.help_scroll_down(),
@@ -40,6 +43,6 @@ pub fn handle_help_mode(app: &mut App, key: KeyEvent) {
       KeyCode::Char('g') => app.help_jump_top(),
 
       // Ignore all other keys (prevent propagation to underlying panels)
-      _ => {}
+      _ => {},
    }
 }

@@ -60,7 +60,10 @@ pub fn highlight_shell_script(code: &str) -> Text<'static> {
 }
 
 /// Highlight shell script code with line numbers and optional dimming for inactive panels
-pub fn highlight_shell_script_with_style(code: &str, dim: bool) -> Text<'static> {
+pub fn highlight_shell_script_with_style(
+   code: &str,
+   dim: bool,
+) -> Text<'static> {
    let text = highlight_shell_script(code);
 
    // Add line numbers to each line

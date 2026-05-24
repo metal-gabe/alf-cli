@@ -5,7 +5,12 @@ use crate::config::CaseMatching;
 use crate::models::{AliasEntry, EntryType};
 use std::path::PathBuf;
 
-fn create_test_entry(name: &str, entry_type: EntryType, value: &str, comments: Option<Vec<String>>) -> AliasEntry {
+fn create_test_entry(
+   name: &str,
+   entry_type: EntryType,
+   value: &str,
+   comments: Option<Vec<String>>,
+) -> AliasEntry {
    AliasEntry {
       name: name.to_string(),
       entry_type,
@@ -70,7 +75,10 @@ fn test_case_sensitive_search() {
       create_test_entry("MyAlias", EntryType::Alias, "some command", None),
       create_test_entry("myalias", EntryType::Alias, "another command", None),
    ];
-   let options = SearchOptions { case_matching: CaseMatching::Respect, ..Default::default() };
+   let options = SearchOptions {
+      case_matching: CaseMatching::Respect,
+      ..Default::default()
+   };
    let results = fuzzy_search(&entries, "My", &options);
    assert_eq!(results.len(), 1, "Case-sensitive 'My' should match only 'MyAlias'");
    assert_eq!(results[0].entry.name, "MyAlias");
@@ -82,7 +90,10 @@ fn test_smart_case_search() {
       create_test_entry("MyAlias", EntryType::Alias, "some command", None),
       create_test_entry("myalias", EntryType::Alias, "another command", None),
    ];
-   let options = SearchOptions { case_matching: CaseMatching::Smart, ..Default::default() };
+   let options = SearchOptions {
+      case_matching: CaseMatching::Smart,
+      ..Default::default()
+   };
    let results_lower = fuzzy_search(&entries, "my", &options);
    assert_eq!(results_lower.len(), 2, "Smart case with lowercase query should match both entries");
 }

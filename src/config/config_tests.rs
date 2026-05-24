@@ -27,7 +27,11 @@ fn setup_temp_home() -> TempHomeSetup {
    let temp_dir = TempDir::new().expect("Should create temp dir");
    let old_home = std::env::var("HOME").ok();
    std::env::set_var("HOME", temp_dir.path());
-   TempHomeSetup { _dir: temp_dir, old_home, _guard: guard }
+   TempHomeSetup {
+      _dir: temp_dir,
+      old_home,
+      _guard: guard,
+   }
 }
 
 // ===== Default value tests =====
@@ -149,7 +153,10 @@ fn test_config_default_alias_expansion_is_name() {
 #[test]
 fn test_config_script_expansion_toml_format() {
    let config = Config {
-      general: GeneralConfig { alias_expansion: AliasExpansion::Script, ..Default::default() },
+      general: GeneralConfig {
+         alias_expansion: AliasExpansion::Script,
+         ..Default::default()
+      },
       ..Config::default()
    };
    let toml_str = toml::to_string_pretty(&config).expect("Should serialize");

@@ -25,19 +25,22 @@ use crate::tui::app::App;
 /// 1. Check for truly global keybinds (Ctrl-C, Ctrl-D to quit)
 /// 2. If help modal is open, use help mode handlers
 /// 3. Otherwise, use mode-specific handlers (Normal or Search)
-pub(super) fn handle_key_event(app: &mut App, key: KeyEvent) {
+pub(super) fn handle_key_event(
+   app: &mut App,
+   key: KeyEvent,
+) {
    // Check for truly global keybinds first - these work ALWAYS or are reserved
    match key.code {
       // Quit app (Ctrl-C or Ctrl-D)
       KeyCode::Char('c') | KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.should_quit = true;
          return;
-      }
+      },
       // Reserved for future use - ignore these globally
       KeyCode::Char('n') | KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          return;
-      }
-      _ => {}
+      },
+      _ => {},
    }
 
    // Check if pending key has expired - clear it if so

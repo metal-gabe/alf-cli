@@ -6,7 +6,11 @@ pub use crate::tui::state::{EntryFilter, GroupMode, InputMode, Panel, SortOrder}
 pub use crate::tui::themes::Theme;
 use std::path::PathBuf;
 
-pub fn make_entry(name: &str, entry_type: EntryType, value: &str) -> AliasEntry {
+pub fn make_entry(
+   name: &str,
+   entry_type: EntryType,
+   value: &str,
+) -> AliasEntry {
    AliasEntry {
       name: name.to_string(),
       entry_type,

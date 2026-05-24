@@ -13,7 +13,11 @@ use crate::tui::state::InputMode;
 
 use super::get_border_style;
 
-pub fn draw_search_bar(frame: &mut Frame, app: &App, area: Rect) {
+pub fn draw_search_bar(
+   frame: &mut Frame,
+   app: &App,
+   area: Rect,
+) {
    let theme = app.theme();
    let (title, style) = match app.input_mode() {
       InputMode::Normal => (" Search (press 'i' or '/' to search)", Style::default()),

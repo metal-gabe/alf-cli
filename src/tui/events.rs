@@ -23,7 +23,9 @@ pub struct EventHandler {
 impl EventHandler {
    /// Create a new event handler with the given tick rate
    pub fn new(tick_rate: Duration) -> Self {
-      Self { tick_rate }
+      Self {
+         tick_rate,
+      }
    }
 
    /// Poll for the next event.

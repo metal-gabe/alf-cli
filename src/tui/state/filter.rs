@@ -95,7 +95,10 @@ impl FilterState {
    }
 
    /// Set a specific filter
-   pub fn set_filter(&mut self, filter: EntryFilter) {
+   pub fn set_filter(
+      &mut self,
+      filter: EntryFilter,
+   ) {
       self.filter = filter;
    }
 
@@ -126,7 +129,11 @@ impl FilterState {
    }
 
    /// Update visible entries based on current filter, search query, grouping, and sorting
-   pub fn update_visible_entries(&self, data: &mut EntryData, search_query: &str) {
+   pub fn update_visible_entries(
+      &self,
+      data: &mut EntryData,
+      search_query: &str,
+   ) {
       let query = search_query.to_lowercase();
 
       // Filter by type and search query
@@ -144,7 +151,10 @@ impl FilterState {
    }
 
    /// Check if entry matches current filter
-   fn matches_filter(&self, entry: &crate::models::AliasEntry) -> bool {
+   fn matches_filter(
+      &self,
+      entry: &crate::models::AliasEntry,
+   ) -> bool {
       match self.filter {
          EntryFilter::All => true,
          EntryFilter::Aliases => entry.entry_type == EntryType::Alias,
@@ -153,7 +163,11 @@ impl FilterState {
    }
 
    /// Check if entry matches search query
-   fn matches_search(&self, entry: &crate::models::AliasEntry, query: &str) -> bool {
+   fn matches_search(
+      &self,
+      entry: &crate::models::AliasEntry,
+      query: &str,
+   ) -> bool {
       if query.is_empty() {
          return true;
       }
@@ -169,7 +183,10 @@ impl FilterState {
    }
 
    /// Apply grouping and sorting to visible_indices
-   fn apply_grouping_and_sorting(&self, data: &mut EntryData) {
+   fn apply_grouping_and_sorting(
+      &self,
+      data: &mut EntryData,
+   ) {
       let sort_order = self.sort_order;
 
       match self.group_mode {
@@ -179,7 +196,7 @@ impl FilterState {
                SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
                SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
             });
-         }
+         },
          GroupMode::Aliases => {
             // Aliases first, then functions, each group sorted by name
             data.sort_visible_indices(|entry_a, entry_b| {
@@ -193,10 +210,10 @@ impl FilterState {
                         SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
                         SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
                      }
-                  }
+                  },
                }
             });
-         }
+         },
          GroupMode::Functions => {
             // Functions first, then aliases, each group sorted by name
             data.sort_visible_indices(|entry_a, entry_b| {
@@ -210,10 +227,10 @@ impl FilterState {
                         SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
                         SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
                      }
-                  }
+                  },
                }
             });
-         }
+         },
       }
    }
 }
