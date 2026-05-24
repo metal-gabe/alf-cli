@@ -3,8 +3,32 @@
 use super::{
    get_config_path, is_first_run, load_config, save_config, AliasExpansion, CaseMatching, Config, GeneralConfig,
 };
+use tempfile::TempDir;
 
 static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+struct TempHomeSetup {
+   _dir: TempDir,
+   old_home: Option<String>,
+   _guard: std::sync::MutexGuard<'static, ()>,
+}
+
+impl Drop for TempHomeSetup {
+   fn drop(&mut self) {
+      match &self.old_home {
+         Some(h) => std::env::set_var("HOME", h),
+         None => std::env::remove_var("HOME"),
+      }
+   }
+}
+
+fn setup_temp_home() -> TempHomeSetup {
+   let guard = ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+   let temp_dir = TempDir::new().expect("Should create temp dir");
+   let old_home = std::env::var("HOME").ok();
+   std::env::set_var("HOME", temp_dir.path());
+   TempHomeSetup { _dir: temp_dir, old_home, _guard: guard }
+}
 
 // ===== Default value tests =====
 
@@ -177,12 +201,7 @@ fn test_get_config_path_ends_with_config_toml() {
 
 #[test]
 fn test_save_and_load_config_roundtrip() {
-   let _guard = ENV_MUTEX.lock().unwrap();
-   use std::env;
-   use tempfile::TempDir;
-   let temp_dir = TempDir::new().expect("Should create temp dir");
-   let old_home = env::var("HOME").ok();
-   env::set_var("HOME", temp_dir.path());
+   let _setup = setup_temp_home();
    let mut config = Config::default();
    config.ui.theme = "gruvbox".to_string();
    config.display.syntax_highlighting = false;
@@ -190,61 +209,26 @@ fn test_save_and_load_config_roundtrip() {
    let loaded = load_config().expect("Should load saved config");
    assert_eq!(loaded.ui.theme, "gruvbox");
    assert!(!loaded.display.syntax_highlighting);
-   if let Some(home) = old_home {
-      env::set_var("HOME", home);
-   } else {
-      env::remove_var("HOME");
-   }
 }
 
 #[test]
 fn test_load_config_fails_when_missing() {
-   let _guard = ENV_MUTEX.lock().unwrap();
-   use std::env;
-   use tempfile::TempDir;
-   let temp_dir = TempDir::new().expect("Should create temp dir");
-   let old_home = env::var("HOME").ok();
-   env::set_var("HOME", temp_dir.path());
+   let _setup = setup_temp_home();
    let result = load_config();
    assert!(result.is_err(), "Should fail when config file does not exist");
-   if let Some(home) = old_home {
-      env::set_var("HOME", home);
-   } else {
-      env::remove_var("HOME");
-   }
 }
 
 #[test]
 fn test_is_first_run_returns_true_when_no_config() {
-   let _guard = ENV_MUTEX.lock().unwrap();
-   use std::env;
-   use tempfile::TempDir;
-   let temp_dir = TempDir::new().expect("Should create temp dir");
-   let old_home = env::var("HOME").ok();
-   env::set_var("HOME", temp_dir.path());
+   let _setup = setup_temp_home();
    let result = is_first_run().expect("Should succeed");
    assert!(result, "Should be first run when no config file exists");
-   if let Some(home) = old_home {
-      env::set_var("HOME", home);
-   } else {
-      env::remove_var("HOME");
-   }
 }
 
 #[test]
 fn test_is_first_run_returns_false_after_save() {
-   let _guard = ENV_MUTEX.lock().unwrap();
-   use std::env;
-   use tempfile::TempDir;
-   let temp_dir = TempDir::new().expect("Should create temp dir");
-   let old_home = env::var("HOME").ok();
-   env::set_var("HOME", temp_dir.path());
+   let _setup = setup_temp_home();
    save_config(&Config::default()).expect("Should save config");
    let result = is_first_run().expect("Should succeed");
    assert!(!result, "Should not be first run after config is saved");
-   if let Some(home) = old_home {
-      env::set_var("HOME", home);
-   } else {
-      env::remove_var("HOME");
-   }
 }

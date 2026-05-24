@@ -67,26 +67,13 @@ fn test_detect_shell_files_finds_fish_config() {
 // ===== print_shell_hook =====
 
 #[test]
-fn test_print_shell_hook_zsh_returns_ok() {
-   assert!(print_shell_hook("zsh").is_ok());
-}
-
-#[test]
-fn test_print_shell_hook_bash_returns_ok() {
-   assert!(print_shell_hook("bash").is_ok());
+fn test_print_shell_hook_supported_shells_return_ok() {
+   for shell in ["zsh", "bash", "ZSH", "BASH"] {
+      assert!(print_shell_hook(shell).is_ok(), "Expected ok for {shell}");
+   }
 }
 
 #[test]
 fn test_print_shell_hook_unsupported_shell_returns_err() {
    assert!(print_shell_hook("fish").is_err());
-}
-
-#[test]
-fn test_print_shell_hook_case_insensitive_zsh() {
-   assert!(print_shell_hook("ZSH").is_ok());
-}
-
-#[test]
-fn test_print_shell_hook_case_insensitive_bash() {
-   assert!(print_shell_hook("BASH").is_ok());
 }

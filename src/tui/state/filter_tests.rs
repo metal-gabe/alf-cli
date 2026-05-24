@@ -26,54 +26,29 @@ fn make_mixed_data() -> EntryData {
 // ===== cycle_filter =====
 
 #[test]
-fn test_cycle_filter_forward_all_to_aliases() {
-   let mut state = FilterState::new();
-   assert_eq!(state.filter(), EntryFilter::All);
-   state.cycle_filter();
-   assert_eq!(state.filter(), EntryFilter::Aliases);
-}
-
-#[test]
-fn test_cycle_filter_forward_aliases_to_functions() {
-   let mut state = FilterState::new();
-   state.cycle_filter();
-   state.cycle_filter();
-   assert_eq!(state.filter(), EntryFilter::Functions);
-}
-
-#[test]
-fn test_cycle_filter_forward_functions_back_to_all() {
-   let mut state = FilterState::new();
-   state.cycle_filter();
-   state.cycle_filter();
-   state.cycle_filter();
-   assert_eq!(state.filter(), EntryFilter::All);
+fn test_cycle_filter_forward() {
+   let cases = [(1, EntryFilter::Aliases), (2, EntryFilter::Functions), (3, EntryFilter::All)];
+   for (steps, expected) in cases {
+      let mut state = FilterState::new();
+      for _ in 0..steps {
+         state.cycle_filter();
+      }
+      assert_eq!(state.filter(), expected, "After {steps} forward cycles");
+   }
 }
 
 // ===== cycle_filter_backward =====
 
 #[test]
-fn test_cycle_filter_backward_all_to_functions() {
-   let mut state = FilterState::new();
-   state.cycle_filter_backward();
-   assert_eq!(state.filter(), EntryFilter::Functions);
-}
-
-#[test]
-fn test_cycle_filter_backward_functions_to_aliases() {
-   let mut state = FilterState::new();
-   state.cycle_filter_backward();
-   state.cycle_filter_backward();
-   assert_eq!(state.filter(), EntryFilter::Aliases);
-}
-
-#[test]
-fn test_cycle_filter_backward_aliases_back_to_all() {
-   let mut state = FilterState::new();
-   state.cycle_filter_backward();
-   state.cycle_filter_backward();
-   state.cycle_filter_backward();
-   assert_eq!(state.filter(), EntryFilter::All);
+fn test_cycle_filter_backward() {
+   let cases = [(1, EntryFilter::Functions), (2, EntryFilter::Aliases), (3, EntryFilter::All)];
+   for (steps, expected) in cases {
+      let mut state = FilterState::new();
+      for _ in 0..steps {
+         state.cycle_filter_backward();
+      }
+      assert_eq!(state.filter(), expected, "After {steps} backward cycles");
+   }
 }
 
 // ===== set_filter =====

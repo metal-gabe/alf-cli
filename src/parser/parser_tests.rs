@@ -2,6 +2,7 @@
 
 use crate::models::{AliasEntry, EntryType};
 use std::path::Path;
+use tempfile::NamedTempFile;
 
 fn assert_entries_snapshot(name: &str, entries: &[AliasEntry]) {
    insta::with_settings!({
@@ -9,6 +10,13 @@ fn assert_entries_snapshot(name: &str, entries: &[AliasEntry]) {
    }, {
        insta::assert_debug_snapshot!(name, entries);
    });
+}
+
+fn write_temp_shell(content: &str) -> NamedTempFile {
+   use std::io::Write;
+   let mut f = NamedTempFile::new().expect("Failed to create temp file");
+   write!(f, "{}", content).expect("Failed to write");
+   f
 }
 
 #[test]
@@ -34,10 +42,31 @@ fn test_parse_sample_bashrc() {
 #[test]
 fn test_parse_sample_zshrc() {
    let path = Path::new("tests/fixtures/sample.zshrc");
-   if path.exists() {
-      let entries = super::parse_shell_file(path).expect("Failed to parse zshrc");
-      assert!(!entries.is_empty() || entries.is_empty());
+   let entries = super::parse_shell_file(path).expect("Failed to parse zshrc");
+   assert!(!entries.is_empty(), "Should parse at least some entries from zshrc");
+   let gs_alias = entries.iter().find(|e| e.name == "gs");
+   assert!(gs_alias.is_some(), "Should find 'gs' alias in zshrc");
+   if let Some(entry) = gs_alias {
+      assert_eq!(entry.entry_type, EntryType::Alias);
    }
+   let gbr_func = entries.iter().find(|e| e.name == "gbr");
+   assert!(gbr_func.is_some(), "Should find 'gbr' function in zshrc");
+   if let Some(entry) = gbr_func {
+      assert_eq!(entry.entry_type, EntryType::Function);
+   }
+}
+
+#[test]
+fn test_parse_nonexistent_file_returns_error() {
+   let result = super::parse_shell_file(Path::new("/nonexistent/path/file.sh"));
+   assert!(result.is_err());
+}
+
+#[test]
+fn test_parse_empty_file_returns_empty() {
+   let temp_file = NamedTempFile::new().expect("Failed to create temp file");
+   let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse empty file");
+   assert!(entries.is_empty(), "Empty file should produce no entries");
 }
 
 #[test]
@@ -83,85 +112,51 @@ fn test_source_file_tracking() {
 
 #[test]
 fn test_dot_notation_function_names() {
-   use std::io::Write;
-   use tempfile::NamedTempFile;
-   let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-   writeln!(temp_file, "t.helper() {{\n  echo \"helper function\"\n}}").expect("Failed to write to temp file");
-   writeln!(temp_file, "my-alias() {{\n  echo \"alias with dash\"\n}}").expect("Failed to write to temp file");
-   let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse temp file");
+   let f =
+      write_temp_shell("t.helper() {\n  echo \"helper function\"\n}\nmy-alias() {\n  echo \"alias with dash\"\n}\n");
+   let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
    assert_entries_snapshot("dot_notation_function_names", &entries);
 }
 
 #[test]
 fn test_concise_comment_format() {
-   use std::io::Write;
-   use tempfile::NamedTempFile;
-   let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-   writeln!(temp_file, "#@: search with color highlighting :f#").expect("Failed to write to temp file");
-   writeln!(temp_file, "alias grep='grep --color=auto'").expect("Failed to write to temp file");
-   writeln!(temp_file, "#@: list files with long format :f#").expect("Failed to write to temp file");
-   writeln!(temp_file, "alias ll='ls -lah'").expect("Failed to write to temp file");
-   let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse temp file");
+   let f = write_temp_shell(
+      "#@: search with color highlighting :f#\nalias grep='grep --color=auto'\n#@: list files with long format :f#\nalias ll='ls -lah'\n",
+   );
+   let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
    assert_entries_snapshot("concise_comment_format", &entries);
 }
 
 #[test]
 fn test_multiline_comment_format() {
-   use std::io::Write;
-   use tempfile::NamedTempFile;
-   let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-   writeln!(temp_file, "# alf").expect("Failed to write to temp file");
-   writeln!(temp_file, "# extract archives of various formats").expect("Failed to write to temp file");
-   writeln!(temp_file, "# fla").expect("Failed to write to temp file");
-   writeln!(temp_file, "extract() {{").expect("Failed to write to temp file");
-   writeln!(temp_file, "  echo \"extracting\"").expect("Failed to write to temp file");
-   writeln!(temp_file, "}}").expect("Failed to write to temp file");
-   let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse temp file");
+   let f =
+      write_temp_shell("# alf\n# extract archives of various formats\n# fla\nextract() {\n  echo \"extracting\"\n}\n");
+   let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
    assert_entries_snapshot("multiline_comment_format", &entries);
 }
 
 #[test]
 fn test_non_alf_comments_ignored() {
-   use std::io::Write;
-   use tempfile::NamedTempFile;
-   let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-   writeln!(temp_file, "# This is just a regular comment").expect("Failed to write to temp file");
-   writeln!(temp_file, "# Another regular comment").expect("Failed to write to temp file");
-   writeln!(temp_file, "alias myalias='echo hello'").expect("Failed to write to temp file");
-   let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse temp file");
+   let f =
+      write_temp_shell("# This is just a regular comment\n# Another regular comment\nalias myalias='echo hello'\n");
+   let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
    assert_entries_snapshot("non_alf_comments_ignored", &entries);
 }
 
 #[test]
 fn test_mixed_comment_formats() {
-   use std::io::Write;
-   use tempfile::NamedTempFile;
-   let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-   writeln!(temp_file, "#@: concise format comment :f#").expect("Failed to write to temp file");
-   writeln!(temp_file, "alias a1='cmd1'").expect("Failed to write to temp file");
-   writeln!(temp_file, "# alf").expect("Failed to write to temp file");
-   writeln!(temp_file, "# multiline format comment").expect("Failed to write to temp file");
-   writeln!(temp_file, "# fla").expect("Failed to write to temp file");
-   writeln!(temp_file, "alias a2='cmd2'").expect("Failed to write to temp file");
-   let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse temp file");
+   let f = write_temp_shell(
+      "#@: concise format comment :f#\nalias a1='cmd1'\n# alf\n# multiline format comment\n# fla\nalias a2='cmd2'\n",
+   );
+   let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
    assert_entries_snapshot("mixed_comment_formats", &entries);
 }
 
 #[test]
 fn test_empty_line_stops_multiline_comment_parsing() {
-   use std::io::Write;
-   use tempfile::NamedTempFile;
-   let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-   writeln!(temp_file, "# alf").expect("Failed to write to temp file");
-   writeln!(temp_file, "# search for file paths").expect("Failed to write to temp file");
-   writeln!(temp_file, "# fla").expect("Failed to write to temp file");
-   writeln!(temp_file, "function lsfp() {{").expect("Failed to write to temp file");
-   writeln!(temp_file, "  find . -type f").expect("Failed to write to temp file");
-   writeln!(temp_file, "}}").expect("Failed to write to temp file");
-   writeln!(temp_file).expect("Failed to write to temp file");
-   writeln!(temp_file, "function md() {{").expect("Failed to write to temp file");
-   writeln!(temp_file, "  mkdir -p \"$1\"").expect("Failed to write to temp file");
-   writeln!(temp_file, "}}").expect("Failed to write to temp file");
-   let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse temp file");
+   let f = write_temp_shell(
+      "# alf\n# search for file paths\n# fla\nfunction lsfp() {\n  find . -type f\n}\n\nfunction md() {\n  mkdir -p \"$1\"\n}\n",
+   );
+   let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
    assert_entries_snapshot("empty_line_stops_multiline_comment", &entries);
 }

@@ -3,8 +3,9 @@
 .PHONY: build build-release check clean clippy fmt fmt-fix help install lint run snap test test-cov test-fresh watch
 
 help:
+	@echo "Project: Alf CLI" | bat --language=help --style=plain
 	@echo "Usage: make <target>" | bat --language=help --style=plain
-	@echo "" | bat --language=help --style=plain
+	@echo ""
 	@echo "Targets:" | bat --language=help --style=plain
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}' | bat --language=help --style=plain
 

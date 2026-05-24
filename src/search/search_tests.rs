@@ -57,12 +57,11 @@ fn test_score_ordering() {
       create_test_entry("ex", EntryType::Alias, "exit", None),
    ];
    let results = fuzzy_search(&entries, "ex", &SearchOptions::default());
-   assert!(!results.is_empty(), "Should find matches");
-   if results.len() > 1 {
-      let ex_score = results.iter().find(|r| r.entry.name == "ex").map(|r| r.score);
-      let extract_score = results.iter().find(|r| r.entry.name == "extract").map(|r| r.score);
-      assert!(ex_score.is_some() && extract_score.is_some(), "Both should be found");
-   }
+   assert!(results.len() >= 2, "Should find both 'ex' and 'extract'");
+   let ex_score = results.iter().find(|r| r.entry.name == "ex").map(|r| r.score);
+   let extract_score = results.iter().find(|r| r.entry.name == "extract").map(|r| r.score);
+   assert!(ex_score.is_some() && extract_score.is_some(), "Both entries should match");
+   assert!(ex_score.unwrap() >= extract_score.unwrap(), "'ex' should score >= 'extract' for query 'ex'");
 }
 
 #[test]
@@ -73,7 +72,8 @@ fn test_case_sensitive_search() {
    ];
    let options = SearchOptions { case_matching: CaseMatching::Respect, ..Default::default() };
    let results = fuzzy_search(&entries, "My", &options);
-   assert!(!results.is_empty(), "Should find case-sensitive match");
+   assert_eq!(results.len(), 1, "Case-sensitive 'My' should match only 'MyAlias'");
+   assert_eq!(results[0].entry.name, "MyAlias");
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn test_smart_case_search() {
    ];
    let options = SearchOptions { case_matching: CaseMatching::Smart, ..Default::default() };
    let results_lower = fuzzy_search(&entries, "my", &options);
-   assert!(!results_lower.is_empty(), "Smart case should match lowercase query");
+   assert_eq!(results_lower.len(), 2, "Smart case with lowercase query should match both entries");
 }
 
 #[test]

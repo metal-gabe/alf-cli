@@ -38,7 +38,6 @@ fn test_search_insert_char_filters_visible_entries() {
 fn test_search_delete_char_updates_visible_entries() {
    let mut app = make_app();
    app.set_search_query("alpha".to_string());
-   // Delete until query is empty
    for _ in 0.."alpha".len() {
       app.search_delete_char();
    }

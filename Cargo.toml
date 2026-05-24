@@ -32,7 +32,6 @@ log = "0.4"
 thiserror = "1.0"
 
 [dev-dependencies]
-crossterm = "0.28"
 husky-rs = "0.2.2"
 insta = { version = "1", features = ["filters"] }
 pretty_assertions = "1.4"

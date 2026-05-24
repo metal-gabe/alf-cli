@@ -26,9 +26,7 @@ fn test_toggle_sort_order_changes_order() {
 #[test]
 fn test_toggle_sort_order_reverses_visible_entry_order() {
    let mut app = make_app();
-   // With GroupMode::Aliases (default), Ascending: alpha, beta, delta, gamma
-   // After toggle to Descending: beta, alpha, gamma, delta
-   app.set_filter(EntryFilter::Aliases); // Only aliases: alpha, beta
+   app.set_filter(EntryFilter::Aliases);
    let first_asc = app.selected_entry().unwrap().name.clone();
    app.toggle_sort_order();
    let first_desc = app.selected_entry().unwrap().name.clone();
