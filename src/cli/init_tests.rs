@@ -18,7 +18,7 @@ fn touch(
 // ===== detect_shell_files =====
 
 #[test]
-fn test_detect_shell_files_empty_dir_returns_empty() {
+fn test_detect_shell_files_returns_empty_on_an_empty_dir() {
    let home = make_home();
    let result = detect_shell_files(home.path().to_str().unwrap());
    assert!(result.is_empty());
