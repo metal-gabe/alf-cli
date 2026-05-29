@@ -105,7 +105,7 @@ pub fn run_init_wizard() -> Result<()> {
    println!("For bash (add to ~/.bashrc):");
    println!("{}\n", get_shell_hook("bash"));
 
-   println!("Or run: eval \"$(alf shell-hook <zsh|bash>)\"");
+   println!("Or run: eval \"$(alf activate <zsh|bash>)\"");
    println!();
    println!("Usage:");
    println!("  - Type `alf` at the prompt to open the picker.");

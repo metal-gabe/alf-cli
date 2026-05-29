@@ -18,7 +18,7 @@ fn main() -> Result<()> {
       Some(Commands::Init {
          print_shell_hook: None,
       }) => alf::cli::init::run_init_wizard(),
-      Some(Commands::ShellHook {
+      Some(Commands::Activate {
          shell,
       }) => alf::cli::init::print_shell_hook(&shell),
       Some(Commands::Config {
