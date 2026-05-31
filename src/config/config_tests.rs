@@ -3,21 +3,23 @@
 use super::{
    get_config_path, is_first_run, load_config, save_config, AliasExpansion, CaseMatching, Config, GeneralConfig,
 };
+use std::env::{remove_var, set_var, var};
+use std::sync::{Mutex, MutexGuard};
 use tempfile::TempDir;
 
-static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
 struct TempHomeSetup {
    _dir: TempDir,
+   _guard: MutexGuard<'static, ()>,
    old_home: Option<String>,
-   _guard: std::sync::MutexGuard<'static, ()>,
 }
 
 impl Drop for TempHomeSetup {
    fn drop(&mut self) {
       match &self.old_home {
-         Some(h) => std::env::set_var("HOME", h),
-         None => std::env::remove_var("HOME"),
+         Some(h) => set_var("HOME", h),
+         None => remove_var("HOME"),
       }
    }
 }
@@ -25,8 +27,8 @@ impl Drop for TempHomeSetup {
 fn setup_temp_home() -> TempHomeSetup {
    let guard = ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
    let temp_dir = TempDir::new().expect("Should create temp dir");
-   let old_home = std::env::var("HOME").ok();
-   std::env::set_var("HOME", temp_dir.path());
+   let old_home = var("HOME").ok();
+   set_var("HOME", temp_dir.path());
    TempHomeSetup {
       _dir: temp_dir,
       old_home,
