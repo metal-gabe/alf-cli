@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "A CLI tool to search & rediscover your custom shell aliases & functions"
 repository = "https://github.com/metal-gabe/alf-cli"
 readme = "README.md"
-keywords = ["cli", "tui", "shell", "aliases", "functions", "fuzzy-search"]
+keywords = ["cli", "tui", "shell", "aliases", "functions"]
 categories = ["command-line-utilities"]
 
 [[bin]]
