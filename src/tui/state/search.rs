@@ -31,7 +31,10 @@ impl SearchState {
    }
 
    /// Set the search query directly (with lowercase conversion for case-insensitive search)
-   pub fn set_query(&mut self, query: String) {
+   pub fn set_query(
+      &mut self,
+      query: String,
+   ) {
       self.query = query.to_ascii_lowercase();
       self.cursor_position = self.query.chars().count();
    }
@@ -44,7 +47,10 @@ impl SearchState {
 
    /// Insert a character at the cursor position
    /// Uppercase letters are automatically converted to lowercase for case-insensitive search
-   pub fn insert_char(&mut self, c: char) {
+   pub fn insert_char(
+      &mut self,
+      c: char,
+   ) {
       // Convert uppercase letters to lowercase, leave special chars/symbols unchanged
       let char_to_insert = if c.is_ascii_uppercase() { c.to_ascii_lowercase() } else { c };
 
@@ -87,3 +93,7 @@ impl SearchState {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "search_tests.rs"]
+mod search_tests;

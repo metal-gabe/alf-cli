@@ -102,22 +102,34 @@ impl UiState {
    }
 
    /// Set list scroll offset
-   pub fn set_list_scroll_offset(&mut self, offset: usize) {
+   pub fn set_list_scroll_offset(
+      &mut self,
+      offset: usize,
+   ) {
       self.list_scroll_offset = offset;
    }
 
    /// Set description scroll offset
-   pub fn set_description_scroll_offset(&mut self, offset: usize) {
+   pub fn set_description_scroll_offset(
+      &mut self,
+      offset: usize,
+   ) {
       self.description_scroll_offset = offset;
    }
 
    /// Set script scroll offset
-   pub fn set_script_scroll_offset(&mut self, offset: usize) {
+   pub fn set_script_scroll_offset(
+      &mut self,
+      offset: usize,
+   ) {
       self.script_scroll_offset = offset;
    }
 
    /// Set help scroll offset
-   pub fn set_help_scroll_offset(&mut self, offset: usize) {
+   pub fn set_help_scroll_offset(
+      &mut self,
+      offset: usize,
+   ) {
       self.help_scroll_offset = offset;
    }
 
@@ -155,18 +167,34 @@ impl UiState {
    }
 
    /// Update the maximum scroll offset for description panel based on content and visible area
-   pub fn update_description_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+   pub fn update_description_max_scroll(
+      &mut self,
+      total_lines: usize,
+      visible_lines: usize,
+   ) {
       self.description_max_scroll =
          if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
    }
 
    /// Update the maximum scroll offset for script panel based on content and visible area
-   pub fn update_script_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+   pub fn update_script_max_scroll(
+      &mut self,
+      total_lines: usize,
+      visible_lines: usize,
+   ) {
       self.script_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
    }
 
    /// Update the maximum scroll offset for help modal based on content and visible area
-   pub fn update_help_max_scroll(&mut self, total_lines: usize, visible_lines: usize) {
+   pub fn update_help_max_scroll(
+      &mut self,
+      total_lines: usize,
+      visible_lines: usize,
+   ) {
       self.help_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
    }
 }
+
+#[cfg(test)]
+#[path = "ui_state_tests.rs"]
+mod ui_state_tests;

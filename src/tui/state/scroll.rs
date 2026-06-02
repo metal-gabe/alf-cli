@@ -8,73 +8,89 @@ pub struct ScrollManager;
 
 impl ScrollManager {
    /// Scroll the active panel up
-   pub fn scroll_up(ui: &mut UiState, navigation: &mut NavigationState, amount: usize) {
+   pub fn scroll_up(
+      ui: &mut UiState,
+      navigation: &mut NavigationState,
+      amount: usize,
+   ) {
       match ui.active_panel() {
          Panel::List => {
             navigation.scroll_up(amount);
             ui.reset_detail_scroll();
-         }
+         },
          Panel::Description => {
             let new_offset = ui.description_scroll_offset().saturating_sub(amount);
             ui.set_description_scroll_offset(new_offset);
-         }
+         },
          Panel::Script => {
             let new_offset = ui.script_scroll_offset().saturating_sub(amount);
             ui.set_script_scroll_offset(new_offset);
-         }
+         },
       }
    }
 
    /// Scroll the active panel down
-   pub fn scroll_down(ui: &mut UiState, navigation: &mut NavigationState, amount: usize, visible_count: usize) {
+   pub fn scroll_down(
+      ui: &mut UiState,
+      navigation: &mut NavigationState,
+      amount: usize,
+      visible_count: usize,
+   ) {
       match ui.active_panel() {
          Panel::List => {
             navigation.scroll_down(amount, visible_count);
             ui.reset_detail_scroll();
-         }
+         },
          Panel::Description => {
             let new_offset = ui.description_scroll_offset() + amount;
             let clamped = new_offset.min(ui.description_max_scroll());
             ui.set_description_scroll_offset(clamped);
-         }
+         },
          Panel::Script => {
             let new_offset = ui.script_scroll_offset() + amount;
             let clamped = new_offset.min(ui.script_max_scroll());
             ui.set_script_scroll_offset(clamped);
-         }
+         },
       }
    }
 
    /// Jump to top of active panel
-   pub fn move_top(ui: &mut UiState, navigation: &mut NavigationState) {
+   pub fn move_top(
+      ui: &mut UiState,
+      navigation: &mut NavigationState,
+   ) {
       match ui.active_panel() {
          Panel::List => {
             navigation.move_top();
             ui.set_list_scroll_offset(0);
             ui.reset_detail_scroll();
-         }
+         },
          Panel::Description => {
             ui.set_description_scroll_offset(0);
-         }
+         },
          Panel::Script => {
             ui.set_script_scroll_offset(0);
-         }
+         },
       }
    }
 
    /// Jump to bottom of active panel
-   pub fn move_bottom(ui: &mut UiState, navigation: &mut NavigationState, visible_count: usize) {
+   pub fn move_bottom(
+      ui: &mut UiState,
+      navigation: &mut NavigationState,
+      visible_count: usize,
+   ) {
       match ui.active_panel() {
          Panel::List => {
             navigation.move_bottom(visible_count);
             ui.reset_detail_scroll();
-         }
+         },
          Panel::Description => {
             ui.set_description_scroll_offset(ui.description_max_scroll());
-         }
+         },
          Panel::Script => {
             ui.set_script_scroll_offset(ui.script_max_scroll());
-         }
+         },
       }
    }
 

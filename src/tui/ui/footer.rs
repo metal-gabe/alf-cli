@@ -13,7 +13,12 @@ use crate::tui::state::{GroupMode, SortOrder};
 use crate::tui::themes::Theme;
 
 /// Draw the footer bar with help text
-pub fn draw_footer(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
+pub fn draw_footer(
+   frame: &mut Frame,
+   app: &App,
+   theme: &Theme,
+   area: Rect,
+) {
    // Format group mode
    let group_text = match app.group_mode() {
       GroupMode::None => "none",

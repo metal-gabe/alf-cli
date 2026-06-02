@@ -13,7 +13,12 @@ use crate::tui::state::{EntryFilter, InputMode};
 use crate::tui::themes::Theme;
 
 /// Draw the header bar with filter badges, mode indicator, and shell indicator
-pub fn draw_header(frame: &mut Frame, app: &App, theme: &Theme, area: Rect) {
+pub fn draw_header(
+   frame: &mut Frame,
+   app: &App,
+   theme: &Theme,
+   area: Rect,
+) {
    let filter_color = match app.filter() {
       EntryFilter::Aliases => theme.alias_color,
       EntryFilter::All => theme.foreground,

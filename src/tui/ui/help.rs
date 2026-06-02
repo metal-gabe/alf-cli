@@ -13,7 +13,11 @@ use crate::tui::app::App;
 use crate::tui::themes::Theme;
 
 /// Draw the help modal overlay (70% width, 90% height, centered)
-pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
+pub fn draw_help_modal(
+   frame: &mut Frame,
+   app: &mut App,
+   theme: &Theme,
+) {
    let area = frame.area();
 
    // Calculate modal dimensions: 70% width, 90% height
@@ -24,7 +28,12 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
    let modal_x = (area.width.saturating_sub(modal_width)) / 2;
    let modal_y = (area.height.saturating_sub(modal_height)) / 2;
 
-   let modal_area = Rect { x: modal_x, y: modal_y, width: modal_width, height: modal_height };
+   let modal_area = Rect {
+      x: modal_x,
+      y: modal_y,
+      width: modal_width,
+      height: modal_height,
+   };
 
    // Clear the entire screen area first (this removes all underlying content)
    frame.render_widget(Clear, area);
@@ -120,7 +129,9 @@ pub fn draw_help_modal(frame: &mut Frame, app: &mut App, theme: &Theme) {
    let content = Paragraph::new(help_text)
       .block(modal_block)
       .style(Style::default().fg(Color::White).bg(theme.background))
-      .wrap(Wrap { trim: false })
+      .wrap(Wrap {
+         trim: false,
+      })
       .scroll((app.help_scroll_offset() as u16, 0));
 
    frame.render_widget(content, modal_area);

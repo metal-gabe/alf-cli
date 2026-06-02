@@ -4,7 +4,7 @@
 EXIT_CODE=0
 
 echo "=====[ Running the \`SECRETS:CHECK\` script... ]====="
-ggshield secret scan path . --recursive --yes || EXIT_CODE=$?
+mise exec -- ggshield secret scan path . --recursive --yes || EXIT_CODE=$?
 
 echo "=====[ Running the \`LINT\` scripts... ]====="
 cargo clippy --all-targets --all-features -- -D warnings || EXIT_CODE=$?

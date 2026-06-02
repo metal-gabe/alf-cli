@@ -27,7 +27,10 @@ pub fn parse_shell_file(path: &Path) -> Result<Vec<AliasEntry>> {
 }
 
 /// Extract alias definitions from shell file content
-fn extract_aliases(content: &str, source: &Path) -> Vec<AliasEntry> {
+fn extract_aliases(
+   content: &str,
+   source: &Path,
+) -> Vec<AliasEntry> {
    let mut entries = Vec::new();
    let lines: Vec<&str> = content.lines().collect();
 
@@ -65,7 +68,10 @@ fn extract_aliases(content: &str, source: &Path) -> Vec<AliasEntry> {
 }
 
 /// Extract function definitions from shell file content
-fn extract_functions(content: &str, source: &Path) -> Vec<AliasEntry> {
+fn extract_functions(
+   content: &str,
+   source: &Path,
+) -> Vec<AliasEntry> {
    let mut entries = Vec::new();
    let lines: Vec<&str> = content.lines().collect();
 
@@ -123,7 +129,10 @@ fn extract_functions(content: &str, source: &Path) -> Vec<AliasEntry> {
 ///    alias name='value'
 ///
 /// If neither format is found, returns None (ignores other comments)
-fn extract_comments(lines: &[&str], line_number: usize) -> Option<Vec<String>> {
+fn extract_comments(
+   lines: &[&str],
+   line_number: usize,
+) -> Option<Vec<String>> {
    // First check for concise format on the line BEFORE the definition
    if line_number > 0 {
       if let Some(description) = extract_concise_comment(lines[line_number - 1]) {
@@ -148,7 +157,10 @@ fn extract_concise_comment(line: &str) -> Option<String> {
 /// # line 1
 /// # line 2
 /// # fla
-fn extract_multiline_comment(lines: &[&str], mut line_number: usize) -> Option<Vec<String>> {
+fn extract_multiline_comment(
+   lines: &[&str],
+   mut line_number: usize,
+) -> Option<Vec<String>> {
    if line_number == 0 {
       return None;
    }
@@ -204,3 +216,6 @@ fn extract_multiline_comment(lines: &[&str], mut line_number: usize) -> Option<V
 
    None
 }
+
+#[cfg(test)]
+mod parser_tests;

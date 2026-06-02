@@ -87,7 +87,7 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
                   && matches!(alias_expansion, crate::config::AliasExpansion::Script) =>
             {
                &entry.value
-            }
+            },
             _ => &entry.name,
          };
          if let Ok(output_path) = std::env::var("ALF_OUTPUT") {
@@ -126,7 +126,7 @@ fn run_loop(
          Event::Key(key) => keybinds::handle_key_event(app, key),
          Event::Resize(_, _) => {
             // ratatui handles terminal resize automatically on next draw
-         }
+         },
          Event::Tick => app.tick(),
       }
    }
@@ -210,4 +210,50 @@ fn load_shell_entries() -> Result<Vec<crate::models::AliasEntry>> {
    }
 
    Ok(entries)
+}
+
+#[cfg(test)]
+mod tests {
+   use super::expand_path;
+   use std::env;
+
+   fn home() -> String {
+      env::var("HOME").unwrap_or_else(|_| "/tmp".to_string())
+   }
+
+   #[test]
+   fn test_expand_path_tilde_slash_prefix() {
+      let result = expand_path("~/foo/bar");
+      assert_eq!(result, std::path::PathBuf::from(home()).join("foo/bar"));
+   }
+
+   #[test]
+   fn test_expand_path_home_env_slash_prefix() {
+      let result = expand_path("$HOME/foo/bar");
+      assert_eq!(result, std::path::PathBuf::from(home()).join("foo/bar"));
+   }
+
+   #[test]
+   fn test_expand_path_tilde_alone() {
+      let result = expand_path("~");
+      assert_eq!(result, std::path::PathBuf::from(home()));
+   }
+
+   #[test]
+   fn test_expand_path_home_env_alone() {
+      let result = expand_path("$HOME");
+      assert_eq!(result, std::path::PathBuf::from(home()));
+   }
+
+   #[test]
+   fn test_expand_path_absolute_passthrough() {
+      let result = expand_path("/etc/shells");
+      assert_eq!(result, std::path::PathBuf::from("/etc/shells"));
+   }
+
+   #[test]
+   fn test_expand_path_relative_passthrough() {
+      let result = expand_path("relative/path");
+      assert_eq!(result, std::path::PathBuf::from("relative/path"));
+   }
 }

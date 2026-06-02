@@ -78,8 +78,14 @@ pub fn run_init_wizard() -> Result<()> {
 
    // Create and save config
    let config = Config {
-      general: GeneralConfig { shell_files: all_files, ..Default::default() },
-      ui: UiConfig { theme: selected_theme, keybind_mode: "vim".to_string() },
+      general: GeneralConfig {
+         shell_files: all_files,
+         ..Default::default()
+      },
+      ui: UiConfig {
+         theme: selected_theme,
+         keybind_mode: "vim".to_string(),
+      },
       ..Default::default()
    };
 
@@ -99,7 +105,7 @@ pub fn run_init_wizard() -> Result<()> {
    println!("For bash (add to ~/.bashrc):");
    println!("{}\n", get_shell_hook("bash"));
 
-   println!("Or run: eval \"$(alf shell-hook <zsh|bash>)\"");
+   println!("Or run: eval \"$(alf activate <zsh|bash>)\"");
    println!();
    println!("Usage:");
    println!("  - Type `alf` at the prompt to open the picker.");
@@ -118,11 +124,11 @@ pub fn print_shell_hook(shell: &str) -> Result<()> {
       "zsh" | "bash" => {
          println!("{}", get_shell_hook(shell));
          Ok(())
-      }
+      },
       _ => {
          eprintln!("Unsupported shell: {}. Use 'zsh' or 'bash'.", shell);
          Err(anyhow::anyhow!("Unsupported shell: {}", shell))
-      }
+      },
    }
 }
 
@@ -159,7 +165,7 @@ fn get_shell_hook(shell: &str) -> &'static str {
   fi
   return $rc
 }"#
-      }
+      },
       "bash" => {
          r#"alf() {
   local tmp action entry rc
@@ -185,13 +191,13 @@ fn get_shell_hook(shell: &str) -> &'static str {
   fi
   return $rc
 }"#
-      }
+      },
       _ => "",
    }
 }
 
 /// Detect which standard shell files exist in the home directory
-pub fn detect_shell_files(home: &str) -> Vec<String> {
+pub(super) fn detect_shell_files(home: &str) -> Vec<String> {
    STANDARD_SHELL_FILES
       .iter()
       .filter_map(|filename| {
@@ -209,3 +215,7 @@ pub fn detect_shell_files(home: &str) -> Vec<String> {
       })
       .collect()
 }
+
+#[cfg(test)]
+#[path = "init_tests.rs"]
+mod init_tests;

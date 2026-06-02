@@ -26,7 +26,10 @@ impl NavigationState {
    }
 
    /// Move selection down by one
-   pub fn move_down(&mut self, visible_count: usize) {
+   pub fn move_down(
+      &mut self,
+      visible_count: usize,
+   ) {
       if visible_count > 0 && self.selected_index < visible_count - 1 {
          self.selected_index += 1;
       }
@@ -38,26 +41,39 @@ impl NavigationState {
    }
 
    /// Jump to the bottom
-   pub fn move_bottom(&mut self, visible_count: usize) {
+   pub fn move_bottom(
+      &mut self,
+      visible_count: usize,
+   ) {
       if visible_count > 0 {
          self.selected_index = visible_count - 1;
       }
    }
 
    /// Scroll up by amount
-   pub fn scroll_up(&mut self, amount: usize) {
+   pub fn scroll_up(
+      &mut self,
+      amount: usize,
+   ) {
       self.selected_index = self.selected_index.saturating_sub(amount);
    }
 
    /// Scroll down by amount
-   pub fn scroll_down(&mut self, amount: usize, visible_count: usize) {
+   pub fn scroll_down(
+      &mut self,
+      amount: usize,
+      visible_count: usize,
+   ) {
       if visible_count > 0 {
          self.selected_index = (self.selected_index + amount).min(visible_count - 1);
       }
    }
 
    /// Clamp selection to valid range
-   pub fn clamp(&mut self, visible_count: usize) {
+   pub fn clamp(
+      &mut self,
+      visible_count: usize,
+   ) {
       if visible_count == 0 {
          self.selected_index = 0;
       } else if self.selected_index >= visible_count {
@@ -65,3 +81,7 @@ impl NavigationState {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "navigation_tests.rs"]
+mod navigation_tests;

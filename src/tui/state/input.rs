@@ -24,7 +24,11 @@ pub struct InputState {
 
 impl Default for InputState {
    fn default() -> Self {
-      Self { mode: InputMode::Normal, pending_key: None, pending_key_time: None }
+      Self {
+         mode: InputMode::Normal,
+         pending_key: None,
+         pending_key_time: None,
+      }
    }
 }
 
@@ -65,7 +69,10 @@ impl InputState {
    }
 
    /// Set pending key with timestamp
-   pub fn set_pending_key(&mut self, key: char) {
+   pub fn set_pending_key(
+      &mut self,
+      key: char,
+   ) {
       self.pending_key = Some(key);
       self.pending_key_time = Some(Instant::now());
    }
@@ -85,3 +92,7 @@ impl InputState {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "input_tests.rs"]
+mod input_tests;

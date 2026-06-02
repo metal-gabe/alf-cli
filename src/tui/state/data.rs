@@ -14,7 +14,10 @@ pub struct EntryData {
 impl EntryData {
    /// Create a new EntryData instance with the given entries
    pub fn new(entries: Vec<AliasEntry>) -> Self {
-      Self { entries, visible_indices: Vec::new() }
+      Self {
+         entries,
+         visible_indices: Vec::new(),
+      }
    }
 
    /// Get reference to all entries
@@ -28,12 +31,15 @@ impl EntryData {
    }
 
    /// Get mutable reference to visible indices (for filtering operations)
-   pub fn visible_indices_mut(&mut self) -> &mut Vec<usize> {
+   pub(super) fn visible_indices_mut(&mut self) -> &mut Vec<usize> {
       &mut self.visible_indices
    }
 
    /// Get the entry at the given visible index
-   pub fn get_visible_entry(&self, selected_index: usize) -> Option<&AliasEntry> {
+   pub fn get_visible_entry(
+      &self,
+      selected_index: usize,
+   ) -> Option<&AliasEntry> {
       self.visible_indices.get(selected_index).and_then(|&idx| self.entries.get(idx))
    }
 
@@ -49,10 +55,16 @@ impl EntryData {
 
    /// Sort visible indices with a comparison function
    /// This method safely handles the borrow checker by splitting the data and indices
-   pub fn sort_visible_indices<F>(&mut self, mut compare: F)
-   where
+   pub(super) fn sort_visible_indices<F>(
+      &mut self,
+      mut compare: F,
+   ) where
       F: FnMut(&crate::models::AliasEntry, &crate::models::AliasEntry) -> std::cmp::Ordering,
    {
       self.visible_indices.sort_by(|&a, &b| compare(&self.entries[a], &self.entries[b]));
    }
 }
+
+#[cfg(test)]
+#[path = "data_tests.rs"]
+mod data_tests;

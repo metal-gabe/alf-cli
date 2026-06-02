@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "A CLI tool to search & rediscover your custom shell aliases & functions"
 repository = "https://github.com/metal-gabe/alf-cli"
 readme = "README.md"
-keywords = ["cli", "tui", "shell", "aliases", "functions", "fuzzy-search"]
+keywords = ["cli", "tui", "shell", "aliases", "functions"]
 categories = ["command-line-utilities"]
 
 [[bin]]
@@ -33,6 +33,7 @@ thiserror = "1.0"
 
 [dev-dependencies]
 husky-rs = "0.2.2"
+insta = { version = "1", features = ["filters"] }
 pretty_assertions = "1.4"
 tempfile = "3.10"
 

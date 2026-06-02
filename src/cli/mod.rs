@@ -17,10 +17,16 @@ pub struct Cli {
 /// Available subcommands
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-   /// Launch the interactive TUI search interface with required query
-   Search {
-      /// Required search query to filter results on startup
-      query: String,
+   /// Activate shell integration by printing the wrapper function
+   Activate {
+      /// Shell to generate the wrapper for (zsh, bash)
+      shell: String,
+   },
+
+   /// Manage configuration
+   Config {
+      #[command(subcommand)]
+      action: ConfigAction,
    },
 
    /// Initialize configuration (first-run setup)
@@ -30,16 +36,10 @@ pub enum Commands {
       print_shell_hook: Option<String>,
    },
 
-   /// Print shell integration wrapper function
-   ShellHook {
-      /// Shell to generate the wrapper for (zsh, bash)
-      shell: String,
-   },
-
-   /// Manage configuration
-   Config {
-      #[command(subcommand)]
-      action: ConfigAction,
+   /// Launch the interactive TUI search interface with required query
+   Search {
+      /// Required search query to filter results on startup
+      query: String,
    },
 }
 

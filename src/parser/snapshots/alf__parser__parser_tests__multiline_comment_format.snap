@@ -1,0 +1,17 @@
+---
+source: src/parser/parser_tests.rs
+expression: entries
+---
+[
+    AliasEntry {
+        name: "extract",
+        entry_type: Function,
+        value: "extract() {\n  echo \"extracting\"\n}",
+        comments: Some(
+            [
+                "extract archives of various formats",
+            ],
+        ),
+        source_file: [REDACTED]
+    },
+]

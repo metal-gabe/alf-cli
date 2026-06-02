@@ -1,0 +1,28 @@
+---
+source: src/parser/parser_tests.rs
+expression: entries
+---
+[
+    AliasEntry {
+        name: "a1",
+        entry_type: Alias,
+        value: "cmd1",
+        comments: Some(
+            [
+                "concise format comment",
+            ],
+        ),
+        source_file: [REDACTED]
+    },
+    AliasEntry {
+        name: "a2",
+        entry_type: Alias,
+        value: "cmd2",
+        comments: Some(
+            [
+                "multiline format comment",
+            ],
+        ),
+        source_file: [REDACTED]
+    },
+]

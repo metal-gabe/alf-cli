@@ -1,0 +1,13 @@
+---
+source: src/parser/parser_tests.rs
+expression: entries
+---
+[
+    AliasEntry {
+        name: "myalias",
+        entry_type: Alias,
+        value: "echo hello",
+        comments: None,
+        source_file: [REDACTED]
+    },
+]

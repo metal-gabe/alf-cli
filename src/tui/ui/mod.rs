@@ -23,7 +23,10 @@ use crate::tui::state::{EntryFilter, InputMode};
 use crate::tui::themes::Theme;
 
 /// Get the border style for the current filter
-pub(super) fn get_border_style(filter: &EntryFilter, theme: &Theme) -> Style {
+pub(super) fn get_border_style(
+   filter: &EntryFilter,
+   theme: &Theme,
+) -> Style {
    match filter {
       EntryFilter::Aliases => Style::default().fg(theme.alias_color).add_modifier(Modifier::BOLD),
       EntryFilter::Functions => Style::default().fg(theme.function_color).add_modifier(Modifier::BOLD),
@@ -39,7 +42,10 @@ pub use help::draw_help_modal;
 pub use search::draw_search_bar;
 
 /// Draw the complete TUI interface
-pub fn draw(frame: &mut Frame, app: &mut App) {
+pub fn draw(
+   frame: &mut Frame,
+   app: &mut App,
+) {
    // Get theme for this render pass
    let theme = app.theme().clone();
 

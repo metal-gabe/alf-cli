@@ -197,3 +197,7 @@ impl Theme {
       }
    }
 }
+
+#[cfg(test)]
+#[path = "theme_tests.rs"]
+mod theme_tests;
