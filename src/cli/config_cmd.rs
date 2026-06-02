@@ -4,15 +4,16 @@ use crate::cli::init;
 use crate::cli::ConfigAction;
 use crate::config::{get_config_path, load_config, save_config, Config, GeneralConfig};
 use anyhow::Result;
+use std::env::var;
 use std::io::{self, Write};
 use std::process::Command;
 
 /// Run a configuration management action
 pub fn run_config_action(action: ConfigAction) -> Result<()> {
    match action {
-      ConfigAction::Show => show_config(),
       ConfigAction::Edit => edit_config(),
       ConfigAction::Reset => reset_config(),
+      ConfigAction::Show => show_config(),
    }
 }
 
@@ -32,7 +33,7 @@ fn edit_config() -> Result<()> {
    let config_path = get_config_path()?;
 
    // Try $EDITOR first, then fall back to common editors
-   let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string());
+   let editor = var("EDITOR").unwrap_or_else(|_| "vi".to_string());
 
    let status = Command::new(&editor).arg(config_path.to_string_lossy().to_string()).status()?;
 
