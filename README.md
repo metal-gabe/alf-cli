@@ -1,6 +1,6 @@
 # `alf` — Alias & Function CLI Searching Tool
 
-A Rust-built CLI tool to search through & rediscover your custom-made shell aliases, functions, and their descriptions (*i.e. comments*).
+A Rust TUI to search & rediscover your custom shell aliases & functions.
 
 ## Installation
 
@@ -10,25 +10,43 @@ A Rust-built CLI tool to search through & rediscover your custom-made shell alia
 cargo install --git https://github.com/metal-gabe/alf-cli
 ```
 
-### From Crates.io (after publishing)
+### From Crates.io
 
 ```bash
 cargo install alf
 ```
 
+### From Mise 
+
+```bash
+mise use -g alf
+```
+
+### From Homebrew 
+
+```bash
+brew install alf 
+```
+
+
+
 ## Quick Start
 
 1. **First-time setup**: Run the initialization wizard
+
    ```bash
    alf init
    ```
 
 2. **Launch the search interface**:
+
    ```bash
-   alf search
-   # or simply
    alf
    ```
+
+> [!TIP]
+>
+> After installing, `alf` can be run right away. Using the `init` command creates a starting config file for you to be able to customize.
 
 ## Configuration
 
@@ -36,15 +54,39 @@ Configuration file location (created after `alf init`):
 
 - **Linux**: `~/.config/alf/config.toml`
 - **macOS**: `~/.config/alf/config.toml`
-- **Windows**: `%APPDATA%\alf\config.toml`
+- **Windows**: `%USERPROFILE%\.config\alf\config.toml`
 
 ### Available Commands
 
-- `alf search` - Launch interactive TUI (default)
+- `alf` - Launch interactive TUI (default, no subcommand)
+- `alf search <QUERY>` - Launch TUI with an initial search query pre-filled
 - `alf init` - First-run configuration wizard
+- `alf activate <SHELL>` - Print shell integration wrapper (`zsh` or `bash`)
 - `alf config show` - Display current configuration
 - `alf config edit` - Open config in editor
 - `alf config reset` - Reset to defaults
+
+### Configuration Options
+
+```toml
+[general]
+shell_files = ["~/.zshrc", "~/.config/zsh/**/*.zsh"]  # glob patterns supported
+
+[search]
+case_matching = "smart"      # "ignore" | "smart" | "respect"
+normalize = true             # unicode normalization
+enable_regex = true
+substring_matching = true
+
+[ui]
+theme = "default"            # see Available Themes below
+keybind_mode = "vim"         # currently only "vim" is supported
+
+[display]
+show_type_badges = true      # show Alias/Function badges
+syntax_highlighting = true   # syntax highlight in detail view
+parse_comments = true        # parse and display comments from shell files
+```
 
 ### Available Themes
 
@@ -74,35 +116,18 @@ Configuration file location (created after `alf init`):
 
 ```bash
 # zsh (~/.zshrc)
-eval "$(alf shell-hook zsh)"
+eval "$(alf activate zsh)"
 
 # bash (~/.bashrc)
-eval "$(alf shell-hook bash)"
+eval "$(alf activate bash)"
 ```
 
-The hook installs two things:
-
-1. An `alf` shell function that wraps the binary so selections feed back into the prompt.
-2. A `Ctrl-G` keybinding that opens the picker directly from the prompt (zle widget for zsh, `bind -x` for bash).
+The hook installs an `alf` shell function that wraps the binary so selections feed back into the prompt.
 
 Tab vs Enter semantics:
 
 - **Tab** — populate the prompt with the selected entry; do not run it.
 - **Enter** — run the selected entry immediately (and add it to history).
-
-Rebind `Ctrl-G` if it conflicts with another binding:
-
-```zsh
-# zsh
-bindkey '^T' __alf_widget
-```
-
-```bash
-# bash
-bind -x '"\C-t": __alf_widget'
-```
-
-Note: in **bash**, typing `alf` at the prompt and pressing `Tab` cannot populate the readline buffer (a limitation of bash readline outside `bind -x` handlers); it prints the entry instead. Use the `Ctrl-G` binding for in-place population in bash.
 
 ## Development
 
@@ -125,8 +150,27 @@ cargo test
 ### Run locally
 
 ```bash
-cargo run -- search
+cargo run
 ```
+
+### Makefile targets
+
+| Target | Description |
+|---|---|
+| `make build` | Debug build |
+| `make build-release` | Optimized release build |
+| `make check` | Check without building |
+| `make clean` | Remove build artifacts |
+| `make clippy` | Lint check |
+| `make fmt` / `make fmt-fix` | Check / auto-fix formatting |
+| `make install` | Install locally |
+| `make lint` | Run fmt + clippy |
+| `make run` | Run TUI (debug build) |
+| `make snap` | Review insta snapshot diffs |
+| `make test` | Run tests via nextest |
+| `make test-cov` | Generate HTML coverage report |
+| `make test-fresh` | Run tests with no cache |
+| `make watch` | Watch & rebuild on changes |
 
 ## Supported Platforms
 
@@ -136,9 +180,7 @@ cargo run -- search
 
 ## License
 
-Licensed under either of:
+Licensed under either of the following choices at your option.
 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT License ([LICENSE-MIT](LICENSE-MIT))
-
-at your option.
