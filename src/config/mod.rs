@@ -8,10 +8,10 @@ use std::path::PathBuf;
 /// Main configuration structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+   pub display: DisplayConfig,
    pub general: GeneralConfig,
    pub search: SearchConfig,
    pub ui: UiConfig,
-   pub display: DisplayConfig,
 }
 
 /// Controls what gets populated when Tab is pressed on an alias
@@ -80,21 +80,21 @@ pub struct DisplayConfig {
 impl Default for Config {
    fn default() -> Self {
       Self {
+         display: DisplayConfig {
+            parse_comments: true,
+            show_type_badges: true,
+            syntax_highlighting: true,
+         },
          general: GeneralConfig::default(),
          search: SearchConfig {
             case_matching: CaseMatching::Smart,
-            normalize: true,
             enable_regex: true,
+            normalize: true,
             substring_matching: true,
          },
          ui: UiConfig {
-            theme: "default".to_string(),
             keybind_mode: "vim".to_string(),
-         },
-         display: DisplayConfig {
-            show_type_badges: true,
-            syntax_highlighting: true,
-            parse_comments: true,
+            theme: "default".to_string(),
          },
       }
    }
