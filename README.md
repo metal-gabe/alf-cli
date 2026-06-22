@@ -1,6 +1,6 @@
 # `alf` — Alias & Function CLI Searching Tool
 
-A Rust TUI to search & rediscover your custom shell aliases & functions.
+A Rust TUI to rediscover your custom shell aliases & functions.
 
 ## Installation
 
