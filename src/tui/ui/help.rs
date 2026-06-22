@@ -61,7 +61,7 @@ pub fn draw_help_modal(
          "ALF - Alias & Function Search Tool",
          Style::default().bold().fg(theme.function_color),
       )]),
-      Line::from("  Read the docs @ https://example.com"),
+      Line::from("  Read the docs @ https://alf.metalgabe.dev"),
       Line::from(""),
       Line::from(vec![Span::styled("NAVIGATION", Style::default().bold().fg(theme.alias_color))]),
       Line::from("  j / ↓          Scroll down 1 line in active panel"),
