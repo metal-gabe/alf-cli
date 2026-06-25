@@ -61,6 +61,7 @@ Configuration file location (created after `alf init`):
 - `alf` - Launch interactive TUI (default, no subcommand)
 - `alf search <QUERY>` - Launch TUI with an initial search query pre-filled
 - `alf init` - First-run configuration wizard
+- `alf init --print-shell-hook <SHELL>` - Print the shell wrapper and exit (non-interactive equivalent of `alf activate <SHELL>`)
 - `alf activate <SHELL>` - Print shell integration wrapper (`zsh` or `bash`)
 - `alf config show` - Display current configuration
 - `alf config edit` - Open config in editor
@@ -71,6 +72,7 @@ Configuration file location (created after `alf init`):
 ```toml
 [general]
 shell_files = ["~/.zshrc", "~/.config/zsh/**/*.zsh"]  # glob patterns supported
+alias_expansion = "name"  # "name" | "script" — what Tab/Enter feeds back to the shell
 
 [search]
 case_matching = "smart"      # "ignore" | "smart" | "respect"
@@ -101,14 +103,50 @@ parse_comments = true        # parse and display comments from shell files
 
 ## Keybindings (Vim-style)
 
-- `j/k` - Move down/up
-- `gg/G` - Jump to top/bottom
-- `Ctrl-u/d` - Scroll up/down
-- `/` - Focus search & activate search mode
-- `Esc` - Exit search mode
+The full reference is always available in-app — press `?` to toggle the help modal.
+
+**Navigation**
+
+- `j` / `↓` - Move down 1 line in the active panel
+- `k` / `↑` - Move up 1 line in the active panel
+- `g` / `gg` - Jump to top
+- `G` - Jump to bottom
+- `Ctrl-f` / `Ctrl-b` - Scroll a full page (20 lines) down/up
+- `Ctrl-j` / `Ctrl-k` - Scroll a half page (10 lines) down/up
+
+**Panels & filters**
+
+- `n` / `p` - Cycle panel focus forward/backward (List → Description → Script)
+- `h` / `l` - Cycle filter backward/forward (Aliases ↔ Functions ↔ All)
+- `1` / `2` / `3` - Select the Aliases / Functions / All filter directly
+
+**Grouping & sorting**
+
+- `og` / `Ctrl-g` - Cycle group mode forward (None → Aliases → Functions)
+- `oG` - Cycle group mode backward
+- `os` / `Ctrl-s` - Toggle sort order (Ascending ↔ Descending)
+
+**Search**
+
+- `/` or `i` - Enter search mode
+- `Esc` - Exit search mode (keep query)
+- `Ctrl-u` - Clear search query (any mode)
+- `Shift-N` / `Shift-P` - Cycle panels while in search mode
+- `Shift-H` / `Shift-L` - Cycle filters while in search mode
+- `Ctrl-j` / `Ctrl-k` - Scroll the list while in search mode
+
+**Themes**
+
+- `tj` - Cycle to the next theme
+- `tk` - Cycle to the previous theme
+
+**Actions & quit**
+
 - `Tab` - Populate the parent shell prompt with the selected entry
 - `Enter` - Execute the selected entry in the parent shell
-- `q` - Quit
+- `?` - Toggle the help modal
+- `q` - Quit (normal mode only)
+- `Ctrl-c` / `Ctrl-d` - Force quit (any mode)
 
 ## Shell Integration
 
