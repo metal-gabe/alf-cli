@@ -1,0 +1,84 @@
+name: Release
+
+on:
+   workflow_dispatch:
+      inputs:
+         ref:
+            description: 'Git ref/branch to base the tag on'
+            required: false
+            default: 'main'
+
+jobs:
+   create_tag:
+      name: Create Tag & Changelog
+      runs-on: ubuntu-latest
+      permissions:
+         contents: write
+      outputs:
+         tag: ${{ steps.changelog.outputs.tag }}
+         clean_changelog: ${{ steps.changelog.outputs.clean_changelog }}
+         skipped: ${{ steps.changelog.outputs.skipped }}
+      steps:
+         -  name: Check out repo
+            uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+            with:
+               ref: ${{ github.event.inputs.ref }}
+               fetch-depth: 0
+
+         -  name: Create tag & generate changelog
+            id: changelog
+            uses: TriPSs/conventional-changelog-action@91be4f3188da74fe85de9caffcebc80b26d43b5b # v6.3.0
+            with:
+               github-token: ${{ secrets.GITHUB_TOKEN }}
+               preset: conventionalcommits
+               tag-prefix: 'v'
+               version-file: './Cargo.toml'
+               output-file: 'CHANGELOG.md'
+               skip-on-empty: 'false'
+
+   build_binary:
+      name: Build Binary
+      needs: create_tag
+      if: ${{ needs.create_tag.outputs.skipped != 'true' }}
+      runs-on: ${{ matrix.os }}
+      permissions:
+         contents: write
+      strategy:
+         fail-fast: false
+         matrix:
+            include:
+               -  os: ubuntu-latest
+                  target: x86_64-unknown-linux-gnu
+               -  os: macos-latest
+                  target: aarch64-apple-darwin
+               # TODO: add a Windows build target (e.g. windows-latest / x86_64-pc-windows-msvc)
+      steps:
+         -  name: Check out repo at new tag
+            uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+            with:
+               ref: ${{ needs.create_tag.outputs.tag }}
+
+         -  name: Install Rust toolchain
+            uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+         -  name: Cache cargo registry & build
+            uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+
+         -  name: Build release binary
+            run: make build-release
+
+         -  name: Package tarball & checksum
+            run: |
+               ARCHIVE="alf-${{ needs.create_tag.outputs.tag }}-${{ matrix.target }}.tar.gz"
+               tar -czf "$ARCHIVE" -C target/release alf
+               shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+               echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+         -  name: Publish release & upload artifact
+            uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+            with:
+               tag_name: ${{ needs.create_tag.outputs.tag }}
+               body: ${{ needs.create_tag.outputs.clean_changelog }}
+               files: |
+                  ${{ env.ARCHIVE }}
+                  ${{ env.ARCHIVE }}.sha256

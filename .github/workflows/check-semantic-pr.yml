@@ -1,0 +1,23 @@
+name: Check PR for Semantic Title
+
+on:
+   pull_request:
+      branches:
+         - main
+         - 'ALF-[0-9]+'
+      types:
+         - opened
+         - edited
+         - synchronize
+
+jobs:
+   semantic_pr:
+      name: Check the PR Title for a Semantic Syntax
+      runs-on: ubuntu-latest
+      permissions:
+         pull-requests: read
+      steps:
+         -  name: Check Title
+            uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+            env:
+               GITHUB_TOKEN: ${{ github.token }}
