@@ -1,0 +1,29 @@
+name: Main
+
+on:
+   push:
+      branches:
+         - main
+
+jobs:
+   bump_version:
+      name: Bump Cargo.toml Version
+      runs-on: ubuntu-latest
+      permissions:
+         contents: write
+      steps:
+         -  name: Check out repo
+            uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+            with:
+               fetch-depth: 0
+
+         -  name: Bump Cargo.toml version
+            uses: TriPSs/conventional-changelog-action@91be4f3188da74fe85de9caffcebc80b26d43b5b # v6.3.0
+            with:
+               git-message: 'chore: Bumping Alf version to {version}'
+               github-token: ${{ secrets.GITHUB_TOKEN }}
+               output-file: 'false'
+               preset: conventionalcommits
+               skip-on-empty: 'false'
+               tag-prefix: ''
+               version-file: './Cargo.toml'
