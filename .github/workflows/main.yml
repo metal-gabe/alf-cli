@@ -28,6 +28,7 @@ jobs:
                github-token: ${{ github.token}}
                output-file: 'false'
                preset: conventionalcommits
+               skip-git-pull: 'true'
                skip-on-empty: 'false'
                tag-prefix: ''
                version-file: './Cargo.toml'
