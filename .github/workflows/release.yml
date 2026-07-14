@@ -44,6 +44,7 @@ jobs:
                skip-on-empty: 'false'
                tag-prefix: 'v'
                version-file: './Cargo.toml'
+               version-path: 'package.version'
 
    build_binary:
       name: Build Binary

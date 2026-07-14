@@ -32,3 +32,4 @@ jobs:
                skip-tag: 'true'
                tag-prefix: ''
                version-file: './Cargo.toml'
+               version-path: 'package.version'
