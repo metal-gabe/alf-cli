@@ -1,4 +1,4 @@
-name: Main
+name: Main Pipeline
 
 on:
    push:
@@ -13,15 +13,19 @@ jobs:
          contents: write
       steps:
          -  name: Check out repo
-            uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+            uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+            # https://github.com/actions/checkout
             with:
                fetch-depth: 0
 
          -  name: Bump Cargo.toml version
-            uses: TriPSs/conventional-changelog-action@91be4f3188da74fe85de9caffcebc80b26d43b5b # v6.3.0
+            uses: TriPSs/conventional-changelog-action@952b14bbc4be87e8458a6ac5926fc655608b1b19 # v6.3.1
+            # https://github.com/TriPSs/conventional-changelog-action
             with:
                git-message: 'chore: Bumping Alf version to {version}'
-               github-token: ${{ secrets.GITHUB_TOKEN }}
+               git-user-name: 'Conventional Changelog Action'
+               git-user-email: 'changelog-updates@actions.anewlevelmedia.com'
+               github-token: ${{ github.token}}
                output-file: 'false'
                preset: conventionalcommits
                skip-on-empty: 'false'
