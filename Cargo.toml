@@ -1,13 +1,11 @@
-version = "0.2.0"
-
 [package]
 name = "alf"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.74.0"
 authors = [ "Metal Gabe" ]
 license = "MIT OR Apache-2.0"
-description = "A CLI tool to search & rediscover your custom shell aliases & functions"
+description = "A smolderingly-nimble Rust TUI to rediscover your custom shell."
 repository = "https://github.com/metal-gabe/alf-cli"
 readme = "README.md"
 keywords = [ "cli", "tui", "shell", "aliases", "functions" ]
