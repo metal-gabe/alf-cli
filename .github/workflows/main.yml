@@ -23,13 +23,12 @@ jobs:
             uses: TriPSs/conventional-changelog-action@952b14bbc4be87e8458a6ac5926fc655608b1b19 # v6.3.1
             # https://github.com/TriPSs/conventional-changelog-action
             with:
-               git-message: 'chore: Bumping Alf version to {version}'
-               git-user-name: 'Conventional Changelog Action'
-               git-user-email: 'changelog-updates@actions.anewlevelmedia.com'
+               git-message: 'chore: Bumping Cargo version to {version}'
                github-token: ${{ secrets.RELEASE_TOKEN }}
                output-file: 'false'
                preset: conventionalcommits
                skip-git-pull: 'true'
                skip-on-empty: 'true'
+               skip-tag: 'true'
                tag-prefix: ''
                version-file: './Cargo.toml'

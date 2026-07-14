@@ -25,18 +25,25 @@ jobs:
             with:
                ref: ${{ github.event.inputs.ref }}
                fetch-depth: 0
+               token: ${{ secrets.RELEASE_TOKEN }}
 
          -  name: Create tag & generate changelog
             id: changelog
             uses: TriPSs/conventional-changelog-action@952b14bbc4be87e8458a6ac5926fc655608b1b19 # v6.3.1
             # https://github.com/TriPSs/conventional-changelog-action
             with:
-               github-token: ${{ github.token }}
+               git-message: 'chore(release): Creating release tag {version} & adding CHANGELOG entry...'
+               git-user-email: 'mecha-bot@anewlevelmedia.com'
+               git-user-name: 'mecha-bot'
+               github-token: ${{ secrets.RELEASE_TOKEN }}
+               output-file: 'CHANGELOG.md'
                preset: conventionalcommits
+               release-count: '10'
+               skip-bump: 'true'
+               skip-git-pull: 'true'
+               skip-on-empty: 'false'
                tag-prefix: 'v'
                version-file: './Cargo.toml'
-               output-file: 'CHANGELOG.md'
-               skip-on-empty: 'false'
 
    build_binary:
       name: Build Binary
@@ -56,7 +63,8 @@ jobs:
                # TODO: add a Windows build target (e.g. windows-latest / x86_64-pc-windows-msvc)
       steps:
          -  name: Check out repo at new tag
-            uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+            uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+            # https://github.com/actions/checkout
             with:
                ref: ${{ needs.create_tag.outputs.tag }}
 
