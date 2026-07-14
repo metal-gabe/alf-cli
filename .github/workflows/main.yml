@@ -29,6 +29,6 @@ jobs:
                output-file: 'false'
                preset: conventionalcommits
                skip-git-pull: 'true'
-               skip-on-empty: 'false'
+               skip-on-empty: 'true'
                tag-prefix: ''
                version-file: './Cargo.toml'
