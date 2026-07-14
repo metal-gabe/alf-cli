@@ -33,8 +33,8 @@ jobs:
             # https://github.com/TriPSs/conventional-changelog-action
             with:
                git-message: 'chore(release): Creating release tag {version} & adding CHANGELOG entry...'
-               git-user-email: 'mech-bot@anewlevelmedia.com'
-               git-user-name: 'mech-bot'
+               git-user-email: 'mecha-bot@anewlevelmedia.com'
+               git-user-name: 'mecha-bot'
                github-token: ${{ secrets.RELEASE_TOKEN }}
                output-file: 'CHANGELOG.md'
                preset: conventionalcommits
