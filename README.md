@@ -13,7 +13,7 @@ cargo install --git https://github.com/metal-gabe/alf-cli
 ### From Crates.io
 
 ```bash
-cargo install alf
+cargo install alf_tui
 ```
 
 ### From Mise 
