@@ -1,5 +1,5 @@
 [package]
-name = "alf"
+name = "alf_tui"
 version = "0.3.0"
 edition = "2021"
 rust-version = "1.74.0"
@@ -10,6 +10,10 @@ repository = "https://github.com/metal-gabe/alf-cli"
 readme = "README.md"
 keywords = [ "cli", "tui", "shell", "aliases", "functions" ]
 categories = [ "command-line-utilities" ]
+
+[lib]
+name = "alf"
+path = "src/lib.rs"
 
 [[bin]]
 name = "alf"

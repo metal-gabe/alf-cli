@@ -93,3 +93,26 @@ jobs:
                files: |
                   ${{ env.ARCHIVE }}
                   ${{ env.ARCHIVE }}.sha256
+
+   publish_crate:
+      name: Publish to crates.io
+      needs: create_tag
+      if: ${{ needs.create_tag.outputs.skipped != 'true' }}
+      runs-on: ubuntu-latest
+      steps:
+         -  name: Check out repo at new tag
+            uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+            # https://github.com/actions/checkout
+            with:
+               ref: ${{ needs.create_tag.outputs.tag }}
+
+         -  name: Install Rust toolchain
+            uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+         -  name: Cache cargo registry & build
+            uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+
+         -  name: Publish to crates.io
+            env:
+               CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            run: cargo publish
