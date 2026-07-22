@@ -1,4 +1,12 @@
-## 0.3.0 (2026-07-14)
+## [0.4.0](https://github.com/metal-gabe/alf-cli/compare/v0.3.0...v0.4.0) (2026-07-22)
+
+
+### Features
+
+* **alf-builds:** [no ci] add missing mac & linux release targets; ([2e33fb3](https://github.com/metal-gabe/alf-cli/commit/2e33fb3951e7c7492af40a465fd8fb33833d0ec8))
+* **alf-builds:** make updates per Rabbit review feedback; ([c67bde3](https://github.com/metal-gabe/alf-cli/commit/c67bde31790badcd692925f60f0760e55bd60f54))
+
+## [0.3.0](https://github.com/metal-gabe/alf-cli/compare/455e45aeccec6e7df07005e04c56759cf452bfe8...v0.3.0) (2026-07-14)
 
 
 ### Features
