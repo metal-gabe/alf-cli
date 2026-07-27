@@ -4,6 +4,8 @@ A Rust TUI to rediscover your custom shell aliases & functions.
 
 ![](./assets/alf-example.png)
 
+- [additional image link](https://imgtree.co/i/KHnFLWHh)
+
 ## Installation
 
 ### From Source
