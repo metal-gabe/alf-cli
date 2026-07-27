@@ -2,6 +2,8 @@
 
 A Rust TUI to rediscover your custom shell aliases & functions.
 
+![](./assets/alf-example.png)
+
 ## Installation
 
 ### From Source
