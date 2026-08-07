@@ -8,31 +8,34 @@ A Rust TUI to rediscover your custom shell aliases & functions.
 
 ## Installation
 
-### From Source
-
-```bash
-cargo install --git https://github.com/metal-gabe/alf-cli
-```
-
 ### From Crates.io
 
 ```bash
 cargo install alf_tui
 ```
 
-### From Mise 
+### Using Mise
 
 ```bash
-mise use -g alf
+# Prebuilt binary from the GitHub releases
+mise use -g github:metal-gabe/alf-cli
+
+# Or build from the published crate
+mise use -g cargo:alf_tui
 ```
 
-### From Homebrew 
+### Using Homebrew
 
 ```bash
-brew install alf 
+brew tap metal-gabe/alf
+brew install alf
 ```
 
+### From Source
 
+```bash
+cargo install --git https://github.com/metal-gabe/alf-cli
+```
 
 ## Quick Start
 
@@ -73,9 +76,9 @@ Configuration file location (created after `alf init`):
 
 ### Configuration Options
 
-Running `alf init` writes a `config.toml` like the one below. 
+Running `alf init` writes a `config.toml` like the one below.
 
-The `shell_files` list is filled in with the shell files detected in your home directory (plus any you add during the wizard), and `theme` reflects your menu choice; every other value is the built-in default. 
+The `shell_files` list is filled in with the shell files detected in your home directory (plus any you add during the wizard), and `theme` reflects your menu choice; every other value is the built-in default.
 
 The comments are annotations for this README and are not written to the generated file.
 
@@ -130,6 +133,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 </ul>
 
 <strong>Panels &amp; filters</strong>
+
 <ul>
 <li><code>n</code> / <code>p</code> - Cycle panel focus forward/backward (List → Description → Script)</li>
 <li><code>h</code> / <code>l</code> - Cycle filter backward/forward (Aliases ↔ Functions ↔ All)</li>
@@ -137,6 +141,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 </ul>
 
 <strong>Grouping &amp; sorting</strong>
+
 <ul>
 <li><code>og</code> / <code>Ctrl-g</code> - Cycle group mode forward (None → Aliases → Functions)</li>
 <li><code>oG</code> - Cycle group mode backward</li>
@@ -144,6 +149,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 </ul>
 
 <strong>Search</strong>
+
 <ul>
 <li><code>/</code> or <code>i</code> - Enter search mode</li>
 <li><code>Esc</code> - Exit search mode (keep query)</li>
@@ -154,12 +160,14 @@ The full reference is always available in-app — press `?` to toggle the help m
 </ul>
 
 <strong>Themes</strong>
+
 <ul>
 <li><code>tj</code> - Cycle to the next theme</li>
 <li><code>tk</code> - Cycle to the previous theme</li>
 </ul>
 
 <strong>Actions &amp; quit</strong>
+
 <ul>
 <li><code>Tab</code> - Populate the parent shell prompt with the selected entry</li>
 <li><code>Enter</code> - Execute the selected entry in the parent shell</li>
@@ -214,22 +222,22 @@ cargo run
 
 ### Makefile targets
 
-| Target | Description |
-|---|---|
-| `make build` | Debug build |
-| `make build-release` | Optimized release build |
-| `make check` | Check without building |
-| `make clean` | Remove build artifacts |
-| `make clippy` | Lint check |
-| `make fmt` / `make fmt-fix` | Check / auto-fix formatting |
-| `make install` | Install locally |
-| `make lint` | Run fmt + clippy |
-| `make run` | Run TUI (debug build) |
-| `make snap` | Review insta snapshot diffs |
-| `make test` | Run tests via nextest |
-| `make test-cov` | Generate HTML coverage report |
-| `make test-fresh` | Run tests with no cache |
-| `make watch` | Watch & rebuild on changes |
+| Target                      | Description                   |
+| --------------------------- | ----------------------------- |
+| `make build`                | Debug build                   |
+| `make build-release`        | Optimized release build       |
+| `make check`                | Check without building        |
+| `make clean`                | Remove build artifacts        |
+| `make clippy`               | Lint check                    |
+| `make fmt` / `make fmt-fix` | Check / auto-fix formatting   |
+| `make install`              | Install locally               |
+| `make lint`                 | Run fmt + clippy              |
+| `make run`                  | Run TUI (debug build)         |
+| `make snap`                 | Review insta snapshot diffs   |
+| `make test`                 | Run tests via nextest         |
+| `make test-cov`             | Generate HTML coverage report |
+| `make test-fresh`           | Run tests with no cache       |
+| `make watch`                | Watch & rebuild on changes    |
 
 ## Supported Platforms
 
