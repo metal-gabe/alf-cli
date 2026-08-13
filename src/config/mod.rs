@@ -113,6 +113,30 @@ pub fn get_config_path() -> Result<PathBuf> {
    Ok(config_dir.join("config.toml"))
 }
 
+/// Expand a leading `~` or `$HOME` in a configured file path into an absolute path
+///
+/// Paths without a home prefix are returned unchanged.
+pub fn expand_path(file_path_str: &str) -> PathBuf {
+   let expanded = if let Some(home_dir) = dirs::home_dir() {
+      let path = if let Some(rest) = file_path_str.strip_prefix("~/") {
+         home_dir.join(rest)
+      } else if file_path_str == "~" {
+         home_dir.clone()
+      } else if let Some(rest) = file_path_str.strip_prefix("$HOME/") {
+         home_dir.join(rest)
+      } else if file_path_str == "$HOME" {
+         home_dir.clone()
+      } else {
+         PathBuf::from(file_path_str)
+      };
+      path
+   } else {
+      PathBuf::from(file_path_str)
+   };
+
+   expanded
+}
+
 /// Load configuration from disk
 pub fn load_config() -> Result<Config> {
    let path = get_config_path()?;

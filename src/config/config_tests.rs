@@ -1,40 +1,11 @@
 //! Tests for configuration loading, saving, and defaults
 
 use super::{
-   get_config_path, is_first_run, load_config, save_config, AliasExpansion, CaseMatching, Config, GeneralConfig,
+   expand_path, get_config_path, is_first_run, load_config, save_config, AliasExpansion, CaseMatching, Config,
+   GeneralConfig,
 };
-use std::env::{remove_var, set_var, var};
-use std::sync::{Mutex, MutexGuard};
-use tempfile::TempDir;
-
-static ENV_MUTEX: Mutex<()> = Mutex::new(());
-
-struct TempHomeSetup {
-   _dir: TempDir,
-   _guard: MutexGuard<'static, ()>,
-   old_home: Option<String>,
-}
-
-impl Drop for TempHomeSetup {
-   fn drop(&mut self) {
-      match &self.old_home {
-         Some(h) => set_var("HOME", h),
-         None => remove_var("HOME"),
-      }
-   }
-}
-
-fn setup_temp_home() -> TempHomeSetup {
-   let guard = ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-   let temp_dir = TempDir::new().expect("Should create temp dir");
-   let old_home = var("HOME").ok();
-   set_var("HOME", temp_dir.path());
-   TempHomeSetup {
-      _dir: temp_dir,
-      old_home,
-      _guard: guard,
-   }
-}
+use crate::test_support::TempHome;
+use std::path::PathBuf;
 
 // ===== Default value tests =====
 
@@ -206,11 +177,36 @@ fn test_get_config_path_ends_with_config_toml() {
    assert!(path_str.ends_with("config.toml"), "Path should end with config.toml: {}", path_str);
 }
 
+// ===== Path expansion tests =====
+
+#[test]
+fn test_expand_path_resolves_home_prefixes() {
+   let home = TempHome::new();
+
+   for (raw_path, expected) in [
+      ("~/foo/bar", home.path().join("foo/bar")),
+      ("$HOME/foo/bar", home.path().join("foo/bar")),
+      ("~", home.path()),
+      ("$HOME", home.path()),
+   ] {
+      assert_eq!(expand_path(raw_path), expected, "Unexpected expansion for {raw_path}");
+   }
+}
+
+#[test]
+fn test_expand_path_passes_through_paths_without_a_home_prefix() {
+   let _home = TempHome::new();
+
+   for raw_path in ["/etc/shells", "relative/path"] {
+      assert_eq!(expand_path(raw_path), PathBuf::from(raw_path), "Unexpected expansion for {raw_path}");
+   }
+}
+
 // ===== File I/O tests =====
 
 #[test]
 fn test_save_and_load_config_roundtrip() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    let mut config = Config::default();
    config.ui.theme = "gruvbox".to_string();
    config.display.syntax_highlighting = false;
@@ -222,21 +218,21 @@ fn test_save_and_load_config_roundtrip() {
 
 #[test]
 fn test_load_config_fails_when_missing() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    let result = load_config();
    assert!(result.is_err(), "Should fail when config file does not exist");
 }
 
 #[test]
 fn test_is_first_run_returns_true_when_no_config() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    let result = is_first_run().expect("Should succeed");
    assert!(result, "Should be first run when no config file exists");
 }
 
 #[test]
 fn test_is_first_run_returns_false_after_save() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    save_config(&Config::default()).expect("Should save config");
    let result = is_first_run().expect("Should succeed");
    assert!(!result, "Should not be first run after config is saved");

@@ -70,6 +70,7 @@ Configuration file location (created after `alf init`):
 - `alf init` - First-run configuration wizard
 - `alf init --print-shell-hook <SHELL>` - Print the shell wrapper and exit (non-interactive equivalent of `alf activate <SHELL>`)
 - `alf activate <SHELL>` - Print shell integration wrapper (`zsh` or `bash`)
+- `alf config add <PATH>...` - Add one or more shell source files to `shell_files` (e.g. `alf config add ~/.work_aliases`); paths must be absolute or start with `~`/`$HOME`, and must already exist
 - `alf config show` - Display current configuration
 - `alf config edit` - Open config in editor
 - `alf config reset` - Reset to defaults
