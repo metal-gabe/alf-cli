@@ -62,3 +62,6 @@ pub enum ConfigAction {
    /// Reset to default configuration
    Reset,
 }
+
+#[cfg(test)]
+mod cli_tests;

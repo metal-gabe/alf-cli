@@ -1,9 +1,15 @@
 //! Tests for the CLI config command (source file resolution)
 
-use super::resolve_new_source_files;
-use crate::config::{Config, GeneralConfig};
+use super::{add_source_files, resolve_new_source_files};
+use crate::config::{get_config_path, load_config, save_config, Config, GeneralConfig};
 use crate::test_support::TempHome;
 use std::fs;
+
+/// Comment stamped onto a seeded config so tests can detect whether it was rewritten
+///
+/// `toml::to_string_pretty` never emits comments, so a surviving marker proves `save_config` was
+/// not called — which a value comparison alone cannot show when the values are meant to be equal.
+const CONFIG_MARKER: &str = "\n# alf-test-marker\n";
 
 fn config_with(shell_files: &[&str]) -> Config {
    Config {
@@ -243,4 +249,146 @@ fn test_resolve_new_source_files_dedupes_repeats_within_one_invocation() {
    let (to_add, duplicates) = resolve_new_source_files(&config, &paths).expect("Should resolve existing file");
    assert_eq!(to_add, vec!["~/.zshrc".to_string()]);
    assert_eq!(duplicates, vec!["~/.zshrc".to_string()]);
+}
+
+// ===== Persisting added source files =====
+
+/// Save a config holding `shell_files` and stamp it with [`CONFIG_MARKER`]
+fn seed_marked_config(shell_files: &[&str]) {
+   save_config(&config_with(shell_files)).expect("Should seed config");
+   let path = get_config_path().expect("Should resolve config path");
+   let mut content = fs::read_to_string(&path).expect("Should read seeded config");
+   content.push_str(CONFIG_MARKER);
+   fs::write(&path, content).expect("Should stamp seeded config");
+}
+
+/// The `shell_files` currently recorded on disk
+fn configured_shell_files() -> Vec<String> {
+   load_config().expect("Should load config").general.shell_files
+}
+
+/// Whether the seeded config still carries its marker, i.e. it was never rewritten
+fn is_config_unwritten() -> bool {
+   let path = get_config_path().expect("Should resolve config path");
+   fs::read_to_string(&path).expect("Should read config").contains(CONFIG_MARKER)
+}
+
+#[test]
+fn test_add_source_files_persists_the_added_path() {
+   let home = TempHome::new();
+   home.touch(".work_aliases");
+   seed_marked_config(&[]);
+   add_source_files(&raw(&["~/.work_aliases"])).expect("Should add the source file");
+   assert_eq!(configured_shell_files(), vec!["~/.work_aliases".to_string()]);
+   assert!(!is_config_unwritten(), "Adding a new file should rewrite the config");
+}
+
+#[test]
+fn test_add_source_files_appends_to_the_existing_list() {
+   let home = TempHome::new();
+   home.touch(".zshrc");
+   home.touch(".work_aliases");
+   seed_marked_config(&["~/.zshrc"]);
+   add_source_files(&raw(&["~/.work_aliases"])).expect("Should add the source file");
+   assert_eq!(configured_shell_files(), raw(&["~/.zshrc", "~/.work_aliases"]));
+}
+
+#[test]
+fn test_add_source_files_persists_multiple_paths_in_one_invocation() {
+   let home = TempHome::new();
+   home.touch(".work_aliases");
+   home.touch(".personal_aliases");
+   seed_marked_config(&[]);
+   let paths = raw(&["~/.work_aliases", "~/.personal_aliases"]);
+   add_source_files(&paths).expect("Should add the source files");
+   assert_eq!(configured_shell_files(), paths);
+}
+
+#[test]
+fn test_add_source_files_persists_only_the_new_paths_when_some_are_duplicates() {
+   let home = TempHome::new();
+   home.touch(".zshrc");
+   home.touch(".work_aliases");
+   seed_marked_config(&["~/.zshrc"]);
+   let absolute = home.absolute(".zshrc");
+   add_source_files(&raw(&[absolute.as_str(), "~/.work_aliases"])).expect("Should add the new source file");
+   assert_eq!(configured_shell_files(), raw(&["~/.zshrc", "~/.work_aliases"]));
+}
+
+#[test]
+fn test_add_source_files_persists_the_raw_path_form() {
+   let home = TempHome::new();
+   home.touch(".zshrc");
+   seed_marked_config(&[]);
+   add_source_files(&raw(&["$HOME/.zshrc"])).expect("Should add the source file");
+   assert_eq!(configured_shell_files(), vec!["$HOME/.zshrc".to_string()], "The typed form should be what is stored");
+}
+
+// ===== Leaving the config untouched =====
+
+#[test]
+fn test_add_source_files_does_not_write_when_every_path_is_a_duplicate() {
+   let home = TempHome::new();
+   home.touch(".zshrc");
+   seed_marked_config(&["~/.zshrc"]);
+   let absolute = home.absolute(".zshrc");
+   add_source_files(&raw(&[absolute.as_str()])).expect("A duplicate should not fail the add");
+   assert!(is_config_unwritten(), "An all-duplicate add should not rewrite the config");
+   assert_eq!(configured_shell_files(), vec!["~/.zshrc".to_string()]);
+}
+
+#[test]
+fn test_add_source_files_leaves_the_config_untouched_when_a_path_is_missing() {
+   let home = TempHome::new();
+   home.touch(".zshrc");
+   home.touch(".work_aliases");
+   seed_marked_config(&["~/.zshrc"]);
+   let error = add_source_files(&raw(&["~/.work_aliases", "~/missing.sh"])).expect_err("Should reject the invocation");
+   assert!(error.to_string().contains("Shell file not found"), "Expected a not-found error, got: {error}");
+   assert!(is_config_unwritten(), "A rejected add should not rewrite the config");
+   assert_eq!(configured_shell_files(), vec!["~/.zshrc".to_string()]);
+}
+
+#[test]
+fn test_add_source_files_leaves_the_config_untouched_when_a_path_is_relative() {
+   let home = TempHome::new();
+   home.touch(".zshrc");
+   home.touch(".work_aliases");
+   seed_marked_config(&["~/.zshrc"]);
+   let error = add_source_files(&raw(&["~/.work_aliases", "../aliases.sh"])).expect_err("Should reject the invocation");
+   assert!(error.to_string().contains("Relative paths are not allowed"), "Expected a relative error, got: {error}");
+   assert!(is_config_unwritten(), "A rejected add should not rewrite the config");
+   assert_eq!(configured_shell_files(), vec!["~/.zshrc".to_string()]);
+}
+
+// ===== First run =====
+
+#[test]
+fn test_add_source_files_bails_when_no_config_exists() {
+   let home = TempHome::new();
+   home.touch(".work_aliases");
+   let error = add_source_files(&raw(&["~/.work_aliases"])).expect_err("Should bail without a config");
+   assert!(error.to_string().contains("Run `alf init` to create one."), "Expected an `alf init` hint, got: {error}");
+}
+
+#[test]
+fn test_add_source_files_reports_the_config_path_when_no_config_exists() {
+   let home = TempHome::new();
+   home.touch(".work_aliases");
+   let expected = get_config_path().expect("Should resolve config path");
+   let error = add_source_files(&raw(&["~/.work_aliases"])).expect_err("Should bail without a config");
+   assert!(
+      error.to_string().contains(&expected.display().to_string()),
+      "Expected the config path in the error, got: {error}"
+   );
+}
+
+#[test]
+fn test_add_source_files_bails_before_validating_paths_when_no_config_exists() {
+   let _home = TempHome::new();
+   let error = add_source_files(&raw(&["../aliases.sh"])).expect_err("Should bail without a config");
+   assert!(
+      error.to_string().contains("No config found at"),
+      "A missing config should be reported before path validation, got: {error}"
+   );
 }
