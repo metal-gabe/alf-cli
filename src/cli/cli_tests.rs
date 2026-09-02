@@ -10,7 +10,8 @@ fn parse(args: &[&str]) -> Result<Cli, clap::Error> {
 
 /// Extract the `ConfigAction` from an invocation expected to parse as `config`
 fn config_action(args: &[&str]) -> ConfigAction {
-   match parse(args).expect("Should parse a config invocation").command {
+   let cli = parse(args).expect("Should parse a config invocation");
+   match cli.command {
       Some(Commands::Config {
          action,
       }) => action,
