@@ -178,6 +178,73 @@ fn test_get_config_path_ends_with_config_toml() {
    assert!(path_str.ends_with("config.toml"), "Path should end with config.toml: {}", path_str);
 }
 
+// ===== Home resolution tests =====
+
+#[test]
+fn test_get_config_path_falls_back_to_userprofile_when_home_is_empty() {
+   let mut home = TempHome::new();
+   let profile = home.path().join("profile");
+   home.set_env("USERPROFILE", &profile);
+   home.set_env("HOME", "");
+   let path = get_config_path().expect("Should resolve a home from USERPROFILE");
+   assert!(path.is_absolute(), "An empty HOME should not produce a relative config path, got {}", path.display());
+   assert_eq!(path, profile.join(".config").join("alf").join("config.toml"));
+   assert_eq!(expand_path("~"), profile, "Both resolvers should agree on the fallback home");
+}
+
+#[test]
+fn test_get_config_path_falls_back_when_home_is_unset() {
+   let mut home = TempHome::new();
+   let profile = home.path().join("profile");
+   home.set_env("USERPROFILE", &profile);
+   home.unset_env("HOME");
+   assert_eq!(
+      get_config_path().expect("Should resolve a home"),
+      profile.join(".config").join("alf").join("config.toml")
+   );
+}
+
+#[cfg(unix)]
+#[test]
+fn test_home_resolution_accepts_non_unicode_values() {
+   use std::ffi::OsString;
+   use std::os::unix::ffi::OsStringExt;
+
+   let mut home = TempHome::new();
+   let mut bytes = home.path().into_os_string().into_vec();
+   bytes.extend_from_slice(b"/home\xff");
+   let non_unicode = PathBuf::from(OsString::from_vec(bytes));
+   home.set_env("HOME", &non_unicode);
+   assert_eq!(
+      get_config_path().expect("A non-Unicode HOME should still resolve"),
+      non_unicode.join(".config").join("alf").join("config.toml")
+   );
+   assert_eq!(expand_path("~"), non_unicode, "Both resolvers should accept a non-Unicode home");
+}
+
+#[cfg(unix)]
+#[test]
+fn test_get_config_path_errors_when_no_home_can_be_resolved() {
+   use std::ffi::OsString;
+   use std::os::unix::ffi::OsStringExt;
+
+   let mut home = TempHome::new();
+   home.set_env("HOME", "");
+   home.set_env("USERPROFILE", OsString::from_vec(Vec::new()));
+   let resolved = get_config_path();
+   match dirs::home_dir() {
+      Some(fallback) => {
+         assert_eq!(
+            resolved.expect("Should use the platform fallback"),
+            fallback.join(".config").join("alf").join("config.toml")
+         );
+      },
+      None => {
+         assert!(resolved.is_err(), "With no home anywhere, the config path should be an error");
+      },
+   }
+}
+
 // ===== Path expansion tests =====
 
 #[test]

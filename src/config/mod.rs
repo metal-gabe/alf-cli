@@ -107,12 +107,14 @@ impl Default for Config {
 ///
 /// - Linux/macOS: `$HOME/.config/alf/config.toml`
 /// - Windows: `%USERPROFILE%\.config\alf\config.toml`
+///
+/// Home is resolved by [`resolve_home_dir`], the same way `~` is expanded, so the two can never
+/// disagree about where home is.
 pub fn get_config_path() -> Result<PathBuf> {
-   let home = std::env::var("HOME")
-      .or_else(|_| std::env::var("USERPROFILE"))
-      .map_err(|_| anyhow::anyhow!("HOME or USERPROFILE environment variable not set"))?;
+   let home = resolve_home_dir()
+      .ok_or_else(|| anyhow::anyhow!("Could not determine the home directory: set HOME or USERPROFILE"))?;
 
-   let config_dir = PathBuf::from(home).join(".config").join("alf");
+   let config_dir = home.join(".config").join("alf");
    Ok(config_dir.join("config.toml"))
 }
 
@@ -166,11 +168,12 @@ impl Drop for ConfigLock {
    }
 }
 
-/// Resolve the home directory used to expand `~` and `$HOME`
+/// Resolve the home directory used for the config path and for expanding `~` and `$HOME`
 ///
-/// `HOME` and `USERPROFILE` are consulted first, in that order, which matches how
-/// [`get_config_path`] locates the configuration file, so both agree on where home is and a caller
-/// that overrides the environment is honoured on every platform.
+/// `HOME` and `USERPROFILE` are consulted first, in that order, so a caller that overrides the
+/// environment is honoured on every platform. An empty value is skipped rather than accepted, which
+/// would otherwise yield a relative config path, and `var_os` is used so a home path that is not
+/// valid Unicode — legal on Unix — still resolves instead of reading as unset.
 ///
 /// `dirs::home_dir` is only the fallback. On Windows it reads the profile known folder and ignores
 /// both variables, so relying on it alone would expand `~` to the real user profile even when the

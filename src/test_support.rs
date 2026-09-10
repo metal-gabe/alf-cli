@@ -1,6 +1,7 @@
 //! Shared helpers for tests that need an isolated `$HOME`.
 
-use std::env::{remove_var, set_var, var};
+use std::env::{remove_var, set_var, var, var_os};
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
@@ -16,6 +17,7 @@ pub struct TempHome {
    _guard: MutexGuard<'static, ()>,
    dir: TempDir,
    old_home: Option<String>,
+   overrides: Vec<(String, Option<OsString>)>,
 }
 
 impl TempHome {
@@ -29,6 +31,7 @@ impl TempHome {
          _guard: guard,
          dir: temp_dir,
          old_home,
+         overrides: Vec::new(),
       }
    }
 
@@ -45,12 +48,44 @@ impl TempHome {
       self.dir.path().to_path_buf()
    }
 
+   /// Override an environment variable until this temporary home is dropped
+   ///
+   /// The original value is restored on drop, so a test can point home resolution at an empty or
+   /// deliberately malformed value without leaking it into the rest of the suite.
+   pub fn set_env(
+      &mut self,
+      key: &str,
+      value: impl AsRef<OsStr>,
+   ) {
+      self.remember(key);
+      set_var(key, value);
+   }
+
    /// Create an empty file named `name` inside the temporary home
    pub fn touch(
       &self,
       name: &str,
    ) {
       fs::File::create(self.path().join(name)).expect("Should create file");
+   }
+
+   /// Remove an environment variable until this temporary home is dropped
+   pub fn unset_env(
+      &mut self,
+      key: &str,
+   ) {
+      self.remember(key);
+      remove_var(key);
+   }
+
+   /// Record the current value of `key` the first time it is overridden, so `Drop` can put it back
+   fn remember(
+      &mut self,
+      key: &str,
+   ) {
+      if !self.overrides.iter().any(|(name, _)| name == key) {
+         self.overrides.push((key.to_string(), var_os(key)));
+      }
    }
 }
 
@@ -62,6 +97,13 @@ impl Default for TempHome {
 
 impl Drop for TempHome {
    fn drop(&mut self) {
+      for (key, value) in self.overrides.drain(..) {
+         match value {
+            Some(value) => set_var(&key, value),
+            None => remove_var(&key),
+         }
+      }
+
       match &self.old_home {
          Some(home) => set_var("HOME", home),
          None => remove_var("HOME"),
