@@ -195,6 +195,19 @@ fn test_expand_path_resolves_home_prefixes() {
 }
 
 #[test]
+fn test_expand_path_uses_the_same_home_as_the_config_path() {
+   let home = TempHome::new();
+   let config_path = get_config_path().expect("Should build config path");
+   assert!(
+      config_path.starts_with(expand_path("~")),
+      "`expand_path` and `get_config_path` should agree on home, got {} vs {}",
+      expand_path("~").display(),
+      config_path.display()
+   );
+   assert_eq!(expand_path("~"), home.path(), "Home should come from the environment, not the platform default");
+}
+
+#[test]
 fn test_expand_path_passes_through_paths_without_a_home_prefix() {
    let _home = TempHome::new();
 

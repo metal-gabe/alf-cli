@@ -3,6 +3,7 @@
 use anyhow::Result;
 use fs4::FileExt;
 use serde::{Deserialize, Serialize};
+use std::env::var_os;
 use std::fs::{self, File, OpenOptions};
 use std::path::PathBuf;
 use std::process::id;
@@ -165,11 +166,31 @@ impl Drop for ConfigLock {
    }
 }
 
+/// Resolve the home directory used to expand `~` and `$HOME`
+///
+/// `HOME` and `USERPROFILE` are consulted first, in that order, which matches how
+/// [`get_config_path`] locates the configuration file, so both agree on where home is and a caller
+/// that overrides the environment is honoured on every platform.
+///
+/// `dirs::home_dir` is only the fallback. On Windows it reads the profile known folder and ignores
+/// both variables, so relying on it alone would expand `~` to the real user profile even when the
+/// environment points somewhere else — which silently defeats an isolated test home.
+fn resolve_home_dir() -> Option<PathBuf> {
+   for key in ["HOME", "USERPROFILE"] {
+      match var_os(key) {
+         Some(value) if !value.is_empty() => return Some(PathBuf::from(value)),
+         _ => {},
+      }
+   }
+
+   dirs::home_dir()
+}
+
 /// Expand a leading `~` or `$HOME` in a configured file path into an absolute path
 ///
 /// Paths without a home prefix are returned unchanged.
 pub fn expand_path(file_path_str: &str) -> PathBuf {
-   let expanded = if let Some(home_dir) = dirs::home_dir() {
+   let expanded = if let Some(home_dir) = resolve_home_dir() {
       let path = if let Some(rest) = file_path_str.strip_prefix("~/") {
          home_dir.join(rest)
       } else if file_path_str == "~" {
