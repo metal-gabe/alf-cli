@@ -4,7 +4,6 @@ use crate::cli::init;
 use crate::cli::ConfigAction;
 use crate::config::{expand_path, get_config_path, is_first_run, load_config, save_config, Config, GeneralConfig};
 use anyhow::Result;
-use std::env::var;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -50,7 +49,6 @@ fn add_source_files(raw_paths: &[String]) -> Result<()> {
    }
 
    println!("Config saved to {}", config_path.display());
-
    Ok(())
 }
 
@@ -87,6 +85,7 @@ fn resolve_new_source_files(
 
    let mut configured: Vec<PathBuf> =
       config.general.shell_files.iter().map(String::as_str).map(canonical_key).collect();
+
    let mut to_add = Vec::new();
    let mut duplicates = Vec::new();
 
@@ -129,7 +128,7 @@ fn edit_config() -> Result<()> {
    let config_path = get_config_path()?;
 
    // Try $EDITOR first, then fall back to common editors
-   let editor = var("EDITOR").unwrap_or_else(|_| "vi".to_string());
+   let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string());
 
    let status = Command::new(&editor).arg(config_path.to_string_lossy().to_string()).status()?;
 

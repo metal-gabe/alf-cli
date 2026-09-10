@@ -149,7 +149,9 @@ pub fn load_config() -> Result<Config> {
 pub fn save_config(config: &Config) -> Result<()> {
    let path = get_config_path()?;
 
-   // Create the config directory if it doesn't exist
+   // `parent()` yields the config file's directory, or `None` for a path with no parent at all.
+   // `create_dir_all` builds every missing ancestor and succeeds when they already exist, so it
+   // acts as the existence check itself
    if let Some(parent) = path.parent() {
       fs::create_dir_all(parent)?;
    }
