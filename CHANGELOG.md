@@ -1,3 +1,18 @@
+## [0.5.0](https://github.com/metal-gabe/alf-cli/compare/v0.4.0...v0.5.0) (2026-09-10)
+
+
+### Features
+
+* **add-source-files:** [no ci] add `config add` subcommand; ([226416e](https://github.com/metal-gabe/alf-cli/commit/226416e6f64fb4cb7b1a75ffeeb04107493a00f9))
+* **add-source-files:** [no ci] clean up; ([6b1da56](https://github.com/metal-gabe/alf-cli/commit/6b1da566588d63132acc6eadbc8db966aa44747e))
+
+
+### Bug Fixes
+
+* **add-source-files:** [no ci] expand `~` via HOME first; ([3f3f0bb](https://github.com/metal-gabe/alf-cli/commit/3f3f0bb8aae51e8980ddfc83ca4903841ebe4196))
+* **add-source-files:** [no ci] guard `config add` writes; ([0a7c88c](https://github.com/metal-gabe/alf-cli/commit/0a7c88c42acae0fab58cc8b107a1cd7edec4fd27))
+* **add-source-files:** [no ci] share one home resolver; ([57351cc](https://github.com/metal-gabe/alf-cli/commit/57351cc2a4035868c7cdb444fe4cfc6359db0130))
+
 ## [0.4.0](https://github.com/metal-gabe/alf-cli/compare/v0.3.0...v0.4.0) (2026-07-22)
 
 
