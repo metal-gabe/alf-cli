@@ -1,10 +1,11 @@
 //! Tests for configuration loading, saving, and defaults
 
 use super::{
-   expand_path, get_config_path, is_first_run, load_config, save_config, AliasExpansion, CaseMatching, Config,
-   GeneralConfig,
+   expand_path, get_config_lock_path, get_config_path, is_first_run, load_config, save_config, AliasExpansion,
+   CaseMatching, Config, ConfigLock, GeneralConfig,
 };
 use crate::test_support::TempHome;
+use std::fs;
 use std::path::PathBuf;
 
 // ===== Default value tests =====
@@ -236,4 +237,48 @@ fn test_is_first_run_returns_false_after_save() {
    save_config(&Config::default()).expect("Should save config");
    let result = is_first_run().expect("Should succeed");
    assert!(!result, "Should not be first run after config is saved");
+}
+
+#[test]
+fn test_save_config_leaves_no_temporary_files_behind() {
+   let _home = TempHome::new();
+   save_config(&Config::default()).expect("Should save config");
+   let config_dir =
+      get_config_path().expect("Should build config path").parent().expect("Should have a parent").to_path_buf();
+   let leftovers: Vec<String> = fs::read_dir(&config_dir)
+      .expect("Should read config dir")
+      .filter_map(|entry| entry.ok())
+      .map(|entry| entry.file_name().to_string_lossy().to_string())
+      .filter(|name| name.ends_with(".tmp"))
+      .collect();
+   assert!(leftovers.is_empty(), "A completed save should leave no temp files, found {leftovers:?}");
+}
+
+// ===== Config lock tests =====
+
+#[test]
+fn test_config_lock_path_sits_beside_the_config_file() {
+   let _home = TempHome::new();
+   let config_path = get_config_path().expect("Should build config path");
+   let lock_path = get_config_lock_path().expect("Should build lock path");
+   assert_eq!(lock_path.parent(), config_path.parent(), "The lock should live in the config directory");
+   assert_eq!(lock_path.file_name().expect("Should have a file name"), "config.toml.lock");
+}
+
+#[test]
+fn test_config_lock_is_created_before_any_config_exists() {
+   let _home = TempHome::new();
+   let lock = ConfigLock::acquire().expect("Should acquire the lock without a config file");
+   assert!(get_config_lock_path().expect("Should build lock path").exists(), "Acquiring should create the lock file");
+   drop(lock);
+   assert!(is_first_run().expect("Should succeed"), "The lock file alone should not count as a config");
+}
+
+#[test]
+fn test_config_lock_can_be_reacquired_after_each_release() {
+   let _home = TempHome::new();
+   for attempt in 1..=3 {
+      let lock = ConfigLock::acquire().unwrap_or_else(|_| panic!("Should acquire the lock on attempt {attempt}"));
+      drop(lock);
+   }
 }

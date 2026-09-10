@@ -1,7 +1,7 @@
 //! Tests for the CLI config command (source file resolution)
 
 use super::{add_source_files, resolve_new_source_files};
-use crate::config::{get_config_path, load_config, save_config, Config, GeneralConfig};
+use crate::config::{get_config_path, load_config, save_config, Config, ConfigLock, GeneralConfig};
 use crate::test_support::TempHome;
 use std::fs;
 
@@ -165,6 +165,57 @@ fn test_resolve_new_source_files_errors_before_adding_when_the_list_is_mixed() {
    let config = config_with(&[]);
    let result = resolve_new_source_files(&config, &raw(&["~/.work_aliases", "~/missing.sh"]));
    assert!(result.is_err(), "A single missing path should reject the whole invocation");
+}
+
+// ===== Non-regular files =====
+
+#[test]
+fn test_resolve_new_source_files_errors_when_a_path_is_a_directory() {
+   let home = TempHome::new();
+   fs::create_dir_all(home.path().join("dotfiles")).expect("Should create dotfiles dir");
+   let config = config_with(&[]);
+   let error = resolve_new_source_files(&config, &raw(&["~/dotfiles"])).expect_err("Should reject a directory");
+   assert!(
+      error.to_string().contains("not a regular file"),
+      "Expected a not-a-regular-file error for a directory, got: {error}"
+   );
+}
+
+#[cfg(unix)]
+#[test]
+fn test_resolve_new_source_files_errors_when_a_path_is_a_fifo() {
+   let home = TempHome::new();
+   let fifo = home.path().join(".fifo_aliases");
+   let status = std::process::Command::new("mkfifo").arg(&fifo).status().expect("Should run mkfifo");
+   assert!(status.success(), "Should create the FIFO");
+   let config = config_with(&[]);
+   let error = resolve_new_source_files(&config, &raw(&["~/.fifo_aliases"])).expect_err("Should reject a FIFO");
+   assert!(
+      error.to_string().contains("not a regular file"),
+      "Expected a not-a-regular-file error for a FIFO, got: {error}"
+   );
+}
+
+#[cfg(unix)]
+#[test]
+fn test_resolve_new_source_files_accepts_a_symlink_to_a_regular_file() {
+   let home = TempHome::new();
+   link_to_dotfile(&home, "work_aliases", ".work_aliases");
+   let config = config_with(&[]);
+   let (to_add, duplicates) =
+      resolve_new_source_files(&config, &raw(&["~/.work_aliases"])).expect("Should accept a symlinked file");
+   assert_eq!(to_add, vec!["~/.work_aliases".to_string()]);
+   assert!(duplicates.is_empty());
+}
+
+#[test]
+fn test_add_source_files_does_not_write_when_a_path_is_a_directory() {
+   let home = TempHome::new();
+   home.touch(".work_aliases");
+   fs::create_dir_all(home.path().join("dotfiles")).expect("Should create dotfiles dir");
+   seed_marked_config(&[]);
+   add_source_files(&raw(&["~/.work_aliases", "~/dotfiles"])).expect_err("Should reject the directory");
+   assert!(is_config_unwritten(), "A rejected add should leave the config untouched");
 }
 
 // ===== Duplicates =====
@@ -391,4 +442,42 @@ fn test_add_source_files_bails_before_validating_paths_when_no_config_exists() {
       error.to_string().contains("No config found at"),
       "A missing config should be reported before path validation, got: {error}"
    );
+}
+
+// ===== Locking the config during the add =====
+
+/// Assert that no lock is still held, by taking and releasing one
+fn assert_lock_is_free(context: &str) {
+   let lock = ConfigLock::acquire().unwrap_or_else(|_| panic!("The lock should be free {context}"));
+   drop(lock);
+}
+
+#[test]
+fn test_add_source_files_releases_the_lock_after_a_successful_add() {
+   let home = TempHome::new();
+   home.touch(".work_aliases");
+   seed_marked_config(&[]);
+   add_source_files(&raw(&["~/.work_aliases"])).expect("Should add the source file");
+   assert_lock_is_free("after a successful add");
+}
+
+#[test]
+fn test_add_source_files_releases_the_lock_after_a_failed_add() {
+   let home = TempHome::new();
+   home.touch(".work_aliases");
+   seed_marked_config(&[]);
+
+   for paths in [raw(&["relative/path"]), raw(&["~/.does_not_exist"])] {
+      add_source_files(&paths).expect_err("Should reject the path");
+      assert_lock_is_free("after a failed add");
+   }
+}
+
+#[test]
+fn test_add_source_files_releases_the_lock_after_an_all_duplicate_add() {
+   let home = TempHome::new();
+   home.touch(".zshrc");
+   seed_marked_config(&["~/.zshrc"]);
+   add_source_files(&raw(&["~/.zshrc"])).expect("A duplicate should not fail the add");
+   assert_lock_is_free("after an early return");
 }

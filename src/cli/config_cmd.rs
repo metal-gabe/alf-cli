@@ -2,7 +2,9 @@
 
 use crate::cli::init;
 use crate::cli::ConfigAction;
-use crate::config::{expand_path, get_config_path, is_first_run, load_config, save_config, Config, GeneralConfig};
+use crate::config::{
+   expand_path, get_config_path, is_first_run, load_config, save_config, Config, ConfigLock, GeneralConfig,
+};
 use anyhow::Result;
 use std::fs;
 use std::io::{self, Write};
@@ -22,6 +24,10 @@ pub fn run_config_action(action: ConfigAction) -> Result<()> {
 }
 
 /// Add one or more shell source files to the configured `shell_files` list
+///
+/// The load-modify-save cycle runs under an exclusive [`ConfigLock`], so a concurrent `alf config
+/// add` cannot read the same starting configuration and overwrite the entries this run appends.
+/// The guard releases the lock on every exit path, including the early returns and the `?` bails.
 fn add_source_files(raw_paths: &[String]) -> Result<()> {
    let config_path = get_config_path()?;
 
@@ -29,6 +35,7 @@ fn add_source_files(raw_paths: &[String]) -> Result<()> {
       anyhow::bail!("No config found at {}. Run `alf init` to create one.", config_path.display());
    }
 
+   let _lock = ConfigLock::acquire()?;
    let mut config = load_config()?;
    let (to_add, duplicates) = resolve_new_source_files(&config, raw_paths)?;
 
@@ -59,9 +66,13 @@ fn add_source_files(raw_paths: &[String]) -> Result<()> {
 /// spelling is what gets returned, and therefore what gets stored.
 ///
 /// # Errors
-/// Returns an error if any path is relative or does not exist on disk, before classifying any of
-/// them, so a single bad path leaves the configuration untouched. Relative paths are rejected
-/// first, so their message is never masked by a missing-file error.
+/// Returns an error if any path is relative, does not exist on disk, or is not a regular file,
+/// before classifying any of them, so a single bad path leaves the configuration untouched.
+/// Relative paths are rejected first, so their message is never masked by a missing-file error.
+///
+/// Directories, sockets and FIFOs are rejected because the parser reads each configured entry as a
+/// file: a directory would warn on every launch, and a FIFO would block the read. Both checks
+/// follow symlinks, so a symlink to a regular file is still accepted.
 fn resolve_new_source_files(
    config: &Config,
    raw_paths: &[String],
@@ -80,6 +91,10 @@ fn resolve_new_source_files(
 
       if !expanded.exists() {
          anyhow::bail!("Shell file not found: {}", expanded.display());
+      }
+
+      if !expanded.is_file() {
+         anyhow::bail!("Shell source path is not a regular file: {}", expanded.display());
       }
    }
 

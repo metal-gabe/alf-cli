@@ -1,9 +1,11 @@
 //! Configuration management for alf.
 
 use anyhow::Result;
+use fs4::FileExt;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::fs::{self, File, OpenOptions};
 use std::path::PathBuf;
+use std::process::id;
 
 /// Main configuration structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -113,6 +115,56 @@ pub fn get_config_path() -> Result<PathBuf> {
    Ok(config_dir.join("config.toml"))
 }
 
+/// Get the path of the lock file guarding the configuration file
+///
+/// Sits beside the configuration file as `config.toml.lock` so the lock survives the config file
+/// being replaced by a rename.
+pub fn get_config_lock_path() -> Result<PathBuf> {
+   Ok(get_config_path()?.with_extension("toml.lock"))
+}
+
+/// An exclusive, process-safe lock over the configuration file
+///
+/// Hold this across a read-modify-write cycle — from before [`load_config`] until after
+/// [`save_config`] — so two concurrent `alf` processes cannot both load the same configuration and
+/// have the later save silently discard the earlier one's changes.
+///
+/// The lock is advisory: it excludes other holders of this same lock, not an unrelated process or
+/// a hand edit of the file. It is released when the guard is dropped, which covers early returns,
+/// errors and panics alike, and the operating system releases it if the process dies while holding
+/// it, so a crash cannot leave the lock stuck.
+pub struct ConfigLock {
+   file: File,
+}
+
+impl ConfigLock {
+   /// Acquire the lock, blocking until any other holder releases it
+   ///
+   /// # Errors
+   /// Returns an error if the configuration directory cannot be created, the lock file cannot be
+   /// opened, or the underlying lock cannot be acquired.
+   pub fn acquire() -> Result<Self> {
+      let path = get_config_lock_path()?;
+
+      if let Some(parent) = path.parent() {
+         fs::create_dir_all(parent)?;
+      }
+
+      let file = OpenOptions::new().create(true).read(true).write(true).truncate(false).open(&path)?;
+      FileExt::lock_exclusive(&file)?;
+
+      Ok(Self {
+         file,
+      })
+   }
+}
+
+impl Drop for ConfigLock {
+   fn drop(&mut self) {
+      let _ = FileExt::unlock(&self.file);
+   }
+}
+
 /// Expand a leading `~` or `$HOME` in a configured file path into an absolute path
 ///
 /// Paths without a home prefix are returned unchanged.
@@ -146,6 +198,10 @@ pub fn load_config() -> Result<Config> {
 }
 
 /// Save configuration to disk
+///
+/// The new contents are written to a sibling temporary file and then renamed over the target, so a
+/// failure part-way through leaves the previous configuration intact rather than a truncated file.
+/// The temporary name carries the process id to keep concurrent writers from sharing it.
 pub fn save_config(config: &Config) -> Result<()> {
    let path = get_config_path()?;
 
@@ -157,7 +213,18 @@ pub fn save_config(config: &Config) -> Result<()> {
    }
 
    let content = toml::to_string_pretty(config)?;
-   fs::write(&path, content)?;
+   let temp_path = path.with_extension(format!("toml.{}.tmp", id()));
+
+   if let Err(error) = fs::write(&temp_path, content) {
+      let _ = fs::remove_file(&temp_path);
+      return Err(error.into());
+   }
+
+   if let Err(error) = fs::rename(&temp_path, &path) {
+      let _ = fs::remove_file(&temp_path);
+      return Err(error.into());
+   }
+
    Ok(())
 }
 
