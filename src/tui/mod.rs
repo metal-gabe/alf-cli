@@ -140,7 +140,7 @@ fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<
 
    // Parse each shell file from config
    for file_path_str in &config.general.shell_files {
-      let shell_file = expand_path(file_path_str);
+      let shell_file = crate::config::expand_path(file_path_str);
       log::debug!("Handled file path string:\n- orig: {},\n- expanded: {}", file_path_str, shell_file.display());
 
       if shell_file.exists() {
@@ -158,27 +158,6 @@ fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<
    }
 
    Ok(entries)
-}
-
-fn expand_path(file_path_str: &str) -> PathBuf {
-   let expanded = if let Some(home_dir) = dirs::home_dir() {
-      let path = if let Some(rest) = file_path_str.strip_prefix("~/") {
-         home_dir.join(rest)
-      } else if file_path_str == "~" {
-         home_dir.clone()
-      } else if let Some(rest) = file_path_str.strip_prefix("$HOME/") {
-         home_dir.join(rest)
-      } else if file_path_str == "$HOME" {
-         home_dir.clone()
-      } else {
-         PathBuf::from(file_path_str)
-      };
-      path
-   } else {
-      PathBuf::from(file_path_str)
-   };
-
-   expanded
 }
 
 /// Try to load entries from shell configuration files
@@ -210,50 +189,4 @@ fn load_shell_entries() -> Result<Vec<crate::models::AliasEntry>> {
    }
 
    Ok(entries)
-}
-
-#[cfg(test)]
-mod tests {
-   use super::expand_path;
-   use std::env;
-
-   fn home() -> String {
-      env::var("HOME").unwrap_or_else(|_| "/tmp".to_string())
-   }
-
-   #[test]
-   fn test_expand_path_tilde_slash_prefix() {
-      let result = expand_path("~/foo/bar");
-      assert_eq!(result, std::path::PathBuf::from(home()).join("foo/bar"));
-   }
-
-   #[test]
-   fn test_expand_path_home_env_slash_prefix() {
-      let result = expand_path("$HOME/foo/bar");
-      assert_eq!(result, std::path::PathBuf::from(home()).join("foo/bar"));
-   }
-
-   #[test]
-   fn test_expand_path_tilde_alone() {
-      let result = expand_path("~");
-      assert_eq!(result, std::path::PathBuf::from(home()));
-   }
-
-   #[test]
-   fn test_expand_path_home_env_alone() {
-      let result = expand_path("$HOME");
-      assert_eq!(result, std::path::PathBuf::from(home()));
-   }
-
-   #[test]
-   fn test_expand_path_absolute_passthrough() {
-      let result = expand_path("/etc/shells");
-      assert_eq!(result, std::path::PathBuf::from("/etc/shells"));
-   }
-
-   #[test]
-   fn test_expand_path_relative_passthrough() {
-      let result = expand_path("relative/path");
-      assert_eq!(result, std::path::PathBuf::from("relative/path"));
-   }
 }

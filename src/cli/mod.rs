@@ -46,6 +46,13 @@ pub enum Commands {
 /// Configuration management actions
 #[derive(Debug, Subcommand)]
 pub enum ConfigAction {
+   /// Add one or more shell source files to the configuration
+   Add {
+      /// Path(s) to the shell source file(s) to add
+      #[arg(required = true, num_args = 1.., value_name = "PATH")]
+      paths: Vec<String>,
+   },
+
    /// Show current configuration
    Show,
 
@@ -55,3 +62,6 @@ pub enum ConfigAction {
    /// Reset to default configuration
    Reset,
 }
+
+#[cfg(test)]
+mod cli_tests;

@@ -1,40 +1,12 @@
 //! Tests for configuration loading, saving, and defaults
 
 use super::{
-   get_config_path, is_first_run, load_config, save_config, AliasExpansion, CaseMatching, Config, GeneralConfig,
+   expand_path, get_config_lock_path, get_config_path, is_first_run, load_config, save_config, AliasExpansion,
+   CaseMatching, Config, ConfigLock, GeneralConfig,
 };
-use std::env::{remove_var, set_var, var};
-use std::sync::{Mutex, MutexGuard};
-use tempfile::TempDir;
-
-static ENV_MUTEX: Mutex<()> = Mutex::new(());
-
-struct TempHomeSetup {
-   _dir: TempDir,
-   _guard: MutexGuard<'static, ()>,
-   old_home: Option<String>,
-}
-
-impl Drop for TempHomeSetup {
-   fn drop(&mut self) {
-      match &self.old_home {
-         Some(h) => set_var("HOME", h),
-         None => remove_var("HOME"),
-      }
-   }
-}
-
-fn setup_temp_home() -> TempHomeSetup {
-   let guard = ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-   let temp_dir = TempDir::new().expect("Should create temp dir");
-   let old_home = var("HOME").ok();
-   set_var("HOME", temp_dir.path());
-   TempHomeSetup {
-      _dir: temp_dir,
-      old_home,
-      _guard: guard,
-   }
-}
+use crate::test_support::TempHome;
+use std::fs;
+use std::path::PathBuf;
 
 // ===== Default value tests =====
 
@@ -206,11 +178,116 @@ fn test_get_config_path_ends_with_config_toml() {
    assert!(path_str.ends_with("config.toml"), "Path should end with config.toml: {}", path_str);
 }
 
+// ===== Home resolution tests =====
+
+#[test]
+fn test_get_config_path_falls_back_to_userprofile_when_home_is_empty() {
+   let mut home = TempHome::new();
+   let profile = home.path().join("profile");
+   home.set_env("USERPROFILE", &profile);
+   home.set_env("HOME", "");
+   let path = get_config_path().expect("Should resolve a home from USERPROFILE");
+   assert!(path.is_absolute(), "An empty HOME should not produce a relative config path, got {}", path.display());
+   assert_eq!(path, profile.join(".config").join("alf").join("config.toml"));
+   assert_eq!(expand_path("~"), profile, "Both resolvers should agree on the fallback home");
+}
+
+#[test]
+fn test_get_config_path_falls_back_when_home_is_unset() {
+   let mut home = TempHome::new();
+   let profile = home.path().join("profile");
+   home.set_env("USERPROFILE", &profile);
+   home.unset_env("HOME");
+   assert_eq!(
+      get_config_path().expect("Should resolve a home"),
+      profile.join(".config").join("alf").join("config.toml")
+   );
+}
+
+#[cfg(unix)]
+#[test]
+fn test_home_resolution_accepts_non_unicode_values() {
+   use std::ffi::OsString;
+   use std::os::unix::ffi::OsStringExt;
+
+   let mut home = TempHome::new();
+   let mut bytes = home.path().into_os_string().into_vec();
+   bytes.extend_from_slice(b"/home\xff");
+   let non_unicode = PathBuf::from(OsString::from_vec(bytes));
+   home.set_env("HOME", &non_unicode);
+   assert_eq!(
+      get_config_path().expect("A non-Unicode HOME should still resolve"),
+      non_unicode.join(".config").join("alf").join("config.toml")
+   );
+   assert_eq!(expand_path("~"), non_unicode, "Both resolvers should accept a non-Unicode home");
+}
+
+#[cfg(unix)]
+#[test]
+fn test_get_config_path_errors_when_no_home_can_be_resolved() {
+   use std::ffi::OsString;
+   use std::os::unix::ffi::OsStringExt;
+
+   let mut home = TempHome::new();
+   home.set_env("HOME", "");
+   home.set_env("USERPROFILE", OsString::from_vec(Vec::new()));
+   let resolved = get_config_path();
+   match dirs::home_dir() {
+      Some(fallback) => {
+         assert_eq!(
+            resolved.expect("Should use the platform fallback"),
+            fallback.join(".config").join("alf").join("config.toml")
+         );
+      },
+      None => {
+         assert!(resolved.is_err(), "With no home anywhere, the config path should be an error");
+      },
+   }
+}
+
+// ===== Path expansion tests =====
+
+#[test]
+fn test_expand_path_resolves_home_prefixes() {
+   let home = TempHome::new();
+
+   for (raw_path, expected) in [
+      ("~/foo/bar", home.path().join("foo/bar")),
+      ("$HOME/foo/bar", home.path().join("foo/bar")),
+      ("~", home.path()),
+      ("$HOME", home.path()),
+   ] {
+      assert_eq!(expand_path(raw_path), expected, "Unexpected expansion for {raw_path}");
+   }
+}
+
+#[test]
+fn test_expand_path_uses_the_same_home_as_the_config_path() {
+   let home = TempHome::new();
+   let config_path = get_config_path().expect("Should build config path");
+   assert!(
+      config_path.starts_with(expand_path("~")),
+      "`expand_path` and `get_config_path` should agree on home, got {} vs {}",
+      expand_path("~").display(),
+      config_path.display()
+   );
+   assert_eq!(expand_path("~"), home.path(), "Home should come from the environment, not the platform default");
+}
+
+#[test]
+fn test_expand_path_passes_through_paths_without_a_home_prefix() {
+   let _home = TempHome::new();
+
+   for raw_path in ["/etc/shells", "relative/path"] {
+      assert_eq!(expand_path(raw_path), PathBuf::from(raw_path), "Unexpected expansion for {raw_path}");
+   }
+}
+
 // ===== File I/O tests =====
 
 #[test]
 fn test_save_and_load_config_roundtrip() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    let mut config = Config::default();
    config.ui.theme = "gruvbox".to_string();
    config.display.syntax_highlighting = false;
@@ -222,22 +299,66 @@ fn test_save_and_load_config_roundtrip() {
 
 #[test]
 fn test_load_config_fails_when_missing() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    let result = load_config();
    assert!(result.is_err(), "Should fail when config file does not exist");
 }
 
 #[test]
 fn test_is_first_run_returns_true_when_no_config() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    let result = is_first_run().expect("Should succeed");
    assert!(result, "Should be first run when no config file exists");
 }
 
 #[test]
 fn test_is_first_run_returns_false_after_save() {
-   let _setup = setup_temp_home();
+   let _home = TempHome::new();
    save_config(&Config::default()).expect("Should save config");
    let result = is_first_run().expect("Should succeed");
    assert!(!result, "Should not be first run after config is saved");
+}
+
+#[test]
+fn test_save_config_leaves_no_temporary_files_behind() {
+   let _home = TempHome::new();
+   save_config(&Config::default()).expect("Should save config");
+   let config_dir =
+      get_config_path().expect("Should build config path").parent().expect("Should have a parent").to_path_buf();
+   let leftovers: Vec<String> = fs::read_dir(&config_dir)
+      .expect("Should read config dir")
+      .filter_map(|entry| entry.ok())
+      .map(|entry| entry.file_name().to_string_lossy().to_string())
+      .filter(|name| name.ends_with(".tmp"))
+      .collect();
+   assert!(leftovers.is_empty(), "A completed save should leave no temp files, found {leftovers:?}");
+}
+
+// ===== Config lock tests =====
+
+#[test]
+fn test_config_lock_path_sits_beside_the_config_file() {
+   let _home = TempHome::new();
+   let config_path = get_config_path().expect("Should build config path");
+   let lock_path = get_config_lock_path().expect("Should build lock path");
+   assert_eq!(lock_path.parent(), config_path.parent(), "The lock should live in the config directory");
+   assert_eq!(lock_path.file_name().expect("Should have a file name"), "config.toml.lock");
+}
+
+#[test]
+fn test_config_lock_is_created_before_any_config_exists() {
+   let _home = TempHome::new();
+   let lock = ConfigLock::acquire().expect("Should acquire the lock without a config file");
+   assert!(get_config_lock_path().expect("Should build lock path").exists(), "Acquiring should create the lock file");
+   drop(lock);
+   assert!(is_first_run().expect("Should succeed"), "The lock file alone should not count as a config");
+}
+
+#[test]
+fn test_config_lock_can_be_reacquired_after_each_release() {
+   let _home = TempHome::new();
+   for attempt in 1..=3 {
+      let lock = ConfigLock::acquire().unwrap_or_else(|_| panic!("Should acquire the lock on attempt {attempt}"));
+      drop(lock);
+   }
 }
