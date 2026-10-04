@@ -1,7 +1,8 @@
 //! Main body layout orchestration.
 //!
 //! Orchestrates the layout of the main content area:
-//! left list panel (40%) and right detail panels (60%).
+//! left list panel (40%) and right detail panels (60%),
+//! or the active panel alone when fullscreen is toggled on.
 
 mod description;
 mod list;
@@ -11,6 +12,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::Frame;
 
 use crate::tui::app::App;
+use crate::tui::state::Panel;
 use crate::tui::themes::Theme;
 
 /// Draw the main body: left list panel + right detail panels
@@ -20,6 +22,15 @@ pub fn draw_main_body(
    theme: &Theme,
    area: Rect,
 ) {
+   if app.is_fullscreen() {
+      match app.active_panel() {
+         Panel::List => list::draw_entry_list(frame, app, theme, area),
+         Panel::Description => description::draw_description_panel(frame, app, theme, area),
+         Panel::Script => script::draw_script_panel(frame, app, theme, area),
+      }
+      return;
+   }
+
    // Horizontal split: left 40% list, right 60% detail
    let main_chunks = Layout::default()
       .direction(Direction::Horizontal)

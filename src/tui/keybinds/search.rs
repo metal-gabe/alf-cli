@@ -13,9 +13,10 @@ pub fn handle_search_mode(
       // Exit search mode, keep query and filtered results
       KeyCode::Esc => app.exit_search_keep_query(),
 
-      // Panel cycling (Shift+n/p sends uppercase N/P)
+      // Panel management (Shift+n/p/f sends uppercase N/P/F)
       KeyCode::Char('N') => app.cycle_panel(),
       KeyCode::Char('P') => app.cycle_panel_backward(),
+      KeyCode::Char('F') => app.toggle_fullscreen(),
 
       // Filter cycling (Shift+h/l sends uppercase H/L)
       KeyCode::Char('L') => app.cycle_filter(),

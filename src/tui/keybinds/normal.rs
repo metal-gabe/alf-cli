@@ -71,6 +71,7 @@ pub fn handle_normal_mode(
       // Panel cycling
       KeyCode::Char('n') => app.cycle_panel(),
       KeyCode::Char('p') => app.cycle_panel_backward(),
+      KeyCode::Char('f') => app.toggle_fullscreen(),
 
       // Filter cycling
       KeyCode::Char('l') => app.cycle_filter(),

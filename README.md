@@ -137,6 +137,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 
 <ul>
 <li><code>n</code> / <code>p</code> - Cycle panel focus forward/backward (List → Description → Script)</li>
+<li><code>f</code> - Toggle fullscreen for the focused panel</li>
 <li><code>h</code> / <code>l</code> - Cycle filter backward/forward (Aliases ↔ Functions ↔ All)</li>
 <li><code>1</code> / <code>2</code> / <code>3</code> - Select the Aliases / Functions / All filter directly</li>
 </ul>
@@ -156,6 +157,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 <li><code>Esc</code> - Exit search mode (keep query)</li>
 <li><code>Ctrl-u</code> - Clear search query (any mode)</li>
 <li><code>Shift-N</code> / <code>Shift-P</code> - Cycle panels while in search mode</li>
+<li><code>Shift-F</code> - Toggle fullscreen while in search mode</li>
 <li><code>Shift-H</code> / <code>Shift-L</code> - Cycle filters while in search mode</li>
 <li><code>Ctrl-j</code> / <code>Ctrl-k</code> - Scroll the list while in search mode</li>
 </ul>
