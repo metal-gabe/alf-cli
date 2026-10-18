@@ -187,6 +187,7 @@ impl UiState {
    ) {
       self.description_max_scroll =
          if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.description_scroll_offset = self.description_scroll_offset.min(self.description_max_scroll);
    }
 
    /// Update the maximum scroll offset for script panel based on content and visible area
@@ -196,6 +197,7 @@ impl UiState {
       visible_lines: usize,
    ) {
       self.script_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.script_scroll_offset = self.script_scroll_offset.min(self.script_max_scroll);
    }
 
    /// Update the maximum scroll offset for help modal based on content and visible area
