@@ -228,13 +228,13 @@ cargo run
 | Target                      | Description                   |
 | --------------------------- | ----------------------------- |
 | `make build`                | Debug build                   |
-| `make build-release`        | Optimized release build       |
 | `make check`                | Check without building        |
 | `make clean`                | Remove build artifacts        |
 | `make clippy`               | Lint check                    |
 | `make fmt` / `make fmt-fix` | Check / auto-fix formatting   |
 | `make install`              | Install locally               |
 | `make lint`                 | Run fmt + clippy              |
+| `make release`              | Optimized release build       |
 | `make run`                  | Run TUI (debug build)         |
 | `make snap`                 | Review insta snapshot diffs   |
 | `make test`                 | Run tests via nextest         |
