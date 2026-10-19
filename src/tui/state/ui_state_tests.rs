@@ -26,6 +26,12 @@ fn test_ui_state_default_help_hidden() {
    assert!(!ui.show_help());
 }
 
+#[test]
+fn test_ui_state_default_fullscreen_off() {
+   let ui = UiState::new();
+   assert!(!ui.is_fullscreen());
+}
+
 // ===== Panel cycling =====
 
 #[test]
@@ -74,6 +80,25 @@ fn test_cycle_panel_backward_description_wraps_to_list() {
    ui.cycle_panel_backward();
    ui.cycle_panel_backward();
    assert_eq!(ui.active_panel(), Panel::List);
+}
+
+// ===== Fullscreen =====
+
+#[test]
+fn test_toggle_fullscreen_alternates_on_each_call() {
+   let mut ui = UiState::new();
+   for toggle_count in 1..=4 {
+      ui.toggle_fullscreen();
+      assert_eq!(ui.is_fullscreen(), toggle_count % 2 == 1, "After {toggle_count} toggle(s)");
+   }
+}
+
+#[test]
+fn test_toggle_fullscreen_does_not_change_active_panel() {
+   let mut ui = UiState::new();
+   ui.cycle_panel();
+   ui.toggle_fullscreen();
+   assert_eq!(ui.active_panel(), Panel::Description);
 }
 
 // ===== Help modal =====

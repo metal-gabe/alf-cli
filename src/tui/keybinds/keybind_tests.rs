@@ -115,6 +115,74 @@ fn test_p_cycles_panel_backward() {
    assert_eq!(app.active_panel(), Panel::Script);
 }
 
+// ===== Search mode — panel cycling =====
+
+#[test]
+fn test_shift_n_and_shift_p_cycle_panels_in_search_mode() {
+   let cases = [('N', Panel::Description), ('P', Panel::Script)];
+   for (c, expected_panel) in cases {
+      let mut app = make_app();
+      app.enter_search_mode();
+      handle_key_event(&mut app, key(KeyCode::Char(c)));
+      assert_eq!(app.active_panel(), expected_panel, "Key '{c}'");
+      assert!(app.search_query().is_empty(), "Key '{c}' should not be inserted into the query");
+   }
+}
+
+// ===== Fullscreen =====
+
+#[test]
+fn test_fullscreen_key_dispatch_per_mode() {
+   let cases =
+      [(InputMode::Normal, 'f', true, ""), (InputMode::Search, 'F', true, ""), (InputMode::Search, 'f', false, "f")];
+   for (mode, c, is_expected_fullscreen, expected_query) in cases {
+      let mut app = make_app();
+      if mode == InputMode::Search {
+         app.enter_search_mode();
+      }
+      handle_key_event(&mut app, key(KeyCode::Char(c)));
+      assert_eq!(app.is_fullscreen(), is_expected_fullscreen, "{mode:?} mode, key '{c}'");
+      assert_eq!(app.search_query(), expected_query, "{mode:?} mode, key '{c}'");
+   }
+}
+
+#[test]
+fn test_f_twice_in_normal_mode_toggles_fullscreen_off() {
+   let mut app = make_app();
+   handle_key_event(&mut app, key(KeyCode::Char('f')));
+   assert!(app.is_fullscreen());
+   handle_key_event(&mut app, key(KeyCode::Char('f')));
+   assert!(!app.is_fullscreen());
+}
+
+#[test]
+fn test_ctrl_f_scrolls_instead_of_toggling_fullscreen() {
+   let mut app = make_app();
+   handle_key_event(&mut app, ctrl('f'));
+   assert!(!app.is_fullscreen());
+   assert_eq!(app.selected_index(), 3);
+}
+
+#[test]
+fn test_f_with_help_open_does_not_toggle_fullscreen() {
+   let mut app = make_app();
+   app.toggle_help();
+   handle_key_event(&mut app, key(KeyCode::Char('f')));
+   assert!(!app.is_fullscreen());
+   assert!(app.show_help());
+}
+
+#[test]
+fn test_f_with_pending_key_clears_pending_without_toggling_fullscreen() {
+   for pending in ['o', 't'] {
+      let mut app = make_app();
+      handle_key_event(&mut app, key(KeyCode::Char(pending)));
+      handle_key_event(&mut app, key(KeyCode::Char('f')));
+      assert!(app.pending_key().is_none(), "Pending '{pending}'");
+      assert!(!app.is_fullscreen(), "Pending '{pending}'");
+   }
+}
+
 // ===== Normal mode — filter =====
 
 #[test]

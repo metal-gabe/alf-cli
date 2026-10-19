@@ -4,6 +4,8 @@
 //! left list panel (40%) and right detail panels (60%),
 //! or the active panel alone when fullscreen is toggled on.
 
+#[cfg(test)]
+mod body_tests;
 mod description;
 mod list;
 mod script;
