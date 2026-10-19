@@ -21,7 +21,7 @@ fn create_test_entry(
 }
 
 #[test]
-fn test_empty_query_returns_all_entries() {
+fn empty_query_returns_all_entries() {
    let entries = vec![
       create_test_entry("ll", EntryType::Alias, "ls -lah", None),
       create_test_entry("grep", EntryType::Alias, "grep --color=auto", None),
@@ -32,7 +32,7 @@ fn test_empty_query_returns_all_entries() {
 }
 
 #[test]
-fn test_fuzzy_match_by_name() {
+fn fuzzy_match_by_name() {
    let entries = vec![
       create_test_entry("ll", EntryType::Alias, "ls -lah", None),
       create_test_entry("grep", EntryType::Alias, "grep --color=auto", None),
@@ -44,7 +44,7 @@ fn test_fuzzy_match_by_name() {
 }
 
 #[test]
-fn test_fuzzy_match_by_comment() {
+fn fuzzy_match_by_comment() {
    let entries = vec![
       create_test_entry("extract", EntryType::Function, "{ ... }", Some(vec!["Extract archive files".to_string()])),
       create_test_entry("ll", EntryType::Alias, "ls -lah", None),
@@ -55,7 +55,7 @@ fn test_fuzzy_match_by_comment() {
 }
 
 #[test]
-fn test_score_ordering() {
+fn score_ordering() {
    let entries = vec![
       create_test_entry("extract", EntryType::Function, "{ ... }", Some(vec!["Extract archive files".to_string()])),
       create_test_entry("ll", EntryType::Alias, "ls -lah", None),
@@ -70,7 +70,7 @@ fn test_score_ordering() {
 }
 
 #[test]
-fn test_case_sensitive_search() {
+fn case_sensitive_search() {
    let entries = vec![
       create_test_entry("MyAlias", EntryType::Alias, "some command", None),
       create_test_entry("myalias", EntryType::Alias, "another command", None),
@@ -85,7 +85,7 @@ fn test_case_sensitive_search() {
 }
 
 #[test]
-fn test_smart_case_search() {
+fn smart_case_search() {
    let entries = vec![
       create_test_entry("MyAlias", EntryType::Alias, "some command", None),
       create_test_entry("myalias", EntryType::Alias, "another command", None),
@@ -99,7 +99,7 @@ fn test_smart_case_search() {
 }
 
 #[test]
-fn test_no_match_returns_empty() {
+fn no_match_returns_empty() {
    let entries = vec![
       create_test_entry("ll", EntryType::Alias, "ls -lah", None),
       create_test_entry("grep", EntryType::Alias, "grep --color=auto", None),
@@ -109,7 +109,7 @@ fn test_no_match_returns_empty() {
 }
 
 #[test]
-fn test_multiple_comments_search() {
+fn multiple_comments_search() {
    let entries = vec![create_test_entry(
       "complex_func",
       EntryType::Function,

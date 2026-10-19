@@ -23,7 +23,7 @@ fn write_temp_shell(content: &str) -> NamedTempFile {
 }
 
 #[test]
-fn test_parse_sample_bashrc() {
+fn parse_sample_bashrc() {
    let path = Path::new("tests/fixtures/sample.bashrc");
    let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
    assert!(!entries.is_empty(), "Should parse at least some entries");
@@ -43,7 +43,7 @@ fn test_parse_sample_bashrc() {
 }
 
 #[test]
-fn test_parse_sample_zshrc() {
+fn parse_sample_zshrc() {
    let path = Path::new("tests/fixtures/sample.zshrc");
    let entries = super::parse_shell_file(path).expect("Failed to parse zshrc");
    assert!(!entries.is_empty(), "Should parse at least some entries from zshrc");
@@ -60,20 +60,20 @@ fn test_parse_sample_zshrc() {
 }
 
 #[test]
-fn test_parse_nonexistent_file_returns_error() {
+fn parse_nonexistent_file_returns_error() {
    let result = super::parse_shell_file(Path::new("/nonexistent/path/file.sh"));
    assert!(result.is_err());
 }
 
 #[test]
-fn test_parse_empty_file_returns_empty() {
+fn parse_empty_file_returns_empty() {
    let temp_file = NamedTempFile::new().expect("Failed to create temp file");
    let entries = super::parse_shell_file(temp_file.path()).expect("Failed to parse empty file");
    assert!(entries.is_empty(), "Empty file should produce no entries");
 }
 
 #[test]
-fn test_alias_extraction_with_quotes() {
+fn alias_extraction_with_quotes() {
    let path = Path::new("tests/fixtures/sample.bashrc");
    let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
    let aliases: Vec<_> = entries.iter().filter(|e| e.entry_type == EntryType::Alias).collect();
@@ -84,7 +84,7 @@ fn test_alias_extraction_with_quotes() {
 }
 
 #[test]
-fn test_function_extraction_multiline() {
+fn function_extraction_multiline() {
    let path = Path::new("tests/fixtures/sample.bashrc");
    let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
    let functions: Vec<_> = entries.iter().filter(|e| e.entry_type == EntryType::Function).collect();
@@ -97,7 +97,7 @@ fn test_function_extraction_multiline() {
 }
 
 #[test]
-fn test_comment_extraction() {
+fn comment_extraction() {
    let path = Path::new("tests/fixtures/sample.bashrc");
    let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
    let with_comments: Vec<_> = entries.iter().filter(|e| e.comments.is_some()).collect();
@@ -105,7 +105,7 @@ fn test_comment_extraction() {
 }
 
 #[test]
-fn test_source_file_tracking() {
+fn source_file_tracking() {
    let path = Path::new("tests/fixtures/sample.bashrc");
    let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
    for entry in entries {
@@ -114,7 +114,7 @@ fn test_source_file_tracking() {
 }
 
 #[test]
-fn test_dot_notation_function_names() {
+fn dot_notation_function_names() {
    let f =
       write_temp_shell("t.helper() {\n  echo \"helper function\"\n}\nmy-alias() {\n  echo \"alias with dash\"\n}\n");
    let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
@@ -122,7 +122,7 @@ fn test_dot_notation_function_names() {
 }
 
 #[test]
-fn test_concise_comment_format() {
+fn concise_comment_format() {
    let f = write_temp_shell(
       "#@: search with color highlighting :f#\nalias grep='grep --color=auto'\n#@: list files with long format :f#\nalias ll='ls -lah'\n",
    );
@@ -131,7 +131,7 @@ fn test_concise_comment_format() {
 }
 
 #[test]
-fn test_multiline_comment_format() {
+fn multiline_comment_format() {
    let f =
       write_temp_shell("# alf\n# extract archives of various formats\n# fla\nextract() {\n  echo \"extracting\"\n}\n");
    let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
@@ -139,7 +139,7 @@ fn test_multiline_comment_format() {
 }
 
 #[test]
-fn test_non_alf_comments_ignored() {
+fn non_alf_comments_ignored() {
    let f =
       write_temp_shell("# This is just a regular comment\n# Another regular comment\nalias myalias='echo hello'\n");
    let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
@@ -147,7 +147,7 @@ fn test_non_alf_comments_ignored() {
 }
 
 #[test]
-fn test_mixed_comment_formats() {
+fn mixed_comment_formats() {
    let f = write_temp_shell(
       "#@: concise format comment :f#\nalias a1='cmd1'\n# alf\n# multiline format comment\n# fla\nalias a2='cmd2'\n",
    );
@@ -156,7 +156,7 @@ fn test_mixed_comment_formats() {
 }
 
 #[test]
-fn test_empty_line_stops_multiline_comment_parsing() {
+fn empty_line_stops_multiline_comment_parsing() {
    let f = write_temp_shell(
       "# alf\n# search for file paths\n# fla\nfunction lsfp() {\n  find . -type f\n}\n\nfunction md() {\n  mkdir -p \"$1\"\n}\n",
    );

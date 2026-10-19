@@ -1,14 +1,14 @@
 use super::*;
 
 #[test]
-fn test_enter_search_mode_sets_search_input_mode() {
+fn enter_search_mode_sets_search_input_mode() {
    let mut app = make_app();
    app.enter_search_mode();
    assert_eq!(app.input_mode(), InputMode::Search);
 }
 
 #[test]
-fn test_exit_search_keep_query_returns_to_normal() {
+fn exit_search_keep_query_returns_to_normal() {
    let mut app = make_app();
    app.enter_search_mode();
    app.search_insert_char('a');
@@ -18,7 +18,7 @@ fn test_exit_search_keep_query_returns_to_normal() {
 }
 
 #[test]
-fn test_exit_search_clear_query_returns_to_normal_and_clears() {
+fn exit_search_clear_query_returns_to_normal_and_clears() {
    let mut app = make_app();
    app.enter_search_mode();
    app.search_insert_char('a');
@@ -28,14 +28,14 @@ fn test_exit_search_clear_query_returns_to_normal_and_clears() {
 }
 
 #[test]
-fn test_search_insert_char_filters_visible_entries() {
+fn search_insert_char_filters_visible_entries() {
    let mut app = make_app();
    app.set_search_query("alpha".to_string());
    assert_eq!(app.visible_indices().len(), 1);
 }
 
 #[test]
-fn test_search_delete_char_updates_visible_entries() {
+fn search_delete_char_updates_visible_entries() {
    let mut app = make_app();
    app.set_search_query("alpha".to_string());
    for _ in 0.."alpha".len() {
@@ -46,7 +46,7 @@ fn test_search_delete_char_updates_visible_entries() {
 }
 
 #[test]
-fn test_set_search_query_filters_by_name() {
+fn set_search_query_filters_by_name() {
    let mut app = make_app();
    app.set_search_query("gamma".to_string());
    assert_eq!(app.visible_indices().len(), 1);
@@ -54,14 +54,14 @@ fn test_set_search_query_filters_by_name() {
 }
 
 #[test]
-fn test_set_search_query_no_match_empties_visible() {
+fn set_search_query_no_match_empties_visible() {
    let mut app = make_app();
    app.set_search_query("zzznomatch".to_string());
    assert_eq!(app.visible_indices().len(), 0);
 }
 
 #[test]
-fn test_clear_search_restores_all_entries() {
+fn clear_search_restores_all_entries() {
    let mut app = make_app();
    app.set_search_query("alpha".to_string());
    app.clear_search();
@@ -70,7 +70,7 @@ fn test_clear_search_restores_all_entries() {
 }
 
 #[test]
-fn test_search_cursor_left_and_right() {
+fn search_cursor_left_and_right() {
    let mut app = make_app();
    app.set_search_query("abc".to_string());
    assert_eq!(app.cursor_position(), 3);

@@ -44,7 +44,7 @@ fn raw(paths: &[&str]) -> Vec<String> {
 // ===== Adding new source files =====
 
 #[test]
-fn test_resolve_new_source_files_adds_a_single_existing_file() {
+fn resolve_new_source_files_adds_a_single_existing_file() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    let config = config_with(&[]);
@@ -55,7 +55,7 @@ fn test_resolve_new_source_files_adds_a_single_existing_file() {
 }
 
 #[test]
-fn test_resolve_new_source_files_adds_multiple_existing_files() {
+fn resolve_new_source_files_adds_multiple_existing_files() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    home.touch(".personal_aliases");
@@ -67,7 +67,7 @@ fn test_resolve_new_source_files_adds_multiple_existing_files() {
 }
 
 #[test]
-fn test_resolve_new_source_files_preserves_the_raw_path_form() {
+fn resolve_new_source_files_preserves_the_raw_path_form() {
    let home = TempHome::new();
    home.touch(".zshrc");
 
@@ -81,7 +81,7 @@ fn test_resolve_new_source_files_preserves_the_raw_path_form() {
 // ===== Relative paths =====
 
 #[test]
-fn test_resolve_new_source_files_rejects_relative_paths() {
+fn resolve_new_source_files_rejects_relative_paths() {
    let _home = TempHome::new();
    let config = config_with(&[]);
 
@@ -95,7 +95,7 @@ fn test_resolve_new_source_files_rejects_relative_paths() {
 }
 
 #[test]
-fn test_resolve_new_source_files_rejects_a_relative_path_that_exists() {
+fn resolve_new_source_files_rejects_a_relative_path_that_exists() {
    let _home = TempHome::new();
    let config = config_with(&[]);
 
@@ -111,7 +111,7 @@ fn test_resolve_new_source_files_rejects_a_relative_path_that_exists() {
 }
 
 #[test]
-fn test_resolve_new_source_files_reports_relativeness_before_missing_files() {
+fn resolve_new_source_files_reports_relativeness_before_missing_files() {
    let _home = TempHome::new();
    let config = config_with(&[]);
    let error = resolve_new_source_files(&config, &raw(&["~/missing.sh", "./aliases.sh"]))
@@ -123,7 +123,7 @@ fn test_resolve_new_source_files_reports_relativeness_before_missing_files() {
 }
 
 #[test]
-fn test_resolve_new_source_files_rejects_a_relative_path_mixed_with_valid_paths() {
+fn resolve_new_source_files_rejects_a_relative_path_mixed_with_valid_paths() {
    let home = TempHome::new();
    home.touch(".zshrc");
    let config = config_with(&[]);
@@ -134,7 +134,7 @@ fn test_resolve_new_source_files_rejects_a_relative_path_mixed_with_valid_paths(
 // ===== Missing files =====
 
 #[test]
-fn test_resolve_new_source_files_errors_when_a_path_is_missing() {
+fn resolve_new_source_files_errors_when_a_path_is_missing() {
    let _home = TempHome::new();
    let config = config_with(&[]);
 
@@ -148,7 +148,7 @@ fn test_resolve_new_source_files_errors_when_a_path_is_missing() {
 }
 
 #[test]
-fn test_resolve_new_source_files_reports_the_expanded_path_when_missing() {
+fn resolve_new_source_files_reports_the_expanded_path_when_missing() {
    let home = TempHome::new();
    let config = config_with(&[]);
    let error = resolve_new_source_files(&config, &raw(&["~/missing.sh"])).expect_err("Should reject a missing file");
@@ -159,7 +159,7 @@ fn test_resolve_new_source_files_reports_the_expanded_path_when_missing() {
 }
 
 #[test]
-fn test_resolve_new_source_files_errors_before_adding_when_the_list_is_mixed() {
+fn resolve_new_source_files_errors_before_adding_when_the_list_is_mixed() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    let config = config_with(&[]);
@@ -170,7 +170,7 @@ fn test_resolve_new_source_files_errors_before_adding_when_the_list_is_mixed() {
 // ===== Non-regular files =====
 
 #[test]
-fn test_resolve_new_source_files_errors_when_a_path_is_a_directory() {
+fn resolve_new_source_files_errors_when_a_path_is_a_directory() {
    let home = TempHome::new();
    fs::create_dir_all(home.path().join("dotfiles")).expect("Should create dotfiles dir");
    let config = config_with(&[]);
@@ -183,7 +183,7 @@ fn test_resolve_new_source_files_errors_when_a_path_is_a_directory() {
 
 #[cfg(unix)]
 #[test]
-fn test_resolve_new_source_files_errors_when_a_path_is_a_fifo() {
+fn resolve_new_source_files_errors_when_a_path_is_a_fifo() {
    let home = TempHome::new();
    let fifo = home.path().join(".fifo_aliases");
    let status = std::process::Command::new("mkfifo").arg(&fifo).status().expect("Should run mkfifo");
@@ -198,7 +198,7 @@ fn test_resolve_new_source_files_errors_when_a_path_is_a_fifo() {
 
 #[cfg(unix)]
 #[test]
-fn test_resolve_new_source_files_accepts_a_symlink_to_a_regular_file() {
+fn resolve_new_source_files_accepts_a_symlink_to_a_regular_file() {
    let home = TempHome::new();
    link_to_dotfile(&home, "work_aliases", ".work_aliases");
    let config = config_with(&[]);
@@ -209,7 +209,7 @@ fn test_resolve_new_source_files_accepts_a_symlink_to_a_regular_file() {
 }
 
 #[test]
-fn test_add_source_files_does_not_write_when_a_path_is_a_directory() {
+fn add_source_files_does_not_write_when_a_path_is_a_directory() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    fs::create_dir_all(home.path().join("dotfiles")).expect("Should create dotfiles dir");
@@ -221,7 +221,7 @@ fn test_add_source_files_does_not_write_when_a_path_is_a_directory() {
 // ===== Duplicates =====
 
 #[test]
-fn test_resolve_new_source_files_detects_duplicates_across_path_forms() {
+fn resolve_new_source_files_detects_duplicates_across_path_forms() {
    let home = TempHome::new();
    home.touch(".zshrc");
    let absolute = home.absolute(".zshrc");
@@ -242,7 +242,7 @@ fn test_resolve_new_source_files_detects_duplicates_across_path_forms() {
 
 #[cfg(unix)]
 #[test]
-fn test_resolve_new_source_files_detects_a_symlink_and_its_target_as_one_file() {
+fn resolve_new_source_files_detects_a_symlink_and_its_target_as_one_file() {
    let home = TempHome::new();
    let target = link_to_dotfile(&home, "zshrc", ".zshrc");
 
@@ -257,7 +257,7 @@ fn test_resolve_new_source_files_detects_a_symlink_and_its_target_as_one_file() 
 
 #[cfg(unix)]
 #[test]
-fn test_resolve_new_source_files_dedupes_a_symlink_and_its_target_in_one_invocation() {
+fn resolve_new_source_files_dedupes_a_symlink_and_its_target_in_one_invocation() {
    let home = TempHome::new();
    let target = link_to_dotfile(&home, "zshrc", ".zshrc");
    let config = config_with(&[]);
@@ -268,7 +268,7 @@ fn test_resolve_new_source_files_dedupes_a_symlink_and_its_target_in_one_invocat
 }
 
 #[test]
-fn test_resolve_new_source_files_treats_a_dot_dot_segment_as_the_same_file() {
+fn resolve_new_source_files_treats_a_dot_dot_segment_as_the_same_file() {
    let home = TempHome::new();
    home.touch(".zshrc");
    let round_trip = home.absolute(".config/../.zshrc");
@@ -281,7 +281,7 @@ fn test_resolve_new_source_files_treats_a_dot_dot_segment_as_the_same_file() {
 }
 
 #[test]
-fn test_resolve_new_source_files_tolerates_a_stale_configured_entry() {
+fn resolve_new_source_files_tolerates_a_stale_configured_entry() {
    let home = TempHome::new();
    home.touch(".zshrc");
    let config = config_with(&["~/gone.sh"]);
@@ -292,7 +292,7 @@ fn test_resolve_new_source_files_tolerates_a_stale_configured_entry() {
 }
 
 #[test]
-fn test_resolve_new_source_files_dedupes_repeats_within_one_invocation() {
+fn resolve_new_source_files_dedupes_repeats_within_one_invocation() {
    let home = TempHome::new();
    home.touch(".zshrc");
    let config = config_with(&[]);
@@ -325,7 +325,7 @@ fn is_config_unwritten() -> bool {
 }
 
 #[test]
-fn test_add_source_files_persists_the_added_path() {
+fn add_source_files_persists_the_added_path() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    seed_marked_config(&[]);
@@ -335,7 +335,7 @@ fn test_add_source_files_persists_the_added_path() {
 }
 
 #[test]
-fn test_add_source_files_appends_to_the_existing_list() {
+fn add_source_files_appends_to_the_existing_list() {
    let home = TempHome::new();
    home.touch(".zshrc");
    home.touch(".work_aliases");
@@ -345,7 +345,7 @@ fn test_add_source_files_appends_to_the_existing_list() {
 }
 
 #[test]
-fn test_add_source_files_persists_multiple_paths_in_one_invocation() {
+fn add_source_files_persists_multiple_paths_in_one_invocation() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    home.touch(".personal_aliases");
@@ -356,7 +356,7 @@ fn test_add_source_files_persists_multiple_paths_in_one_invocation() {
 }
 
 #[test]
-fn test_add_source_files_persists_only_the_new_paths_when_some_are_duplicates() {
+fn add_source_files_persists_only_the_new_paths_when_some_are_duplicates() {
    let home = TempHome::new();
    home.touch(".zshrc");
    home.touch(".work_aliases");
@@ -367,7 +367,7 @@ fn test_add_source_files_persists_only_the_new_paths_when_some_are_duplicates() 
 }
 
 #[test]
-fn test_add_source_files_persists_the_raw_path_form() {
+fn add_source_files_persists_the_raw_path_form() {
    let home = TempHome::new();
    home.touch(".zshrc");
    seed_marked_config(&[]);
@@ -378,7 +378,7 @@ fn test_add_source_files_persists_the_raw_path_form() {
 // ===== Leaving the config untouched =====
 
 #[test]
-fn test_add_source_files_does_not_write_when_every_path_is_a_duplicate() {
+fn add_source_files_does_not_write_when_every_path_is_a_duplicate() {
    let home = TempHome::new();
    home.touch(".zshrc");
    seed_marked_config(&["~/.zshrc"]);
@@ -389,7 +389,7 @@ fn test_add_source_files_does_not_write_when_every_path_is_a_duplicate() {
 }
 
 #[test]
-fn test_add_source_files_leaves_the_config_untouched_when_a_path_is_missing() {
+fn add_source_files_leaves_the_config_untouched_when_a_path_is_missing() {
    let home = TempHome::new();
    home.touch(".zshrc");
    home.touch(".work_aliases");
@@ -401,7 +401,7 @@ fn test_add_source_files_leaves_the_config_untouched_when_a_path_is_missing() {
 }
 
 #[test]
-fn test_add_source_files_leaves_the_config_untouched_when_a_path_is_relative() {
+fn add_source_files_leaves_the_config_untouched_when_a_path_is_relative() {
    let home = TempHome::new();
    home.touch(".zshrc");
    home.touch(".work_aliases");
@@ -415,7 +415,7 @@ fn test_add_source_files_leaves_the_config_untouched_when_a_path_is_relative() {
 // ===== First run =====
 
 #[test]
-fn test_add_source_files_bails_when_no_config_exists() {
+fn add_source_files_bails_when_no_config_exists() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    let error = add_source_files(&raw(&["~/.work_aliases"])).expect_err("Should bail without a config");
@@ -423,7 +423,7 @@ fn test_add_source_files_bails_when_no_config_exists() {
 }
 
 #[test]
-fn test_add_source_files_reports_the_config_path_when_no_config_exists() {
+fn add_source_files_reports_the_config_path_when_no_config_exists() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    let expected = get_config_path().expect("Should resolve config path");
@@ -435,7 +435,7 @@ fn test_add_source_files_reports_the_config_path_when_no_config_exists() {
 }
 
 #[test]
-fn test_add_source_files_bails_before_validating_paths_when_no_config_exists() {
+fn add_source_files_bails_before_validating_paths_when_no_config_exists() {
    let _home = TempHome::new();
    let error = add_source_files(&raw(&["../aliases.sh"])).expect_err("Should bail without a config");
    assert!(
@@ -453,7 +453,7 @@ fn assert_lock_is_free(context: &str) {
 }
 
 #[test]
-fn test_add_source_files_releases_the_lock_after_a_successful_add() {
+fn add_source_files_releases_the_lock_after_a_successful_add() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    seed_marked_config(&[]);
@@ -462,7 +462,7 @@ fn test_add_source_files_releases_the_lock_after_a_successful_add() {
 }
 
 #[test]
-fn test_add_source_files_releases_the_lock_after_a_failed_add() {
+fn add_source_files_releases_the_lock_after_a_failed_add() {
    let home = TempHome::new();
    home.touch(".work_aliases");
    seed_marked_config(&[]);
@@ -474,7 +474,7 @@ fn test_add_source_files_releases_the_lock_after_a_failed_add() {
 }
 
 #[test]
-fn test_add_source_files_releases_the_lock_after_an_all_duplicate_add() {
+fn add_source_files_releases_the_lock_after_an_all_duplicate_add() {
    let home = TempHome::new();
    home.touch(".zshrc");
    seed_marked_config(&["~/.zshrc"]);

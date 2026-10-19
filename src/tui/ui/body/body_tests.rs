@@ -24,7 +24,7 @@ fn render_body(app: &mut App) -> String {
 }
 
 #[test]
-fn test_split_layout_renders_all_panels() {
+fn split_layout_renders_all_panels() {
    let mut app = make_app();
    let rendered = render_body(&mut app);
    for (panel, title) in PANEL_TITLES {
@@ -33,7 +33,7 @@ fn test_split_layout_renders_all_panels() {
 }
 
 #[test]
-fn test_fullscreen_renders_only_active_panel() {
+fn fullscreen_renders_only_active_panel() {
    for (active_panel, _) in PANEL_TITLES {
       let mut app = make_app();
       while app.active_panel() != active_panel {
