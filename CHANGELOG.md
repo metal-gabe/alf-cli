@@ -1,3 +1,13 @@
+## [0.6.0](https://github.com/metal-gabe/alf-cli/compare/v0.5.0...v0.6.0) (2026-10-20)
+
+
+### Features
+
+* **pane-fullscreen:** [no ci] toggle panel fullscreen; ([3b86454](https://github.com/metal-gabe/alf-cli/commit/3b86454798a20781363a71603db7604316083e96))
+* **pane-fullscreen:** clean up README; ([2c8e263](https://github.com/metal-gabe/alf-cli/commit/2c8e263ea1cb7fa3646bd80aa04a6e879674eb84))
+* **pane-fullscreen:** fix scroll offset after fullscreen bug; ([bb2c8ac](https://github.com/metal-gabe/alf-cli/commit/bb2c8ac40f229a267d625340497206fa154c7645))
+* **pane-fullscreen:** update make command; ([376c705](https://github.com/metal-gabe/alf-cli/commit/376c70511fbc8234bfb8e5345e7d053889e1a636))
+
 ## [0.5.0](https://github.com/metal-gabe/alf-cli/compare/v0.4.0...v0.5.0) (2026-09-10)
 
 
