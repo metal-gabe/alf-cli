@@ -12,9 +12,6 @@ help:
 build: ## Build (debug)
 	cargo build
 
-build-release: ## Build (release)
-	cargo build --release
-
 check: ## Check for compile errors without building
 	cargo check
 
@@ -34,6 +31,9 @@ install: ## Install the binary locally via cargo
 	cargo install --path .
 
 lint: fmt clippy ## Run all lint checks (fmt + clippy)
+
+release: ## Build (release)
+	cargo build --release
 
 run: ## Run the TUI (debug build)
 	cargo run

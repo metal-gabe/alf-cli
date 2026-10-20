@@ -36,6 +36,8 @@ pub fn make_empty_app() -> App {
 
 #[path = "app_tests/filter.rs"]
 mod filter;
+#[path = "app_tests/fullscreen.rs"]
+mod fullscreen;
 #[path = "app_tests/group_mode_and_sort_order.rs"]
 mod group_mode_and_sort_order;
 #[path = "app_tests/help_modal.rs"]

@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn test_cycle_theme_next_changes_theme_name() {
+fn cycle_theme_next_changes_theme_name() {
    let mut app = make_app();
    let initial_name = app.theme().name.clone();
    app.cycle_theme_next();
@@ -9,7 +9,7 @@ fn test_cycle_theme_next_changes_theme_name() {
 }
 
 #[test]
-fn test_cycle_theme_prev_changes_theme_name() {
+fn cycle_theme_prev_changes_theme_name() {
    let mut app = make_app();
    let initial_name = app.theme().name.clone();
    app.cycle_theme_prev();
@@ -17,7 +17,7 @@ fn test_cycle_theme_prev_changes_theme_name() {
 }
 
 #[test]
-fn test_cycle_theme_next_full_cycle_returns_to_start() {
+fn cycle_theme_next_full_cycle_returns_to_start() {
    let mut app = make_app();
    let initial_name = app.theme().name.clone();
    let theme_count = Theme::available_themes().len();
@@ -28,7 +28,7 @@ fn test_cycle_theme_next_full_cycle_returns_to_start() {
 }
 
 #[test]
-fn test_cycle_theme_prev_full_cycle_returns_to_start() {
+fn cycle_theme_prev_full_cycle_returns_to_start() {
    let mut app = make_app();
    let initial_name = app.theme().name.clone();
    let theme_count = Theme::available_themes().len();
@@ -39,7 +39,7 @@ fn test_cycle_theme_prev_full_cycle_returns_to_start() {
 }
 
 #[test]
-fn test_cycle_theme_next_then_prev_returns_to_original() {
+fn cycle_theme_next_then_prev_returns_to_original() {
    let mut app = make_app();
    let initial_name = app.theme().name.clone();
    app.cycle_theme_next();

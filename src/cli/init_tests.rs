@@ -18,14 +18,14 @@ fn touch(
 // ===== detect_shell_files =====
 
 #[test]
-fn test_detect_shell_files_returns_empty_on_an_empty_dir() {
+fn detect_shell_files_returns_empty_on_an_empty_dir() {
    let home = make_home();
    let result = detect_shell_files(home.path().to_str().unwrap());
    assert!(result.is_empty());
 }
 
 #[test]
-fn test_detect_shell_files_finds_bashrc() {
+fn detect_shell_files_finds_bashrc() {
    let home = make_home();
    touch(&home, ".bashrc");
    let result = detect_shell_files(home.path().to_str().unwrap());
@@ -33,7 +33,7 @@ fn test_detect_shell_files_finds_bashrc() {
 }
 
 #[test]
-fn test_detect_shell_files_finds_zshrc() {
+fn detect_shell_files_finds_zshrc() {
    let home = make_home();
    touch(&home, ".zshrc");
    let result = detect_shell_files(home.path().to_str().unwrap());
@@ -41,7 +41,7 @@ fn test_detect_shell_files_finds_zshrc() {
 }
 
 #[test]
-fn test_detect_shell_files_finds_multiple_standard_files() {
+fn detect_shell_files_finds_multiple_standard_files() {
    let home = make_home();
    touch(&home, ".bashrc");
    touch(&home, ".zshrc");
@@ -50,7 +50,7 @@ fn test_detect_shell_files_finds_multiple_standard_files() {
 }
 
 #[test]
-fn test_detect_shell_files_ignores_nonstandard_files() {
+fn detect_shell_files_ignores_nonstandard_files() {
    let home = make_home();
    touch(&home, ".myrc");
    let result = detect_shell_files(home.path().to_str().unwrap());
@@ -58,7 +58,7 @@ fn test_detect_shell_files_ignores_nonstandard_files() {
 }
 
 #[test]
-fn test_detect_shell_files_finds_fish_config() {
+fn detect_shell_files_finds_fish_config() {
    let home = make_home();
    let fish_dir = home.path().join(".config").join("fish");
    fs::create_dir_all(&fish_dir).unwrap();
@@ -70,13 +70,13 @@ fn test_detect_shell_files_finds_fish_config() {
 // ===== print_shell_hook =====
 
 #[test]
-fn test_print_shell_hook_supported_shells_return_ok() {
+fn print_shell_hook_supported_shells_return_ok() {
    for shell in ["zsh", "bash", "ZSH", "BASH"] {
       assert!(print_shell_hook(shell).is_ok(), "Expected ok for {shell}");
    }
 }
 
 #[test]
-fn test_print_shell_hook_unsupported_shell_returns_err() {
+fn print_shell_hook_unsupported_shell_returns_err() {
    assert!(print_shell_hook("fish").is_err());
 }

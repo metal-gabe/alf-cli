@@ -6,13 +6,13 @@ use crate::tui::state::{NavigationState, ScrollManager};
 // ===== UiState defaults =====
 
 #[test]
-fn test_ui_state_default_panel_is_list() {
+fn ui_state_default_panel_is_list() {
    let ui = UiState::new();
    assert_eq!(ui.active_panel(), Panel::List);
 }
 
 #[test]
-fn test_ui_state_default_all_offsets_zero() {
+fn ui_state_default_all_offsets_zero() {
    let ui = UiState::new();
    assert_eq!(ui.list_scroll_offset(), 0);
    assert_eq!(ui.description_scroll_offset(), 0);
@@ -21,22 +21,28 @@ fn test_ui_state_default_all_offsets_zero() {
 }
 
 #[test]
-fn test_ui_state_default_help_hidden() {
+fn ui_state_default_help_hidden() {
    let ui = UiState::new();
    assert!(!ui.show_help());
+}
+
+#[test]
+fn ui_state_default_fullscreen_off() {
+   let ui = UiState::new();
+   assert!(!ui.is_fullscreen());
 }
 
 // ===== Panel cycling =====
 
 #[test]
-fn test_cycle_panel_forward_list_to_description() {
+fn cycle_panel_forward_list_to_description() {
    let mut ui = UiState::new();
    ui.cycle_panel();
    assert_eq!(ui.active_panel(), Panel::Description);
 }
 
 #[test]
-fn test_cycle_panel_forward_description_to_script() {
+fn cycle_panel_forward_description_to_script() {
    let mut ui = UiState::new();
    ui.cycle_panel();
    ui.cycle_panel();
@@ -44,7 +50,7 @@ fn test_cycle_panel_forward_description_to_script() {
 }
 
 #[test]
-fn test_cycle_panel_forward_script_wraps_to_list() {
+fn cycle_panel_forward_script_wraps_to_list() {
    let mut ui = UiState::new();
    ui.cycle_panel();
    ui.cycle_panel();
@@ -53,14 +59,14 @@ fn test_cycle_panel_forward_script_wraps_to_list() {
 }
 
 #[test]
-fn test_cycle_panel_backward_list_to_script() {
+fn cycle_panel_backward_list_to_script() {
    let mut ui = UiState::new();
    ui.cycle_panel_backward();
    assert_eq!(ui.active_panel(), Panel::Script);
 }
 
 #[test]
-fn test_cycle_panel_backward_script_to_description() {
+fn cycle_panel_backward_script_to_description() {
    let mut ui = UiState::new();
    ui.cycle_panel_backward();
    ui.cycle_panel_backward();
@@ -68,25 +74,44 @@ fn test_cycle_panel_backward_script_to_description() {
 }
 
 #[test]
-fn test_cycle_panel_backward_description_wraps_to_list() {
+fn cycle_panel_backward_description_wraps_to_list() {
    let mut ui = UiState::new();
    ui.cycle_panel_backward();
    ui.cycle_panel_backward();
    ui.cycle_panel_backward();
    assert_eq!(ui.active_panel(), Panel::List);
+}
+
+// ===== Fullscreen =====
+
+#[test]
+fn toggle_fullscreen_alternates_on_each_call() {
+   let mut ui = UiState::new();
+   for toggle_count in 1..=4 {
+      ui.toggle_fullscreen();
+      assert_eq!(ui.is_fullscreen(), toggle_count % 2 == 1, "After {toggle_count} toggle(s)");
+   }
+}
+
+#[test]
+fn toggle_fullscreen_does_not_change_active_panel() {
+   let mut ui = UiState::new();
+   ui.cycle_panel();
+   ui.toggle_fullscreen();
+   assert_eq!(ui.active_panel(), Panel::Description);
 }
 
 // ===== Help modal =====
 
 #[test]
-fn test_toggle_help_opens_modal() {
+fn toggle_help_opens_modal() {
    let mut ui = UiState::new();
    ui.toggle_help();
    assert!(ui.show_help());
 }
 
 #[test]
-fn test_toggle_help_closes_modal() {
+fn toggle_help_closes_modal() {
    let mut ui = UiState::new();
    ui.toggle_help();
    ui.toggle_help();
@@ -94,7 +119,7 @@ fn test_toggle_help_closes_modal() {
 }
 
 #[test]
-fn test_toggle_help_resets_scroll_when_opening() {
+fn toggle_help_resets_scroll_when_opening() {
    let mut ui = UiState::new();
    ui.update_help_max_scroll(20, 5);
    ui.set_help_scroll_offset(3);
@@ -103,7 +128,7 @@ fn test_toggle_help_resets_scroll_when_opening() {
 }
 
 #[test]
-fn test_toggle_help_does_not_reset_scroll_when_closing() {
+fn toggle_help_does_not_reset_scroll_when_closing() {
    let mut ui = UiState::new();
    ui.toggle_help();
    ui.update_help_max_scroll(20, 5);
@@ -115,7 +140,7 @@ fn test_toggle_help_does_not_reset_scroll_when_closing() {
 // ===== reset_detail_scroll =====
 
 #[test]
-fn test_reset_detail_scroll_zeroes_description_offset() {
+fn reset_detail_scroll_zeroes_description_offset() {
    let mut ui = UiState::new();
    ui.set_description_scroll_offset(5);
    ui.reset_detail_scroll();
@@ -123,7 +148,7 @@ fn test_reset_detail_scroll_zeroes_description_offset() {
 }
 
 #[test]
-fn test_reset_detail_scroll_zeroes_script_offset() {
+fn reset_detail_scroll_zeroes_script_offset() {
    let mut ui = UiState::new();
    ui.set_script_scroll_offset(7);
    ui.reset_detail_scroll();
@@ -133,35 +158,35 @@ fn test_reset_detail_scroll_zeroes_script_offset() {
 // ===== Max scroll updates =====
 
 #[test]
-fn test_update_description_max_scroll_when_total_exceeds_visible() {
+fn update_description_max_scroll_when_total_exceeds_visible() {
    let mut ui = UiState::new();
    ui.update_description_max_scroll(20, 10);
    assert_eq!(ui.description_max_scroll(), 10);
 }
 
 #[test]
-fn test_update_description_max_scroll_when_total_equals_visible() {
+fn update_description_max_scroll_when_total_equals_visible() {
    let mut ui = UiState::new();
    ui.update_description_max_scroll(10, 10);
    assert_eq!(ui.description_max_scroll(), 0);
 }
 
 #[test]
-fn test_update_description_max_scroll_when_total_less_than_visible() {
+fn update_description_max_scroll_when_total_less_than_visible() {
    let mut ui = UiState::new();
    ui.update_description_max_scroll(5, 10);
    assert_eq!(ui.description_max_scroll(), 0);
 }
 
 #[test]
-fn test_update_script_max_scroll() {
+fn update_script_max_scroll() {
    let mut ui = UiState::new();
    ui.update_script_max_scroll(15, 5);
    assert_eq!(ui.script_max_scroll(), 10);
 }
 
 #[test]
-fn test_update_help_max_scroll() {
+fn update_help_max_scroll() {
    let mut ui = UiState::new();
    ui.update_help_max_scroll(30, 10);
    assert_eq!(ui.help_max_scroll(), 20);
@@ -170,7 +195,7 @@ fn test_update_help_max_scroll() {
 // ===== ScrollManager: scroll_up on panels =====
 
 #[test]
-fn test_scroll_up_on_list_panel_moves_navigation() {
+fn scroll_up_on_list_panel_moves_navigation() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    nav.scroll_down(5, 10);
@@ -180,7 +205,7 @@ fn test_scroll_up_on_list_panel_moves_navigation() {
 }
 
 #[test]
-fn test_scroll_up_on_description_panel_decrements_offset() {
+fn scroll_up_on_description_panel_decrements_offset() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -190,7 +215,7 @@ fn test_scroll_up_on_description_panel_decrements_offset() {
 }
 
 #[test]
-fn test_scroll_up_on_description_panel_saturates_at_zero() {
+fn scroll_up_on_description_panel_saturates_at_zero() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -200,7 +225,7 @@ fn test_scroll_up_on_description_panel_saturates_at_zero() {
 }
 
 #[test]
-fn test_scroll_up_on_script_panel_decrements_offset() {
+fn scroll_up_on_script_panel_decrements_offset() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -213,7 +238,7 @@ fn test_scroll_up_on_script_panel_decrements_offset() {
 // ===== ScrollManager: scroll_down on panels =====
 
 #[test]
-fn test_scroll_down_on_list_panel_moves_navigation() {
+fn scroll_down_on_list_panel_moves_navigation() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ScrollManager::scroll_down(&mut ui, &mut nav, 3, 10);
@@ -221,7 +246,7 @@ fn test_scroll_down_on_list_panel_moves_navigation() {
 }
 
 #[test]
-fn test_scroll_down_on_description_panel_increments_offset() {
+fn scroll_down_on_description_panel_increments_offset() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -231,7 +256,7 @@ fn test_scroll_down_on_description_panel_increments_offset() {
 }
 
 #[test]
-fn test_scroll_down_on_description_panel_clamped_to_max() {
+fn scroll_down_on_description_panel_clamped_to_max() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -241,7 +266,7 @@ fn test_scroll_down_on_description_panel_clamped_to_max() {
 }
 
 #[test]
-fn test_scroll_down_on_script_panel_increments_offset() {
+fn scroll_down_on_script_panel_increments_offset() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -254,7 +279,7 @@ fn test_scroll_down_on_script_panel_increments_offset() {
 // ===== ScrollManager: move_top / move_bottom =====
 
 #[test]
-fn test_move_top_on_list_resets_navigation() {
+fn move_top_on_list_resets_navigation() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    nav.move_bottom(10);
@@ -263,7 +288,7 @@ fn test_move_top_on_list_resets_navigation() {
 }
 
 #[test]
-fn test_move_top_on_description_zeroes_offset() {
+fn move_top_on_description_zeroes_offset() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -273,7 +298,7 @@ fn test_move_top_on_description_zeroes_offset() {
 }
 
 #[test]
-fn test_move_top_on_script_zeroes_offset() {
+fn move_top_on_script_zeroes_offset() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -284,7 +309,7 @@ fn test_move_top_on_script_zeroes_offset() {
 }
 
 #[test]
-fn test_move_bottom_on_list_moves_navigation_to_last() {
+fn move_bottom_on_list_moves_navigation_to_last() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ScrollManager::move_bottom(&mut ui, &mut nav, 10);
@@ -292,7 +317,7 @@ fn test_move_bottom_on_list_moves_navigation_to_last() {
 }
 
 #[test]
-fn test_move_bottom_on_description_sets_max() {
+fn move_bottom_on_description_sets_max() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -302,7 +327,7 @@ fn test_move_bottom_on_description_sets_max() {
 }
 
 #[test]
-fn test_move_bottom_on_script_sets_max() {
+fn move_bottom_on_script_sets_max() {
    let mut ui = UiState::new();
    let mut nav = NavigationState::new();
    ui.cycle_panel();
@@ -315,7 +340,7 @@ fn test_move_bottom_on_script_sets_max() {
 // ===== ScrollManager: help modal =====
 
 #[test]
-fn test_help_scroll_up_decrements_offset() {
+fn help_scroll_up_decrements_offset() {
    let mut ui = UiState::new();
    ui.update_help_max_scroll(20, 5);
    ui.set_help_scroll_offset(5);
@@ -324,14 +349,14 @@ fn test_help_scroll_up_decrements_offset() {
 }
 
 #[test]
-fn test_help_scroll_up_saturates_at_zero() {
+fn help_scroll_up_saturates_at_zero() {
    let mut ui = UiState::new();
    ScrollManager::help_scroll_up(&mut ui);
    assert_eq!(ui.help_scroll_offset(), 0);
 }
 
 #[test]
-fn test_help_scroll_down_increments_offset() {
+fn help_scroll_down_increments_offset() {
    let mut ui = UiState::new();
    ui.update_help_max_scroll(20, 5);
    ScrollManager::help_scroll_down(&mut ui);
@@ -339,7 +364,7 @@ fn test_help_scroll_down_increments_offset() {
 }
 
 #[test]
-fn test_help_scroll_down_clamped_to_max() {
+fn help_scroll_down_clamped_to_max() {
    let mut ui = UiState::new();
    ui.update_help_max_scroll(20, 15);
    ui.set_help_scroll_offset(5);
@@ -348,7 +373,7 @@ fn test_help_scroll_down_clamped_to_max() {
 }
 
 #[test]
-fn test_help_jump_top_sets_offset_to_zero() {
+fn help_jump_top_sets_offset_to_zero() {
    let mut ui = UiState::new();
    ui.set_help_scroll_offset(10);
    ScrollManager::help_jump_top(&mut ui);
@@ -356,7 +381,7 @@ fn test_help_jump_top_sets_offset_to_zero() {
 }
 
 #[test]
-fn test_help_jump_bottom_sets_offset_to_max() {
+fn help_jump_bottom_sets_offset_to_max() {
    let mut ui = UiState::new();
    ui.update_help_max_scroll(30, 10);
    ScrollManager::help_jump_bottom(&mut ui);

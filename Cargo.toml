@@ -3,13 +3,13 @@ name = "alf_tui"
 version = "0.5.0"
 edition = "2021"
 rust-version = "1.74.0"
-authors = [ "Metal Gabe" ]
+authors = ["Metal Gabe"]
 license = "MIT OR Apache-2.0"
 description = "A smolderingly-nimble Rust TUI to rediscover your custom shell."
 repository = "https://github.com/metal-gabe/alf-cli"
 readme = "README.md"
-keywords = [ "cli", "tui", "shell", "aliases", "functions" ]
-categories = [ "command-line-utilities" ]
+keywords = ["cli", "tui", "shell", "aliases", "functions"]
+categories = ["command-line-utilities"]
 
 [lib]
 name = "alf"
@@ -32,34 +32,34 @@ env_logger = "0.11"
 log = "0.4"
 thiserror = "1.0"
 
-  [dependencies.clap]
-  version = "4.5"
-  features = [ "derive", "cargo" ]
+[dependencies.clap]
+version = "4.5"
+features = ["derive", "cargo"]
 
-  [dependencies.fs4]
-  version = "0.8"
-  features = [ "sync" ]
+[dependencies.fs4]
+version = "0.8"
+features = ["sync"]
 
-  [dependencies.syntect]
-  version = "5.2"
-  optional = true
+[dependencies.syntect]
+version = "5.2"
+optional = true
 
-  [dependencies.serde]
-  version = "1.0"
-  features = [ "derive" ]
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
 
 [dev-dependencies]
 husky-rs = "0.2.2"
 pretty_assertions = "1.4"
 tempfile = "3.10"
 
-  [dev-dependencies.insta]
-  version = "1"
-  features = [ "filters" ]
+[dev-dependencies.insta]
+version = "1"
+features = ["filters"]
 
 [features]
-default = [ "syntax-highlighting" ]
-syntax-highlighting = [ "syntect" ]
+default = ["syntax-highlighting"]
+syntax-highlighting = ["syntect"]
 
 [profile.release]
 lto = true

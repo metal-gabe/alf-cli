@@ -113,6 +113,11 @@ impl App {
       self.ui.active_panel()
    }
 
+   /// Get the fullscreen flag
+   pub fn is_fullscreen(&self) -> bool {
+      self.ui.is_fullscreen()
+   }
+
    /// Get the current filter
    pub fn filter(&self) -> EntryFilter {
       self.filter.filter()
@@ -228,6 +233,11 @@ impl App {
    /// Cycle to the previous panel (backward)
    pub fn cycle_panel_backward(&mut self) {
       self.ui.cycle_panel_backward();
+   }
+
+   /// Toggle fullscreen for the active panel
+   pub fn toggle_fullscreen(&mut self) {
+      self.ui.toggle_fullscreen();
    }
 
    // ===== Filter methods =====

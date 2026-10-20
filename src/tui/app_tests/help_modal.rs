@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn test_toggle_help_twice_hides_modal() {
+fn toggle_help_twice_hides_modal() {
    let mut app = make_app();
    assert!(!app.show_help());
    app.toggle_help();
@@ -11,7 +11,7 @@ fn test_toggle_help_twice_hides_modal() {
 }
 
 #[test]
-fn test_help_scroll_operations_with_max_set() {
+fn help_scroll_operations_with_max_set() {
    let mut app = make_app();
    app.update_help_max_scroll(30, 10); // max = 20
    app.help_jump_bottom();
@@ -21,7 +21,7 @@ fn test_help_scroll_operations_with_max_set() {
 }
 
 #[test]
-fn test_help_scroll_down_increments() {
+fn help_scroll_down_increments() {
    let mut app = make_app();
    app.update_help_max_scroll(20, 5); // max = 15
    app.help_scroll_down();
@@ -29,7 +29,7 @@ fn test_help_scroll_down_increments() {
 }
 
 #[test]
-fn test_help_scroll_up_decrements() {
+fn help_scroll_up_decrements() {
    let mut app = make_app();
    app.update_help_max_scroll(20, 5);
    app.help_scroll_down();

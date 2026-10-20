@@ -32,6 +32,8 @@ pub struct UiState {
    help_scroll_offset: usize,
    /// Maximum scroll offset for help modal (updated during rendering)
    help_max_scroll: usize,
+   /// Flag to expand the active panel over the entire body area
+   is_fullscreen: bool,
 }
 
 impl Default for UiState {
@@ -46,6 +48,7 @@ impl Default for UiState {
          show_help: false,
          help_scroll_offset: 0,
          help_max_scroll: 0,
+         is_fullscreen: false,
       }
    }
 }
@@ -101,6 +104,11 @@ impl UiState {
       self.help_max_scroll
    }
 
+   /// Get fullscreen flag
+   pub fn is_fullscreen(&self) -> bool {
+      self.is_fullscreen
+   }
+
    /// Set list scroll offset
    pub fn set_list_scroll_offset(
       &mut self,
@@ -151,6 +159,11 @@ impl UiState {
       };
    }
 
+   /// Toggle fullscreen for the active panel
+   pub fn toggle_fullscreen(&mut self) {
+      self.is_fullscreen = !self.is_fullscreen;
+   }
+
    /// Toggle the help modal
    pub fn toggle_help(&mut self) {
       self.show_help = !self.show_help;
@@ -174,6 +187,7 @@ impl UiState {
    ) {
       self.description_max_scroll =
          if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.description_scroll_offset = self.description_scroll_offset.min(self.description_max_scroll);
    }
 
    /// Update the maximum scroll offset for script panel based on content and visible area
@@ -183,6 +197,7 @@ impl UiState {
       visible_lines: usize,
    ) {
       self.script_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.script_scroll_offset = self.script_scroll_offset.min(self.script_max_scroll);
    }
 
    /// Update the maximum scroll offset for help modal based on content and visible area

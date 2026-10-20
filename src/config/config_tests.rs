@@ -11,61 +11,61 @@ use std::path::PathBuf;
 // ===== Default value tests =====
 
 #[test]
-fn test_config_default_theme() {
+fn config_default_theme() {
    let config = Config::default();
    assert_eq!(config.ui.theme, "default");
 }
 
 #[test]
-fn test_config_default_keybind_mode() {
+fn config_default_keybind_mode() {
    let config = Config::default();
    assert_eq!(config.ui.keybind_mode, "vim");
 }
 
 #[test]
-fn test_config_default_case_matching_is_smart() {
+fn config_default_case_matching_is_smart() {
    let config = Config::default();
    assert!(matches!(config.search.case_matching, CaseMatching::Smart));
 }
 
 #[test]
-fn test_config_default_normalize_is_true() {
+fn config_default_normalize_is_true() {
    let config = Config::default();
    assert!(config.search.normalize);
 }
 
 #[test]
-fn test_config_default_enable_regex_is_true() {
+fn config_default_enable_regex_is_true() {
    let config = Config::default();
    assert!(config.search.enable_regex);
 }
 
 #[test]
-fn test_config_default_substring_matching_is_true() {
+fn config_default_substring_matching_is_true() {
    let config = Config::default();
    assert!(config.search.substring_matching);
 }
 
 #[test]
-fn test_config_default_show_type_badges() {
+fn config_default_show_type_badges() {
    let config = Config::default();
    assert!(config.display.show_type_badges);
 }
 
 #[test]
-fn test_config_default_syntax_highlighting() {
+fn config_default_syntax_highlighting() {
    let config = Config::default();
    assert!(config.display.syntax_highlighting);
 }
 
 #[test]
-fn test_config_default_parse_comments() {
+fn config_default_parse_comments() {
    let config = Config::default();
    assert!(config.display.parse_comments);
 }
 
 #[test]
-fn test_config_default_shell_files_empty() {
+fn config_default_shell_files_empty() {
    let config = Config::default();
    assert!(config.general.shell_files.is_empty());
 }
@@ -73,13 +73,13 @@ fn test_config_default_shell_files_empty() {
 // ===== TOML serialization tests =====
 
 #[test]
-fn test_config_default_toml_format() {
+fn config_default_toml_format() {
    let toml_str = toml::to_string_pretty(&Config::default()).expect("Should serialize");
    insta::assert_snapshot!(toml_str);
 }
 
 #[test]
-fn test_config_parse_valid_toml_with_custom_values() {
+fn config_parse_valid_toml_with_custom_values() {
    let toml_content = r#"
 [general]
 shell_files = ["~/.bashrc", "~/.zshrc"]
@@ -110,7 +110,7 @@ parse_comments = false
 }
 
 #[test]
-fn test_config_parse_invalid_toml_returns_error() {
+fn config_parse_invalid_toml_returns_error() {
    let invalid_toml = "this is not valid [[[ toml !!!";
    let result: Result<Config, _> = toml::from_str(invalid_toml);
    assert!(result.is_err(), "Invalid TOML should fail to parse");
@@ -119,13 +119,13 @@ fn test_config_parse_invalid_toml_returns_error() {
 // ===== AliasExpansion tests =====
 
 #[test]
-fn test_config_default_alias_expansion_is_name() {
+fn config_default_alias_expansion_is_name() {
    let config = Config::default();
    assert!(matches!(config.general.alias_expansion, AliasExpansion::Name));
 }
 
 #[test]
-fn test_config_script_expansion_toml_format() {
+fn config_script_expansion_toml_format() {
    let config = Config {
       general: GeneralConfig {
          alias_expansion: AliasExpansion::Script,
@@ -138,7 +138,7 @@ fn test_config_script_expansion_toml_format() {
 }
 
 #[test]
-fn test_config_parse_toml_with_alias_expansion_script() {
+fn config_parse_toml_with_alias_expansion_script() {
    let toml_content = r#"
 [general]
 alias_expansion = "script"
@@ -165,14 +165,14 @@ parse_comments = true
 // ===== File path tests =====
 
 #[test]
-fn test_get_config_path_contains_alf_segment() {
+fn get_config_path_contains_alf_segment() {
    let path = get_config_path().expect("Should succeed when HOME is set");
    let path_str = path.to_str().unwrap();
    assert!(path_str.contains("alf"), "Path should contain 'alf': {}", path_str);
 }
 
 #[test]
-fn test_get_config_path_ends_with_config_toml() {
+fn get_config_path_ends_with_config_toml() {
    let path = get_config_path().expect("Should succeed when HOME is set");
    let path_str = path.to_str().unwrap();
    assert!(path_str.ends_with("config.toml"), "Path should end with config.toml: {}", path_str);
@@ -181,7 +181,7 @@ fn test_get_config_path_ends_with_config_toml() {
 // ===== Home resolution tests =====
 
 #[test]
-fn test_get_config_path_falls_back_to_userprofile_when_home_is_empty() {
+fn get_config_path_falls_back_to_userprofile_when_home_is_empty() {
    let mut home = TempHome::new();
    let profile = home.path().join("profile");
    home.set_env("USERPROFILE", &profile);
@@ -193,7 +193,7 @@ fn test_get_config_path_falls_back_to_userprofile_when_home_is_empty() {
 }
 
 #[test]
-fn test_get_config_path_falls_back_when_home_is_unset() {
+fn get_config_path_falls_back_when_home_is_unset() {
    let mut home = TempHome::new();
    let profile = home.path().join("profile");
    home.set_env("USERPROFILE", &profile);
@@ -206,7 +206,7 @@ fn test_get_config_path_falls_back_when_home_is_unset() {
 
 #[cfg(unix)]
 #[test]
-fn test_home_resolution_accepts_non_unicode_values() {
+fn home_resolution_accepts_non_unicode_values() {
    use std::ffi::OsString;
    use std::os::unix::ffi::OsStringExt;
 
@@ -224,7 +224,7 @@ fn test_home_resolution_accepts_non_unicode_values() {
 
 #[cfg(unix)]
 #[test]
-fn test_get_config_path_errors_when_no_home_can_be_resolved() {
+fn get_config_path_errors_when_no_home_can_be_resolved() {
    use std::ffi::OsString;
    use std::os::unix::ffi::OsStringExt;
 
@@ -248,7 +248,7 @@ fn test_get_config_path_errors_when_no_home_can_be_resolved() {
 // ===== Path expansion tests =====
 
 #[test]
-fn test_expand_path_resolves_home_prefixes() {
+fn expand_path_resolves_home_prefixes() {
    let home = TempHome::new();
 
    for (raw_path, expected) in [
@@ -262,7 +262,7 @@ fn test_expand_path_resolves_home_prefixes() {
 }
 
 #[test]
-fn test_expand_path_uses_the_same_home_as_the_config_path() {
+fn expand_path_uses_the_same_home_as_the_config_path() {
    let home = TempHome::new();
    let config_path = get_config_path().expect("Should build config path");
    assert!(
@@ -275,7 +275,7 @@ fn test_expand_path_uses_the_same_home_as_the_config_path() {
 }
 
 #[test]
-fn test_expand_path_passes_through_paths_without_a_home_prefix() {
+fn expand_path_passes_through_paths_without_a_home_prefix() {
    let _home = TempHome::new();
 
    for raw_path in ["/etc/shells", "relative/path"] {
@@ -286,7 +286,7 @@ fn test_expand_path_passes_through_paths_without_a_home_prefix() {
 // ===== File I/O tests =====
 
 #[test]
-fn test_save_and_load_config_roundtrip() {
+fn save_and_load_config_roundtrip() {
    let _home = TempHome::new();
    let mut config = Config::default();
    config.ui.theme = "gruvbox".to_string();
@@ -298,21 +298,21 @@ fn test_save_and_load_config_roundtrip() {
 }
 
 #[test]
-fn test_load_config_fails_when_missing() {
+fn load_config_fails_when_missing() {
    let _home = TempHome::new();
    let result = load_config();
    assert!(result.is_err(), "Should fail when config file does not exist");
 }
 
 #[test]
-fn test_is_first_run_returns_true_when_no_config() {
+fn is_first_run_returns_true_when_no_config() {
    let _home = TempHome::new();
    let result = is_first_run().expect("Should succeed");
    assert!(result, "Should be first run when no config file exists");
 }
 
 #[test]
-fn test_is_first_run_returns_false_after_save() {
+fn is_first_run_returns_false_after_save() {
    let _home = TempHome::new();
    save_config(&Config::default()).expect("Should save config");
    let result = is_first_run().expect("Should succeed");
@@ -320,7 +320,7 @@ fn test_is_first_run_returns_false_after_save() {
 }
 
 #[test]
-fn test_save_config_leaves_no_temporary_files_behind() {
+fn save_config_leaves_no_temporary_files_behind() {
    let _home = TempHome::new();
    save_config(&Config::default()).expect("Should save config");
    let config_dir =
@@ -337,7 +337,7 @@ fn test_save_config_leaves_no_temporary_files_behind() {
 // ===== Config lock tests =====
 
 #[test]
-fn test_config_lock_path_sits_beside_the_config_file() {
+fn config_lock_path_sits_beside_the_config_file() {
    let _home = TempHome::new();
    let config_path = get_config_path().expect("Should build config path");
    let lock_path = get_config_lock_path().expect("Should build lock path");
@@ -346,7 +346,7 @@ fn test_config_lock_path_sits_beside_the_config_file() {
 }
 
 #[test]
-fn test_config_lock_is_created_before_any_config_exists() {
+fn config_lock_is_created_before_any_config_exists() {
    let _home = TempHome::new();
    let lock = ConfigLock::acquire().expect("Should acquire the lock without a config file");
    assert!(get_config_lock_path().expect("Should build lock path").exists(), "Acquiring should create the lock file");
@@ -355,7 +355,7 @@ fn test_config_lock_is_created_before_any_config_exists() {
 }
 
 #[test]
-fn test_config_lock_can_be_reacquired_after_each_release() {
+fn config_lock_can_be_reacquired_after_each_release() {
    let _home = TempHome::new();
    for attempt in 1..=3 {
       let lock = ConfigLock::acquire().unwrap_or_else(|_| panic!("Should acquire the lock on attempt {attempt}"));
