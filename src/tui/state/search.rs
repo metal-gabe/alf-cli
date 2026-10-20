@@ -9,6 +9,14 @@ pub struct SearchState {
    cursor_position: usize,
 }
 
+/// Character classification used for vim-style word boundaries
+#[derive(PartialEq)]
+enum CharClass {
+   Keyword,
+   Punctuation,
+   Whitespace,
+}
+
 impl SearchState {
    /// Create a new SearchState
    pub fn new() -> Self {
@@ -91,6 +99,110 @@ impl SearchState {
       if self.cursor_position < char_count {
          self.cursor_position += 1;
       }
+   }
+
+   /// Delete the character under the cursor in the search query
+   pub fn delete_char_forward(&mut self) {
+      let char_count = self.query.chars().count();
+      if self.cursor_position < char_count {
+         self.remove_char_range(self.cursor_position, self.cursor_position + 1);
+      }
+   }
+
+   /// Delete the word before the cursor (vim `ctrl-w` semantics)
+   pub fn delete_word_backward(&mut self) {
+      let start = self.word_start_before(self.cursor_position);
+      self.remove_char_range(start, self.cursor_position);
+      self.cursor_position = start;
+   }
+
+   /// Delete from the cursor to the start of the next word
+   pub fn delete_word_forward(&mut self) {
+      let end = self.word_end_after(self.cursor_position);
+      self.remove_char_range(self.cursor_position, end);
+   }
+
+   /// Move search cursor to the end of the query
+   pub fn move_cursor_end(&mut self) {
+      self.cursor_position = self.query.chars().count();
+   }
+
+   /// Move search cursor to the start of the query
+   pub fn move_cursor_start(&mut self) {
+      self.cursor_position = 0;
+   }
+
+   /// Move search cursor to the start of the previous word
+   pub fn move_word_backward(&mut self) {
+      self.cursor_position = self.word_start_before(self.cursor_position);
+   }
+
+   /// Move search cursor to the start of the next word
+   pub fn move_word_forward(&mut self) {
+      self.cursor_position = self.word_end_after(self.cursor_position);
+   }
+
+   /// Classify a character as whitespace, keyword or punctuation
+   fn char_class(c: char) -> CharClass {
+      if c.is_whitespace() {
+         CharClass::Whitespace
+      } else if c.is_alphanumeric() || c == '_' {
+         CharClass::Keyword
+      } else {
+         CharClass::Punctuation
+      }
+   }
+
+   /// Remove the characters in the character index range `start..end`
+   fn remove_char_range(
+      &mut self,
+      start: usize,
+      end: usize,
+   ) {
+      if start >= end {
+         return;
+      }
+      let byte_start = self.query.char_indices().nth(start).map(|(idx, _)| idx).unwrap_or(self.query.len());
+      let byte_end = self.query.char_indices().nth(end).map(|(idx, _)| idx).unwrap_or(self.query.len());
+      self.query.drain(byte_start..byte_end);
+   }
+
+   /// Find the character index where the word before `pos` starts
+   fn word_start_before(
+      &self,
+      pos: usize,
+   ) -> usize {
+      let chars: Vec<char> = self.query.chars().collect();
+      let mut index = pos.min(chars.len());
+      while index > 0 && Self::char_class(chars[index - 1]) == CharClass::Whitespace {
+         index -= 1;
+      }
+      if index > 0 {
+         let class = Self::char_class(chars[index - 1]);
+         while index > 0 && Self::char_class(chars[index - 1]) == class {
+            index -= 1;
+         }
+      }
+      index
+   }
+
+   /// Find the character index where the word after `pos` starts (or the end of the query)
+   fn word_end_after(
+      &self,
+      pos: usize,
+   ) -> usize {
+      let chars: Vec<char> = self.query.chars().collect();
+      let mut index = pos.min(chars.len());
+      if index < chars.len() {
+         let class = Self::char_class(chars[index]);
+         while class != CharClass::Whitespace && index < chars.len() && Self::char_class(chars[index]) == class {
+            index += 1;
+         }
+      }
+      while index < chars.len() && Self::char_class(chars[index]) == CharClass::Whitespace {
+         index += 1;
+      }
+      index
    }
 }
 

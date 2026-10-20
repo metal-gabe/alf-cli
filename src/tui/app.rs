@@ -322,6 +322,44 @@ impl App {
       self.search.move_cursor_right();
    }
 
+   /// Delete the character under the cursor in the search query
+   pub fn search_delete_char_forward(&mut self) {
+      self.search.delete_char_forward();
+      self.update_visible_entries();
+   }
+
+   /// Delete the word before the cursor in the search query
+   pub fn search_delete_word_backward(&mut self) {
+      self.search.delete_word_backward();
+      self.update_visible_entries();
+   }
+
+   /// Delete the word after the cursor in the search query
+   pub fn search_delete_word_forward(&mut self) {
+      self.search.delete_word_forward();
+      self.update_visible_entries();
+   }
+
+   /// Move search cursor to the end of the query
+   pub fn search_cursor_end(&mut self) {
+      self.search.move_cursor_end();
+   }
+
+   /// Move search cursor to the start of the query
+   pub fn search_cursor_start(&mut self) {
+      self.search.move_cursor_start();
+   }
+
+   /// Move search cursor one word left
+   pub fn search_cursor_word_left(&mut self) {
+      self.search.move_word_backward();
+   }
+
+   /// Move search cursor one word right
+   pub fn search_cursor_word_right(&mut self) {
+      self.search.move_word_forward();
+   }
+
    // ===== Help modal methods =====
 
    /// Toggle the help modal

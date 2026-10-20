@@ -131,6 +131,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 <li><code>G</code> - Jump to bottom</li>
 <li><code>Ctrl-f</code> / <code>Ctrl-b</code> - Scroll a full page (20 lines) down/up</li>
 <li><code>Ctrl-j</code> / <code>Ctrl-k</code> - Scroll a half page (10 lines) down/up</li>
+<li><code>Ctrl-d</code> / <code>Ctrl-u</code> - Scroll a half page (10 lines) down/up (same as <code>Ctrl-j</code> / <code>Ctrl-k</code>)</li>
 </ul>
 
 <strong>Panels &amp; filters</strong>
@@ -155,11 +156,19 @@ The full reference is always available in-app — press `?` to toggle the help m
 <ul>
 <li><code>/</code> or <code>i</code> - Enter search mode</li>
 <li><code>Esc</code> - Exit search mode (keep query)</li>
-<li><code>Ctrl-u</code> - Clear search query (any mode)</li>
+<li><code>Ctrl-u</code> - Clear search query while in search mode</li>
 <li><code>Shift-N</code> / <code>Shift-P</code> - Cycle panels while in search mode</li>
 <li><code>Shift-F</code> - Toggle fullscreen while in search mode</li>
 <li><code>Shift-H</code> / <code>Shift-L</code> - Cycle filters while in search mode</li>
 <li><code>Ctrl-j</code> / <code>Ctrl-k</code> - Scroll the list while in search mode</li>
+<li><code>Ctrl-w</code> (or <code>Alt-Backspace</code> / <code>Ctrl-Backspace</code>) - Delete the word before the cursor</li>
+<li><code>Alt-d</code> (or <code>Ctrl-Delete</code>) - Delete the word after the cursor</li>
+<li><code>Ctrl-h</code> - Delete the character before the cursor (same as <code>Backspace</code>)</li>
+<li><code>Delete</code> - Delete the character under the cursor</li>
+<li><code>Ctrl-d</code> - Delete the character under the cursor (same as <code>Delete</code>)</li>
+<li><code>Ctrl-Left</code> / <code>Ctrl-Right</code> (or <code>Alt-Left</code> / <code>Alt-Right</code>, <code>Alt-b</code> / <code>Alt-f</code>) - Move the cursor one word back/forward</li>
+<li><code>Ctrl-a</code> / <code>Home</code> - Move the cursor to the start of the query</li>
+<li><code>Ctrl-e</code> / <code>End</code> - Move the cursor to the end of the query</li>
 </ul>
 
 <strong>Themes</strong>
@@ -176,7 +185,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 <li><code>Enter</code> - Execute the selected entry in the parent shell</li>
 <li><code>?</code> - Toggle the help modal</li>
 <li><code>q</code> - Quit (normal mode only)</li>
-<li><code>Ctrl-c</code> / <code>Ctrl-d</code> - Force quit (any mode)</li>
+<li><code>Ctrl-c</code> - Force quit (any mode)</li>
 </ul>
 </details>
 

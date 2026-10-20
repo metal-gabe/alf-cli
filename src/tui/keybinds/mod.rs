@@ -22,7 +22,7 @@ use crate::tui::app::App;
 /// Handle a key event based on the current input mode.
 ///
 /// Dispatches to appropriate handler based on mode:
-/// 1. Check for truly global keybinds (Ctrl-C, Ctrl-D to quit)
+/// 1. Check for truly global keybinds (Ctrl-C to quit)
 /// 2. If help modal is open, use help mode handlers
 /// 3. Otherwise, use mode-specific handlers (Normal or Search)
 pub(super) fn handle_key_event(
@@ -31,8 +31,8 @@ pub(super) fn handle_key_event(
 ) {
    // Check for truly global keybinds first - these work ALWAYS or are reserved
    match key.code {
-      // Quit app (Ctrl-C or Ctrl-D)
-      KeyCode::Char('c') | KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+      // Quit app (Ctrl-C)
+      KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.should_quit = true;
          return;
       },
