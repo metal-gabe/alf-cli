@@ -36,10 +36,10 @@ pub fn handle_normal_mode(
       KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.scroll_up(20);
       },
-      KeyCode::Char('j') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+      KeyCode::Char('j') | KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.scroll_down(10);
       },
-      KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+      KeyCode::Char('k') | KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
          app.scroll_up(10);
       },
       KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::CONTROL) => {

@@ -21,6 +21,9 @@ clean: ## Remove build artifacts
 clippy: ## Run Clippy linter
 	cargo clippy --all-targets --all-features -- -D warnings
 
+dev: ## Run the TUI (debug build)
+	cargo run
+
 fmt: ## Check formatting without modifying files
 	cargo fmt --check
 
@@ -34,9 +37,6 @@ lint: fmt clippy ## Run all lint checks (fmt + clippy)
 
 release: ## Build (release)
 	cargo build --release
-
-run: ## Run the TUI (debug build)
-	cargo run
 
 snap: ## Review pending insta snapshots interactively
 	cargo insta review

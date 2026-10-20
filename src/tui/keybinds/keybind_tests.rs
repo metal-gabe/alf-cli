@@ -2,7 +2,7 @@
 
 use super::handle_key_event;
 use crate::tui::app::app_tests::{make_app, make_empty_app};
-use crate::tui::app::ExitAction;
+use crate::tui::app::{App, ExitAction};
 use crate::tui::state::{EntryFilter, InputMode, Panel, SortOrder};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -12,6 +12,31 @@ fn key(code: KeyCode) -> KeyEvent {
 
 fn ctrl(c: char) -> KeyEvent {
    KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL)
+}
+
+fn with(
+   code: KeyCode,
+   modifiers: KeyModifiers,
+) -> KeyEvent {
+   KeyEvent::new(code, modifiers)
+}
+
+fn search_app(marked: &str) -> App {
+   let (before, after) = marked.split_once('|').expect("marked query must contain a '|' cursor");
+   let mut app = make_app();
+   app.enter_search_mode();
+   app.set_search_query(format!("{before}{after}"));
+   for _ in 0..after.chars().count() {
+      app.search_cursor_left();
+   }
+   app
+}
+
+fn marked_query(app: &App) -> String {
+   let chars: Vec<char> = app.search_query().chars().collect();
+   let before: String = chars[..app.cursor_position()].iter().collect();
+   let after: String = chars[app.cursor_position()..].iter().collect();
+   format!("{before}|{after}")
 }
 
 // ===== Normal mode — Enter/Tab (enter-tab logic) =====
@@ -287,18 +312,24 @@ fn ctrl_b_page_scrolls_to_first() {
 }
 
 #[test]
-fn ctrl_j_half_page_scrolls_down() {
-   let mut app = make_app();
-   handle_key_event(&mut app, ctrl('j'));
-   assert_eq!(app.selected_index(), 3);
+fn half_page_scroll_keys_in_normal_mode() {
+   let cases = [('j', false, 3), ('d', false, 3), ('k', true, 0), ('u', true, 0)];
+   for (c, is_start_at_bottom, expected_index) in cases {
+      let mut app = make_app();
+      if is_start_at_bottom {
+         app.move_bottom();
+      }
+      handle_key_event(&mut app, ctrl(c));
+      assert_eq!(app.selected_index(), expected_index, "ctrl-{c}");
+   }
 }
 
 #[test]
-fn ctrl_k_half_page_scrolls_up() {
+fn ctrl_u_in_normal_mode_keeps_search_query() {
    let mut app = make_app();
-   app.move_bottom();
-   handle_key_event(&mut app, ctrl('k'));
-   assert_eq!(app.selected_index(), 0);
+   app.set_search_query("a".to_string());
+   handle_key_event(&mut app, ctrl('u'));
+   assert_eq!(app.search_query(), "a");
 }
 
 // ===== Normal mode — mode switching =====
@@ -375,21 +406,40 @@ fn esc_in_search_mode_returns_to_normal() {
 
 #[test]
 fn ctrl_c_always_quits() {
-   let mut app = make_app();
-   handle_key_event(&mut app, ctrl('c'));
-   assert!(app.should_quit);
+   let cases = [(InputMode::Normal, false), (InputMode::Search, false), (InputMode::Normal, true)];
+   for (mode, is_help_open) in cases {
+      let mut app = make_app();
+      if mode == InputMode::Search {
+         app.enter_search_mode();
+      }
+      if is_help_open {
+         app.toggle_help();
+      }
+      handle_key_event(&mut app, ctrl('c'));
+      assert!(app.should_quit, "{mode:?} mode, help open: {is_help_open}");
+   }
 }
 
 #[test]
-fn ctrl_d_always_quits() {
-   let mut app = make_app();
-   handle_key_event(&mut app, ctrl('d'));
-   assert!(app.should_quit);
+fn ctrl_d_never_quits() {
+   let cases = [(InputMode::Normal, false), (InputMode::Search, false), (InputMode::Normal, true)];
+   for (mode, is_help_open) in cases {
+      let mut app = make_app();
+      if mode == InputMode::Search {
+         app.enter_search_mode();
+      }
+      if is_help_open {
+         app.toggle_help();
+      }
+      handle_key_event(&mut app, ctrl('d'));
+      assert!(!app.should_quit, "{mode:?} mode, help open: {is_help_open}");
+   }
 }
 
 #[test]
-fn ctrl_u_clears_search_query() {
+fn ctrl_u_clears_search_query_in_search_mode() {
    let mut app = make_app();
+   app.enter_search_mode();
    app.set_search_query("hello".to_string());
    handle_key_event(&mut app, ctrl('u'));
    assert!(app.search_query().is_empty());
@@ -456,4 +506,54 @@ fn q_closes_help_modal() {
    app.toggle_help();
    handle_key_event(&mut app, key(KeyCode::Char('q')));
    assert!(!app.show_help());
+}
+
+// ===== Search mode — word & line editing =====
+
+#[test]
+fn search_mode_text_editing_keys() {
+   let ctrl_mod = KeyModifiers::CONTROL;
+   let alt_mod = KeyModifiers::ALT;
+   let cases = [
+      ("ctrl-w", ctrl('w'), "git-co|", "git-|"),
+      ("alt-backspace", with(KeyCode::Backspace, alt_mod), "git-co|", "git-|"),
+      ("ctrl-backspace", with(KeyCode::Backspace, ctrl_mod), "git-co|", "git-|"),
+      ("ctrl-h", ctrl('h'), "git-co|", "git-c|"),
+      ("alt-d", with(KeyCode::Char('d'), alt_mod), "|git-co", "|-co"),
+      ("ctrl-delete", with(KeyCode::Delete, ctrl_mod), "|git-co", "|-co"),
+      ("delete", key(KeyCode::Delete), "|git-co", "|it-co"),
+      ("ctrl-d", ctrl('d'), "|git-co", "|it-co"),
+      ("ctrl-left", with(KeyCode::Left, ctrl_mod), "git-co|", "git-|co"),
+      ("alt-left", with(KeyCode::Left, alt_mod), "git-co|", "git-|co"),
+      ("alt-b", with(KeyCode::Char('b'), alt_mod), "git-co|", "git-|co"),
+      ("ctrl-right", with(KeyCode::Right, ctrl_mod), "|git-co", "git|-co"),
+      ("alt-right", with(KeyCode::Right, alt_mod), "|git-co", "git|-co"),
+      ("alt-f", with(KeyCode::Char('f'), alt_mod), "|git-co", "git|-co"),
+      ("ctrl-a", ctrl('a'), "git-co|", "|git-co"),
+      ("home", key(KeyCode::Home), "git-co|", "|git-co"),
+      ("ctrl-e", ctrl('e'), "|git-co", "git-co|"),
+      ("end", key(KeyCode::End), "|git-co", "git-co|"),
+   ];
+   for (label, event, start, expected) in cases {
+      let mut app = search_app(start);
+      handle_key_event(&mut app, event);
+      assert_eq!(marked_query(&app), expected, "{label} on {start:?}");
+      assert!(!app.should_quit, "{label} should not quit");
+   }
+}
+
+#[test]
+fn search_mode_modifier_chords_only_insert_plain_or_altgr_chars() {
+   let cases = [
+      ("ctrl-x", ctrl('x'), "|"),
+      ("alt-x", with(KeyCode::Char('x'), KeyModifiers::ALT), "|"),
+      ("ctrl-alt-@ (AltGr)", with(KeyCode::Char('@'), KeyModifiers::CONTROL | KeyModifiers::ALT), "@|"),
+      ("shift-a", with(KeyCode::Char('A'), KeyModifiers::SHIFT), "a|"),
+      ("x", key(KeyCode::Char('x')), "x|"),
+   ];
+   for (label, event, expected) in cases {
+      let mut app = search_app("|");
+      handle_key_event(&mut app, event);
+      assert_eq!(marked_query(&app), expected, "{label}");
+   }
 }

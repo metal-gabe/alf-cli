@@ -186,3 +186,137 @@ fn clear_resets_cursor_to_zero() {
    state.clear();
    assert_eq!(state.cursor_position(), 0);
 }
+
+// ===== word & line editing =====
+
+fn state_from(marked: &str) -> SearchState {
+   let (before, after) = marked.split_once('|').expect("marked query must contain a '|' cursor");
+   let mut state = SearchState::new();
+   state.set_query(format!("{before}{after}"));
+   for _ in 0..after.chars().count() {
+      state.move_cursor_left();
+   }
+   state
+}
+
+fn marked(state: &SearchState) -> String {
+   let chars: Vec<char> = state.query().chars().collect();
+   let before: String = chars[..state.cursor_position()].iter().collect();
+   let after: String = chars[state.cursor_position()..].iter().collect();
+   format!("{before}|{after}")
+}
+
+fn assert_cases(
+   name: &str,
+   op: fn(&mut SearchState),
+   cases: &[(&str, &str)],
+) {
+   for (start, expected) in cases {
+      let mut state = state_from(start);
+      op(&mut state);
+      assert_eq!(marked(&state), *expected, "{name} on {start:?}");
+   }
+}
+
+#[test]
+fn delete_word_backward_cases() {
+   assert_cases(
+      "delete_word_backward",
+      SearchState::delete_word_backward,
+      &[
+         ("git-co|", "git-|"),
+         ("git-|", "git|"),
+         ("git-checkout |", "git-|"),
+         ("foo--|", "foo|"),
+         ("git-|co", "git|co"),
+         ("dc_up|", "|"),
+         ("   |", "|"),
+         ("|abc", "|abc"),
+         ("|", "|"),
+      ],
+   );
+}
+
+#[test]
+fn delete_word_forward_cases() {
+   assert_cases(
+      "delete_word_forward",
+      SearchState::delete_word_forward,
+      &[
+         ("|git-co", "|-co"),
+         ("|git checkout", "|checkout"),
+         ("git|-co", "git|co"),
+         ("|foo--bar", "|--bar"),
+         ("|   abc", "|abc"),
+         ("abc|", "abc|"),
+         ("|", "|"),
+      ],
+   );
+}
+
+#[test]
+fn move_word_backward_cases() {
+   assert_cases(
+      "move_word_backward",
+      SearchState::move_word_backward,
+      &[
+         ("git-co|", "git-|co"),
+         ("git-|co", "git|-co"),
+         ("git-checkout |", "git-|checkout "),
+         ("foo--|", "foo|--"),
+         ("dc_up|", "|dc_up"),
+         ("   |", "|   "),
+         ("|abc", "|abc"),
+         ("|", "|"),
+      ],
+   );
+}
+
+#[test]
+fn move_word_forward_cases() {
+   assert_cases(
+      "move_word_forward",
+      SearchState::move_word_forward,
+      &[
+         ("|git-co", "git|-co"),
+         ("git|-co", "git-|co"),
+         ("|git checkout", "git |checkout"),
+         ("|foo--bar", "foo|--bar"),
+         ("|   abc", "   |abc"),
+         ("abc|", "abc|"),
+         ("|", "|"),
+      ],
+   );
+}
+
+#[test]
+fn delete_char_forward_cases() {
+   assert_cases(
+      "delete_char_forward",
+      SearchState::delete_char_forward,
+      &[("|abc", "|bc"), ("a|bc", "a|c"), ("abc|", "abc|"), ("|", "|")],
+   );
+}
+
+#[test]
+fn move_cursor_start_and_end_cases() {
+   assert_cases("move_cursor_start", SearchState::move_cursor_start, &[("ab|c", "|abc"), ("|abc", "|abc"), ("|", "|")]);
+   assert_cases("move_cursor_end", SearchState::move_cursor_end, &[("ab|c", "abc|"), ("abc|", "abc|"), ("|", "|")]);
+}
+
+#[test]
+fn word_editing_is_utf8_safe() {
+   assert_cases(
+      "delete_word_backward",
+      SearchState::delete_word_backward,
+      &[("café-bar|", "café-|"), ("café|", "|"), ("foo🎉🎉|", "foo|")],
+   );
+   assert_cases(
+      "delete_word_forward",
+      SearchState::delete_word_forward,
+      &[("|naïve café", "|café"), ("|🎉bar", "|bar")],
+   );
+   assert_cases("move_word_backward", SearchState::move_word_backward, &[("naïve café|", "naïve |café")]);
+   assert_cases("move_word_forward", SearchState::move_word_forward, &[("|naïve café", "naïve |café")]);
+   assert_cases("delete_char_forward", SearchState::delete_char_forward, &[("é|àb", "é|b"), ("|🎉x", "|x")]);
+}
