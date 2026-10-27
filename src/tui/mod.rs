@@ -44,17 +44,10 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
       .ok();
 
    // Try to load real shell configuration files, fall back to mock data
-   let entries = if let Some(ref cfg) = config {
-      load_shell_entries_from_config(cfg).unwrap_or_else(|_| {
-         eprintln!("Failed to load shell files from config, using mock data");
-         mock::mock_entries()
-      })
-   } else {
-      load_shell_entries().unwrap_or_else(|_| {
-         eprintln!("Failed to load shell files, using mock data");
-         mock::mock_entries()
-      })
-   };
+   let entries = load_entries(config.as_ref()).unwrap_or_else(|_| {
+      eprintln!("Failed to load shell files, using mock data");
+      mock::mock_entries()
+   });
 
    // Get theme from config or use default
    let theme = config.as_ref().and_then(|cfg| Theme::from_name(&cfg.ui.theme)).unwrap_or_else(Theme::default_theme);
@@ -132,6 +125,17 @@ fn run_loop(
    }
 
    Ok(())
+}
+
+/// Load entries from the configured shell files, or from the standard shell files when no config exists
+///
+/// # Errors
+/// Returns an error when no shell file could be found or parsed
+pub fn load_entries(config: Option<&crate::config::Config>) -> Result<Vec<crate::models::AliasEntry>> {
+   match config {
+      Some(cfg) => load_shell_entries_from_config(cfg),
+      None => load_shell_entries(),
+   }
 }
 
 /// Try to load entries from shell configuration files specified in config

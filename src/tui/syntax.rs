@@ -7,7 +7,7 @@ use syntect::highlighting::ThemeSet;
 #[cfg(feature = "syntax-highlighting")]
 use syntect::parsing::SyntaxSet;
 #[cfg(feature = "syntax-highlighting")]
-use syntect::util::LinesWithEndings;
+use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span, Text};
@@ -57,6 +57,35 @@ pub fn highlight_shell_script(code: &str) -> Text<'static> {
 #[cfg(not(feature = "syntax-highlighting"))]
 pub fn highlight_shell_script(code: &str) -> Text<'static> {
    Text::from(code.to_string())
+}
+
+/// Highlight shell script code as 24-bit ANSI terminal escapes
+#[cfg(feature = "syntax-highlighting")]
+pub fn highlight_shell_script_ansi(code: &str) -> String {
+   let ps = SyntaxSet::load_defaults_newlines();
+   let ts = ThemeSet::load_defaults();
+   let theme = &ts.themes["base16-ocean.dark"];
+   let syntax = ps
+      .find_syntax_by_extension("sh")
+      .or_else(|| ps.find_syntax_by_extension("bash"))
+      .or_else(|| ps.find_syntax_by_extension("zsh"))
+      .unwrap_or_else(|| ps.find_syntax_plain_text());
+   let mut highlighter = HighlightLines::new(syntax, theme);
+   let mut output = String::new();
+
+   for line in LinesWithEndings::from(code) {
+      let ranges = highlighter.highlight_line(line, &ps).unwrap_or_default();
+      output.push_str(&as_24_bit_terminal_escaped(&ranges, false));
+   }
+
+   output.push_str("\x1b[0m");
+   output
+}
+
+/// Highlight shell script code as ANSI escapes (fallback when feature is disabled)
+#[cfg(not(feature = "syntax-highlighting"))]
+pub fn highlight_shell_script_ansi(code: &str) -> String {
+   code.to_string()
 }
 
 /// Highlight shell script code with line numbers and optional dimming for inactive panels

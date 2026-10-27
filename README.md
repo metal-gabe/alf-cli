@@ -74,6 +74,8 @@ Configuration file location (created after `alf init`):
 - `alf config show` - Display current configuration
 - `alf config edit` - Open config in editor
 - `alf config reset` - Reset to defaults
+- `alf which <NAME>` - Print alf's info for an alias or function (name, source file, description), followed by both the `which` and `type` results for that name; only the first word after `which` is used
+- `alf which <NAME> --show-script` - Same as above, plus the full script contents of each alf match
 
 ### Configuration Options
 

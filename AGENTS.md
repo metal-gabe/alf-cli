@@ -11,7 +11,8 @@ This file provides guidance to AI coding assistants when working with code in th
 - `assets/` holds UI/layout design artifacts (drawio + png).
 - `src/main.rs` — CLI entry point, routes to TUI or subcommands.
 - `src/lib.rs` — Library root, exports all modules.
-- `src/cli/` — clap-based CLI argument parsing (search, init, config subcommands).
+- `src/cli/` — clap-based CLI argument parsing (search, init, activate, config, which subcommands).
+  - `which.rs` — `alf which <NAME>`: prints alf's parsed info for a name plus the `which`/`type` lookup result.
 - `src/models/` — Core data structures: `AliasEntry`, `EntryType`, `SearchResult`.
 - `src/config/` — Configuration structs and load/save stubs (TOML, platform-aware paths).
 - `src/parser/` — Shell file parsing stubs.
