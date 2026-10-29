@@ -36,3 +36,12 @@ syntax_highlighting = true
 
 # Parse and display comments from shell files
 parse_comments = true
+
+[which]
+# Hide the `alf which` Type Result box
+# Options: true (always), false (never), "is_none" (only when `type` finds nothing)
+hide_type = false
+
+# Hide the `alf which` Which Result box
+# Options: true (always), false (never), "is_none" (only when `which` finds nothing)
+hide_which = false

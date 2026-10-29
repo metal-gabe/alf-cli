@@ -13,6 +13,7 @@ This file provides guidance to AI coding assistants when working with code in th
 - `src/lib.rs` — Library root, exports all modules.
 - `src/cli/` — clap-based CLI argument parsing (search, init, activate, config, which subcommands).
   - `which.rs` — `alf which <NAME>`: prints alf's parsed info for a name plus the `which`/`type` lookup result.
+  - The shell hook in `init.rs` runs `which`/`type` in the user's interactive shell and passes the results via `ALF_LOOKUP_NAME`, `ALF_WHICH_RESULT` and `ALF_TYPE_RESULT`; `which.rs` trusts them only when `ALF_LOOKUP_NAME` matches the parsed name, and otherwise falls back to subprocess lookups.
 - `src/models/` — Core data structures: `AliasEntry`, `EntryType`, `SearchResult`.
 - `src/config/` — Configuration structs and load/save stubs (TOML, platform-aware paths).
 - `src/parser/` — Shell file parsing stubs.

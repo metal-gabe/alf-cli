@@ -104,6 +104,10 @@ substring_matching = true
 [ui]
 theme = "default"            # see Available Themes below
 keybind_mode = "vim"         # currently only "vim" is supported
+
+[which]
+hide_type = false            # hide the `alf which` Type Result box: true | false | "is_none" (only when `type` finds nothing)
+hide_which = false           # hide the `alf which` Which Result box: true | false | "is_none" (only when `which` finds nothing)
 ```
 
 ### Available Themes
@@ -204,6 +208,8 @@ eval "$(alf activate bash)"
 ```
 
 The hook installs an `alf` shell function that wraps the binary so selections feed back into the prompt.
+
+The hook also runs the `which` and `type` lookups for `alf which <NAME>` inside your interactive shell, so the Which/Type results see your live aliases and functions, just like typing `which <NAME>` yourself. Without the hook (e.g. `command alf which <NAME>`), alf falls back to running them in a fresh, non-interactive shell, which does not know about aliases or functions from your rc files. After upgrading alf, restart your shell (or re-run the `eval` line above) to pick up hook changes.
 
 Tab vs Enter semantics:
 
