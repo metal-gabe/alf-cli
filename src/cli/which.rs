@@ -145,7 +145,8 @@ impl TableLine {
    /// Split the line into lines no wider than `max_width`, keeping each character's styling
    ///
    /// Lines break at the last space that fits, or mid-word when a word is wider than the space left.
-   /// Every line after the first starts with the unstyled `continuation` text.
+   /// Every line after the first starts with the unstyled `continuation` text, shortened when the next
+   /// character would not fit beside it.
    fn wrap(
       &self,
       max_width: usize,
@@ -158,11 +159,26 @@ impl TableLine {
 
       let cells: Vec<(char, usize)> =
          self.spans.iter().enumerate().flat_map(|(idx, span)| span.text.chars().map(move |ch| (ch, idx))).collect();
-      let mut rows: Vec<&[(char, usize)]> = Vec::new();
+      let mut rows: Vec<(String, &[(char, usize)])> = Vec::new();
       let mut start = 0;
 
       while start < cells.len() {
-         let available = if rows.is_empty() { max_width } else { max_width - continuation_width };
+         let next_width = cells[start].0.width().unwrap_or_default();
+         let mut prefix = if rows.is_empty() { String::new() } else { self.continuation.clone() };
+
+         if prefix.width() + next_width > max_width {
+            let limit = max_width.saturating_sub(next_width);
+            let mut prefix_width = 0;
+            prefix = prefix
+               .chars()
+               .take_while(|ch| {
+                  prefix_width += ch.width().unwrap_or_default();
+                  prefix_width <= limit
+               })
+               .collect();
+         }
+
+         let available = max_width - prefix.width();
          let mut end = start;
          let mut used = 0;
 
@@ -178,32 +194,34 @@ impl TableLine {
          }
 
          if end == cells.len() {
-            rows.push(&cells[start..]);
+            rows.push((prefix, &cells[start..]));
             break;
          }
 
          let space = cells[start..end].iter().rposition(|(ch, _)| *ch == ' ').filter(|pos| *pos > 0);
          let split = space.map_or(end.max(start + 1), |pos| start + pos);
-         rows.push(&cells[start..split]);
+         rows.push((prefix, &cells[start..split]));
          start = if space.is_some() { split + 1 } else { split };
       }
 
-      rows.iter().enumerate().map(|(idx, row)| self.rebuild_row(row, idx > 0)).collect()
+      rows.iter().map(|(prefix, row)| self.rebuild_row(row, prefix)).collect()
    }
 
-   /// Rebuild a line from `cells` of characters and their span indexes, prefixed with the continuation text
-   /// when `is_continuation` is set
+   /// Rebuild a line from `cells` of characters and their span indexes, starting with the unstyled `prefix`
+   ///
+   /// The prefix is the continuation text, shortened when a wide character would not otherwise fit, or empty
+   /// for the first row.
    fn rebuild_row(
       &self,
       cells: &[(char, usize)],
-      is_continuation: bool,
+      prefix: &str,
    ) -> TableLine {
       let mut spans: Vec<StyledSpan> = Vec::new();
 
-      if is_continuation {
+      if !prefix.is_empty() {
          spans.push(StyledSpan {
             style: String::new(),
-            text: self.continuation.clone(),
+            text: prefix.to_string(),
          });
       }
 
@@ -326,18 +344,21 @@ fn build_alf_lines(
 }
 
 /// Build a line whose `value` is colored as content after an unstyled `prefix` when `is_terminal` is set
+///
+/// Tabs in `value` are expanded to spaces so the measured width matches what the terminal draws.
 fn build_content_line(
    prefix: &str,
    value: &str,
    is_terminal: bool,
 ) -> TableLine {
    let continuation = if prefix.is_empty() { CONTINUATION_MARKER.to_string() } else { " ".repeat(prefix.width()) };
+   let value = value.replace('\t', TAB_SPACES);
 
    if !is_terminal {
       return TableLine::plain(&format!("{}{}", prefix, value)).with_continuation(&continuation);
    }
 
-   TableLine::styled(&format!("{}{}", prefix, paint(value, CONTENT_COLOR))).with_continuation(&continuation)
+   TableLine::styled(&format!("{}{}", prefix, paint(&value, CONTENT_COLOR))).with_continuation(&continuation)
 }
 
 /// Build a labelled field, indenting any continuation lines under the first
