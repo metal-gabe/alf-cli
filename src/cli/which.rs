@@ -6,6 +6,7 @@ use anyhow::Result;
 use std::io::IsTerminal;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use unicode_width::UnicodeWidthStr;
 
 const ALF_COLOR: (u8, u8, u8) = (255, 150, 50);
 const ANSI_RESET: &str = "\x1b[0m";
@@ -26,7 +27,7 @@ impl TableLine {
    fn plain(text: &str) -> Self {
       Self {
          rendered: text.to_string(),
-         width: text.chars().count(),
+         width: text.width(),
       }
    }
 
@@ -37,7 +38,7 @@ impl TableLine {
    ) -> Self {
       Self {
          rendered: format!("{}{}", rendered, ANSI_RESET),
-         width: plain.chars().count(),
+         width: plain.width(),
       }
    }
 
@@ -70,14 +71,21 @@ pub fn run_which(
    will_show_script: bool,
 ) -> Result<()> {
    let config = crate::config::load_config().ok();
-   let entries = crate::tui::load_entries(config.as_ref()).unwrap_or_default();
-   let matches = find_entries(&entries, name);
+   let entries = match crate::tui::load_entries(config.as_ref()) {
+      Ok(entries) => Some(entries),
+      Err(error) => {
+         eprintln!("Warning: Failed to load shell files: {}", error);
+         None
+      },
+   };
+   let are_entries_loaded = entries.is_some();
+   let matches = entries.as_deref().map(|entries| find_entries(entries, name)).unwrap_or_default();
    let is_terminal = std::io::stdout().is_terminal();
    let which_config = config.map(|cfg| cfg.which).unwrap_or_default();
    let which_result = resolve_lookup(name, "ALF_WHICH_RESULT", || which_lookup(name));
    let type_result = resolve_lookup(name, "ALF_TYPE_RESULT", || type_lookup(name));
    let is_known_to_shell = which_result.is_some() || type_result.is_some();
-   let alf_lines = build_alf_lines(&matches, will_show_script, is_known_to_shell, is_terminal);
+   let alf_lines = build_alf_lines(&matches, will_show_script, are_entries_loaded, is_known_to_shell, is_terminal);
    let alf_section = build_section("Alf Result", ALF_COLOR, alf_lines, is_terminal);
    let mut lookup_sections = Vec::new();
 
@@ -97,18 +105,24 @@ pub fn run_which(
 
 /// Build the alf cell lines for each matching entry, including the script only when `will_show_script` is set
 ///
-/// With no matches, `is_known_to_shell` notes that `which`/`type` found the name, so it exists but is not
-/// defined in any configured `shell_files` entry.
+/// With no matches, the message says when the shell files failed to load (`are_entries_loaded` unset), or
+/// when `is_known_to_shell` notes that `which`/`type` found the name but no configured `shell_files` entry
+/// defines it.
 fn build_alf_lines(
    matches: &[&AliasEntry],
    will_show_script: bool,
+   are_entries_loaded: bool,
    is_known_to_shell: bool,
    is_terminal: bool,
 ) -> Vec<TableLine> {
    let mut lines = Vec::new();
 
    if matches.is_empty() {
-      let message = if is_known_to_shell { "None (not in shell_files)" } else { "None" };
+      let message = match (are_entries_loaded, is_known_to_shell) {
+         (false, _) => "Unavailable (shell files failed to load)",
+         (true, true) => "None (not in shell_files)",
+         (true, false) => "None",
+      };
       lines.push(build_content_line("", message, is_terminal));
    }
 
