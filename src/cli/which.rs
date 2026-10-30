@@ -6,48 +6,220 @@ use anyhow::Result;
 use std::io::IsTerminal;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use unicode_width::UnicodeWidthStr;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 const ALF_COLOR: (u8, u8, u8) = (255, 150, 50);
 const ANSI_RESET: &str = "\x1b[0m";
 const CONTENT_COLOR: (u8, u8, u8) = (204, 204, 204);
+const CONTINUATION_MARKER: &str = "↪ ";
 const LABEL_WIDTH: usize = 13;
 const TAB_SPACES: &str = "    ";
 const TYPE_COLOR: (u8, u8, u8) = (175, 110, 235);
 const WHICH_COLOR: (u8, u8, u8) = (80, 150, 255);
 
+/// A run of text drawn with a single ANSI style, where an empty `style` means unstyled
+#[derive(Clone)]
+struct StyledSpan {
+   style: String,
+   text: String,
+}
+
 /// A single line of table content, keeping its visible width apart from any ANSI styling
+#[derive(Clone)]
 struct TableLine {
-   rendered: String,
+   continuation: String,
+   spans: Vec<StyledSpan>,
    width: usize,
 }
 
 impl TableLine {
+   /// Create a line from `spans`, starting any wrapped continuation lines with `continuation`
+   fn new(
+      spans: Vec<StyledSpan>,
+      continuation: &str,
+   ) -> Self {
+      let width = spans.iter().map(|span| span.text.width()).sum();
+
+      Self {
+         continuation: continuation.to_string(),
+         spans,
+         width,
+      }
+   }
+
    /// Create a line of unstyled text
    fn plain(text: &str) -> Self {
-      Self {
-         rendered: text.to_string(),
-         width: text.width(),
-      }
+      Self::new(
+         vec![StyledSpan {
+            style: String::new(),
+            text: text.to_string(),
+         }],
+         "",
+      )
    }
 
-   /// Create a line whose `rendered` text carries ANSI styling over the visible `plain` text
-   fn styled(
-      plain: &str,
-      rendered: &str,
+   /// Create a line from text carrying ANSI styling, splitting it into styled spans
+   fn styled(rendered: &str) -> Self {
+      let mut spans = Vec::new();
+      let mut style = String::new();
+      let mut text = String::new();
+      let mut chars = rendered.chars();
+
+      while let Some(ch) = chars.next() {
+         if ch != '\x1b' {
+            text.push(ch);
+            continue;
+         }
+
+         let mut sequence = String::from(ch);
+
+         for next in chars.by_ref() {
+            sequence.push(next);
+
+            if next == 'm' {
+               break;
+            }
+         }
+
+         if !text.is_empty() {
+            spans.push(StyledSpan {
+               style: style.clone(),
+               text: std::mem::take(&mut text),
+            });
+         }
+
+         if sequence == ANSI_RESET {
+            style.clear();
+         } else {
+            style = sequence;
+         }
+      }
+
+      if !text.is_empty() {
+         spans.push(StyledSpan {
+            style,
+            text,
+         });
+      }
+
+      Self::new(spans, "")
+   }
+
+   /// Start any wrapped continuation lines with `continuation`
+   fn with_continuation(
+      mut self,
+      continuation: &str,
    ) -> Self {
-      Self {
-         rendered: format!("{}{}", rendered, ANSI_RESET),
-         width: plain.width(),
-      }
+      self.continuation = continuation.to_string();
+      self
    }
 
-   /// Render the line padded with spaces to `width` visible columns
+   /// Render the line with its ANSI styling, padded with spaces to `width` visible columns
    fn padded(
       &self,
       width: usize,
    ) -> String {
-      format!("{}{}", self.rendered, " ".repeat(width.saturating_sub(self.width)))
+      let mut rendered = String::new();
+      let mut current_style = "";
+
+      for span in &self.spans {
+         if span.style != current_style {
+            if !current_style.is_empty() {
+               rendered.push_str(ANSI_RESET);
+            }
+
+            rendered.push_str(&span.style);
+            current_style = &span.style;
+         }
+
+         rendered.push_str(&span.text);
+      }
+
+      if !current_style.is_empty() {
+         rendered.push_str(ANSI_RESET);
+      }
+
+      format!("{}{}", rendered, " ".repeat(width.saturating_sub(self.width)))
+   }
+
+   /// Split the line into lines no wider than `max_width`, keeping each character's styling
+   ///
+   /// Lines break at the last space that fits, or mid-word when a word is wider than the space left.
+   /// Every line after the first starts with the unstyled `continuation` text.
+   fn wrap(
+      &self,
+      max_width: usize,
+   ) -> Vec<TableLine> {
+      let continuation_width = self.continuation.width();
+
+      if self.width <= max_width || max_width <= continuation_width {
+         return vec![self.clone()];
+      }
+
+      let cells: Vec<(char, usize)> =
+         self.spans.iter().enumerate().flat_map(|(idx, span)| span.text.chars().map(move |ch| (ch, idx))).collect();
+      let mut rows: Vec<&[(char, usize)]> = Vec::new();
+      let mut start = 0;
+
+      while start < cells.len() {
+         let available = if rows.is_empty() { max_width } else { max_width - continuation_width };
+         let mut end = start;
+         let mut used = 0;
+
+         while let Some((ch, _)) = cells.get(end) {
+            let char_width = ch.width().unwrap_or_default();
+
+            if used + char_width > available {
+               break;
+            }
+
+            used += char_width;
+            end += 1;
+         }
+
+         if end == cells.len() {
+            rows.push(&cells[start..]);
+            break;
+         }
+
+         let space = cells[start..end].iter().rposition(|(ch, _)| *ch == ' ').filter(|pos| *pos > 0);
+         let split = space.map_or(end.max(start + 1), |pos| start + pos);
+         rows.push(&cells[start..split]);
+         start = if space.is_some() { split + 1 } else { split };
+      }
+
+      rows.iter().enumerate().map(|(idx, row)| self.rebuild_row(row, idx > 0)).collect()
+   }
+
+   /// Rebuild a line from `cells` of characters and their span indexes, prefixed with the continuation text
+   /// when `is_continuation` is set
+   fn rebuild_row(
+      &self,
+      cells: &[(char, usize)],
+      is_continuation: bool,
+   ) -> TableLine {
+      let mut spans: Vec<StyledSpan> = Vec::new();
+
+      if is_continuation {
+         spans.push(StyledSpan {
+            style: String::new(),
+            text: self.continuation.clone(),
+         });
+      }
+
+      for (ch, idx) in cells {
+         let style = &self.spans[*idx].style;
+
+         match spans.last_mut() {
+            Some(span) if span.style == *style => span.text.push(*ch),
+            _ => spans.push(StyledSpan {
+               style: style.clone(),
+               text: ch.to_string(),
+            }),
+         }
+      }
+
+      TableLine::new(spans, &self.continuation)
    }
 }
 
@@ -90,7 +262,10 @@ pub fn run_which(
    let mut lookup_sections = Vec::new();
 
    if !which_config.hide_which.is_hidden(which_result.is_some()) {
-      let which_lines = build_lookup_lines(which_result.as_deref(), is_terminal);
+      let which_lines = match which_result.as_deref() {
+         Some(result) => build_script_lines(result, is_terminal),
+         None => build_lookup_lines(None, is_terminal),
+      };
       lookup_sections.push(build_section("Which Result", WHICH_COLOR, which_lines, is_terminal));
    }
 
@@ -156,11 +331,13 @@ fn build_content_line(
    value: &str,
    is_terminal: bool,
 ) -> TableLine {
+   let continuation = if prefix.is_empty() { CONTINUATION_MARKER.to_string() } else { " ".repeat(prefix.width()) };
+
    if !is_terminal {
-      return TableLine::plain(&format!("{}{}", prefix, value));
+      return TableLine::plain(&format!("{}{}", prefix, value)).with_continuation(&continuation);
    }
 
-   TableLine::styled(&format!("{}{}", prefix, value), &format!("{}{}", prefix, paint(value, CONTENT_COLOR)))
+   TableLine::styled(&format!("{}{}", prefix, paint(value, CONTENT_COLOR))).with_continuation(&continuation)
 }
 
 /// Build a labelled field, indenting any continuation lines under the first
@@ -204,12 +381,16 @@ fn build_script_lines(
    let script = script.trim_end_matches('\n');
 
    if !is_terminal {
-      return script.lines().map(TableLine::plain).collect();
+      return script.lines().map(|line| TableLine::plain(line).with_continuation(CONTINUATION_MARKER)).collect();
    }
 
    let highlighted = highlight_shell_script_ansi(script);
 
-   script.lines().zip(highlighted.split('\n')).map(|(plain, rendered)| TableLine::styled(plain, rendered)).collect()
+   highlighted
+      .split('\n')
+      .take(script.lines().count())
+      .map(|rendered| TableLine::styled(rendered).with_continuation(CONTINUATION_MARKER))
+      .collect()
 }
 
 /// Build a titled table section, colored with `color` when `is_terminal` is set
@@ -262,15 +443,18 @@ fn display_path(path: &Path) -> String {
    path.display().to_string()
 }
 
-/// Print the lookup sections beside each other above a full-width alf row
+/// Print a full-width alf row above the lookup sections, which sit beside each other
 ///
 /// Each lookup section gets its own full-width row instead when there are not exactly two of them, or when
 /// placing both side by side would be wider than the terminal. Every row is sized to the same total width.
+///
+/// When printing to a terminal, rows are capped at the terminal width and longer lines wrap.
 fn print_table(
    lookup_sections: &[TableSection],
    alf_section: &TableSection,
 ) {
    let terminal_width = crossterm::terminal::size().ok().map(|(columns, _)| usize::from(columns));
+   let max_width = terminal_width.filter(|_| std::io::stdout().is_terminal()).map(|columns| columns.saturating_sub(4));
    let side_by_side = match lookup_sections {
       [left, right] if !terminal_width.is_some_and(|columns| left.width + right.width + 7 > columns) => {
          Some((left, right))
@@ -282,10 +466,14 @@ fn print_table(
 
    if let Some((left, right)) = side_by_side {
       let right_width = right.width.max(alf_section.width.saturating_sub(left.width + 3));
+      let right_width =
+         max_width.map_or(right_width, |max| right_width.min(max.saturating_sub(left.width + 3)).max(right.width));
       let full_width = left.width + right_width + 3;
       let empty = TableLine::plain("");
       let row_count = left.lines.len().max(right.lines.len());
-      println!("{}", border("┌", "┬", "┐", &[left.width, right_width]));
+      println!("{}", border("┌", "┬", "┐", &[full_width]));
+      print_full_row(alf_section, full_width);
+      println!("{}", border("├", "┬", "┤", &[left.width, right_width]));
       println!("│ {} │ {} │", left.header.padded(left.width), right.header.padded(right_width));
       println!("│ {} │ {} │", left.underline.padded(left.width), right.underline.padded(right_width));
 
@@ -295,9 +483,7 @@ fn print_table(
          println!("│ {} │ {} │", left_line.padded(left.width), right_line.padded(right_width));
       }
 
-      println!("{}", border("├", "┴", "┤", &[left.width, right_width]));
-      print_full_row(alf_section, full_width);
-      println!("{}", border("└", "┬", "┘", &[full_width]));
+      println!("{}", border("└", "┴", "┘", &[left.width, right_width]));
    } else {
       let full_width = lookup_sections
          .iter()
@@ -305,21 +491,22 @@ fn print_table(
          .map(|section| section.width)
          .max()
          .unwrap_or_default();
+      let full_width = max_width.map_or(full_width, |max| full_width.min(max));
       println!("{}", border("┌", "┬", "┐", &[full_width]));
+      print_full_row(alf_section, full_width);
 
       for section in lookup_sections {
-         print_full_row(section, full_width);
          println!("{}", border("├", "┬", "┤", &[full_width]));
+         print_full_row(section, full_width);
       }
 
-      print_full_row(alf_section, full_width);
       println!("{}", border("└", "┬", "┘", &[full_width]));
    }
 
    println!();
 }
 
-/// Print a full-width row holding a section's header, underline and lines, padded to `width`
+/// Print a full-width row holding a section's header, underline and lines, wrapped and padded to `width`
 fn print_full_row(
    section: &TableSection,
    width: usize,
@@ -327,12 +514,12 @@ fn print_full_row(
    println!("│ {} │", section.header.padded(width));
    println!("│ {} │", section.underline.padded(width));
 
-   for line in &section.lines {
+   for line in section.lines.iter().flat_map(|line| line.wrap(width)) {
       println!("│ {} │", line.padded(width));
    }
 }
 
-/// Wrap `text` in a 24-bit ANSI foreground `(r, g, b)` color, leaving the reset to [`TableLine::styled`]
+/// Wrap `text` in a 24-bit ANSI foreground `(r, g, b)` color, leaving the reset to [`TableLine::padded`]
 fn paint(
    text: &str,
    color: (u8, u8, u8),
@@ -352,7 +539,7 @@ fn title(
       return TableLine::plain(text);
    }
 
-   TableLine::styled(text, &paint(text, color))
+   TableLine::styled(&paint(text, color))
 }
 
 /// Build a line of dashes as wide as `title`, colored with `color` when `is_terminal` is set
@@ -367,7 +554,7 @@ fn underline(
       return TableLine::plain(&dashes);
    }
 
-   TableLine::styled(&dashes, &paint(&dashes, color))
+   TableLine::styled(&paint(&dashes, color))
 }
 
 /// Use the lookup result the shell wrapper passed in `env_key`, or run `fallback` when it did not
