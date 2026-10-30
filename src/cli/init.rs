@@ -138,6 +138,21 @@ fn get_shell_hook(shell: &str) -> &'static str {
          r#"alf() {
   local tmp action entry rc
   tmp="$(mktemp)" || return 1
+  if [[ "$1" == "which" ]]; then
+    local arg name=""
+    for arg in "${@:2}"; do
+      case "$arg" in
+        '-h'|'--help') name=""; break ;;
+        '-'*) ;;
+        *) [[ -z "$name" ]] && name="$arg" ;;
+      esac
+    done
+    if [[ -n "$name" ]]; then
+      local -x ALF_LOOKUP_NAME="$name" ALF_WHICH_RESULT="" ALF_TYPE_RESULT=""
+      ALF_WHICH_RESULT="$(which "$name" 2>/dev/null)" || ALF_WHICH_RESULT=""
+      ALF_TYPE_RESULT="$(type "$name" 2>/dev/null)" || ALF_TYPE_RESULT=""
+    fi
+  fi
   ALF_OUTPUT="$tmp" command alf "$@"
   rc=$?
   if [[ -s "$tmp" ]]; then
@@ -170,6 +185,21 @@ fn get_shell_hook(shell: &str) -> &'static str {
          r#"alf() {
   local tmp action entry rc
   tmp="$(mktemp)" || return 1
+  if [[ "$1" == "which" ]]; then
+    local arg name=""
+    for arg in "${@:2}"; do
+      case "$arg" in
+        '-h'|'--help') name=""; break ;;
+        '-'*) ;;
+        *) [[ -z "$name" ]] && name="$arg" ;;
+      esac
+    done
+    if [[ -n "$name" ]]; then
+      local -x ALF_LOOKUP_NAME="$name" ALF_WHICH_RESULT="" ALF_TYPE_RESULT=""
+      ALF_WHICH_RESULT="$(which "$name" 2>/dev/null)" || ALF_WHICH_RESULT=""
+      ALF_TYPE_RESULT="$(type "$name" 2>/dev/null)" || ALF_TYPE_RESULT=""
+    fi
+  fi
   ALF_OUTPUT="$tmp" command alf "$@"
   rc=$?
   if [[ -s "$tmp" ]]; then

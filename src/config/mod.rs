@@ -15,6 +15,8 @@ pub struct Config {
    pub general: GeneralConfig,
    pub search: SearchConfig,
    pub ui: UiConfig,
+   #[serde(default)]
+   pub which: WhichConfig,
 }
 
 /// Controls what gets populated when Tab is pressed on an alias
@@ -80,6 +82,76 @@ pub struct DisplayConfig {
    pub parse_comments: bool,
 }
 
+/// `alf which` output preferences
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct WhichConfig {
+   /// When to hide the `type` result box
+   pub hide_type: HideSetting,
+   /// When to hide the `which` result box
+   pub hide_which: HideSetting,
+}
+
+/// When to hide an `alf which` lookup box, written as `true`, `false` or `"is_none"`
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "HideSettingValue", into = "HideSettingValue")]
+pub enum HideSetting {
+   /// Always hide the box
+   Always,
+   /// Hide the box only when its lookup found nothing
+   IsNone,
+   /// Never hide the box
+   #[default]
+   Never,
+}
+
+impl HideSetting {
+   /// Whether the box should be hidden, given whether its lookup found a result
+   pub fn is_hidden(
+      self,
+      does_have_result: bool,
+   ) -> bool {
+      match self {
+         Self::Always => true,
+         Self::IsNone => !does_have_result,
+         Self::Never => false,
+      }
+   }
+}
+
+/// The raw TOML form of a [`HideSetting`]: a boolean or a keyword string
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum HideSettingValue {
+   Flag(bool),
+   Keyword(String),
+}
+
+impl From<HideSetting> for HideSettingValue {
+   fn from(setting: HideSetting) -> Self {
+      match setting {
+         HideSetting::Always => Self::Flag(true),
+         HideSetting::IsNone => Self::Keyword("is_none".to_string()),
+         HideSetting::Never => Self::Flag(false),
+      }
+   }
+}
+
+impl TryFrom<HideSettingValue> for HideSetting {
+   type Error = String;
+
+   fn try_from(value: HideSettingValue) -> Result<Self, Self::Error> {
+      match value {
+         HideSettingValue::Flag(true) => Ok(Self::Always),
+         HideSettingValue::Flag(false) => Ok(Self::Never),
+         HideSettingValue::Keyword(keyword) if keyword == "is_none" => Ok(Self::IsNone),
+         HideSettingValue::Keyword(keyword) => {
+            Err(format!("invalid hide setting `{}`, expected `true`, `false` or \"is_none\"", keyword))
+         },
+      }
+   }
+}
+
 impl Default for Config {
    fn default() -> Self {
       Self {
@@ -99,6 +171,7 @@ impl Default for Config {
             keybind_mode: "vim".to_string(),
             theme: "default".to_string(),
          },
+         which: WhichConfig::default(),
       }
    }
 }

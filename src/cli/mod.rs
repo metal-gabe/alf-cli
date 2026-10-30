@@ -2,6 +2,7 @@
 
 pub mod config_cmd;
 pub mod init;
+pub mod which;
 
 use clap::{Parser, Subcommand};
 
@@ -40,6 +41,19 @@ pub enum Commands {
    Search {
       /// Required search query to filter results on startup
       query: String,
+   },
+
+   /// Show alf info plus `which`/`type` output for an alias, function or command
+   Which {
+      /// Name of the alias, function or command to look up
+      name: String,
+
+      #[arg(hide = true)]
+      ignored: Vec<String>,
+
+      /// Also print the full script contents of each alf match
+      #[arg(long)]
+      show_script: bool,
    },
 }
 

@@ -1,5 +1,6 @@
 ---
 source: src/config/config_tests.rs
+assertion_line: 137
 expression: toml_str
 ---
 [display]
@@ -20,3 +21,7 @@ substring_matching = true
 [ui]
 theme = "default"
 keybind_mode = "vim"
+
+[which]
+hide_type = false
+hide_which = false
