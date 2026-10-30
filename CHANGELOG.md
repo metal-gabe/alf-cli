@@ -1,3 +1,19 @@
+## [0.8.0](https://github.com/metal-gabe/alf-cli/compare/v0.6.0...v0.8.0) (2026-10-30)
+
+
+### Features
+
+* **alf-which-mode:** [no ci] add `which` lookup subcommand; ([f80b22c](https://github.com/metal-gabe/alf-cli/commit/f80b22c70c5783224c780b35432a72ce8e1664ff))
+* **alf-which-mode:** [no ci] add which config, live lookup; ([d259f28](https://github.com/metal-gabe/alf-cli/commit/d259f287db6f3ddc6aaf4b183519e2b8fa770745))
+* **alf-which-mode:** [no ci] wrap lines & reorder table; ([9809f31](https://github.com/metal-gabe/alf-cli/commit/9809f312bbcb5a82b8a5e3c1bed6159044f84692))
+* **alf-which-mode:** make updates per Rabbit review feedback; ([6184abe](https://github.com/metal-gabe/alf-cli/commit/6184abeea8dcfd9ca470bc32b54453505368bf26))
+* **vim-actions:** [no ci] add vim text keybinds to search; ([46608ab](https://github.com/metal-gabe/alf-cli/commit/46608ab11edfde5d8418814c05870c78d6777a4d))
+
+
+### Bug Fixes
+
+* **alf-which-mode:** [no ci] keep wrapped rows in border; ([2d99a4d](https://github.com/metal-gabe/alf-cli/commit/2d99a4d396c58810096e5ab4dfcf3639b1b9a69b))
+
 ## [0.6.0](https://github.com/metal-gabe/alf-cli/compare/v0.5.0...v0.6.0) (2026-10-20)
 
 
