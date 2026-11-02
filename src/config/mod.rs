@@ -1,6 +1,6 @@
 //! Configuration management for alf.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use fs4::FileExt;
 use serde::{Deserialize, Serialize};
 use std::env::var_os;
@@ -9,13 +9,13 @@ use std::path::PathBuf;
 use std::process::id;
 
 /// Main configuration structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Config {
    pub display: DisplayConfig,
    pub general: GeneralConfig,
    pub search: SearchConfig,
    pub ui: UiConfig,
-   #[serde(default)]
    pub which: WhichConfig,
 }
 
@@ -32,22 +32,26 @@ pub enum AliasExpansion {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GeneralConfig {
-   /// List of shell files to parse (supports glob patterns)
+   /// List of shell files to parse; a leading `~` or `$HOME` is expanded, glob patterns are not
    pub shell_files: Vec<String>,
    pub alias_expansion: AliasExpansion,
 }
 
-/// Search behavior configuration
+/// Search behavior configuration, reserved for future use: no setting here has an effect yet
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SearchConfig {
    /// Case matching strategy
    pub case_matching: CaseMatching,
    /// Enable Unicode normalization
-   pub normalize: bool,
+   #[serde(rename = "normalize")]
+   pub should_normalize: bool,
    /// Enable regex support
-   pub enable_regex: bool,
+   #[serde(rename = "enable_regex")]
+   pub is_regex_enabled: bool,
    /// Enable substring matching
-   pub substring_matching: bool,
+   #[serde(rename = "substring_matching")]
+   pub is_substring_matching: bool,
 }
 
 /// Case matching options for search
@@ -64,22 +68,27 @@ pub enum CaseMatching {
 
 /// UI configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct UiConfig {
    /// Selected theme name
    pub theme: String,
-   /// Keybinding mode (currently only "vim" is supported)
+   /// Keybinding mode, reserved for future use: it has no effect yet and only "vim" is supported
    pub keybind_mode: String,
 }
 
-/// Display preferences
+/// Display preferences, reserved for future use: no setting here has an effect yet
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct DisplayConfig {
    /// Show type badges (Alias/Function)
-   pub show_type_badges: bool,
+   #[serde(rename = "show_type_badges")]
+   pub should_show_type_badges: bool,
    /// Enable syntax highlighting
-   pub syntax_highlighting: bool,
+   #[serde(rename = "syntax_highlighting")]
+   pub is_syntax_highlighting_enabled: bool,
    /// Parse and display comments
-   pub parse_comments: bool,
+   #[serde(rename = "parse_comments")]
+   pub should_parse_comments: bool,
 }
 
 /// `alf which` output preferences
@@ -152,26 +161,32 @@ impl TryFrom<HideSettingValue> for HideSetting {
    }
 }
 
-impl Default for Config {
+impl Default for DisplayConfig {
    fn default() -> Self {
       Self {
-         display: DisplayConfig {
-            parse_comments: true,
-            show_type_badges: true,
-            syntax_highlighting: true,
-         },
-         general: GeneralConfig::default(),
-         search: SearchConfig {
-            case_matching: CaseMatching::Smart,
-            enable_regex: true,
-            normalize: true,
-            substring_matching: true,
-         },
-         ui: UiConfig {
-            keybind_mode: "vim".to_string(),
-            theme: "default".to_string(),
-         },
-         which: WhichConfig::default(),
+         should_parse_comments: true,
+         should_show_type_badges: true,
+         is_syntax_highlighting_enabled: true,
+      }
+   }
+}
+
+impl Default for SearchConfig {
+   fn default() -> Self {
+      Self {
+         case_matching: CaseMatching::Smart,
+         is_regex_enabled: true,
+         should_normalize: true,
+         is_substring_matching: true,
+      }
+   }
+}
+
+impl Default for UiConfig {
+   fn default() -> Self {
+      Self {
+         keybind_mode: "vim".to_string(),
+         theme: "default".to_string(),
       }
    }
 }
@@ -251,7 +266,7 @@ impl Drop for ConfigLock {
 /// `dirs::home_dir` is only the fallback. On Windows it reads the profile known folder and ignores
 /// both variables, so relying on it alone would expand `~` to the real user profile even when the
 /// environment points somewhere else — which silently defeats an isolated test home.
-fn resolve_home_dir() -> Option<PathBuf> {
+pub fn resolve_home_dir() -> Option<PathBuf> {
    for key in ["HOME", "USERPROFILE"] {
       match var_os(key) {
          Some(value) if !value.is_empty() => return Some(PathBuf::from(value)),
@@ -289,26 +304,39 @@ pub fn expand_path(file_path_str: &str) -> PathBuf {
 /// Load configuration from disk
 pub fn load_config() -> Result<Config> {
    let path = get_config_path()?;
-   let content = fs::read_to_string(&path)?;
-   let config: Config = toml::from_str(&content)?;
+   let content = fs::read_to_string(&path).with_context(|| format!("Failed to read config at {}", path.display()))?;
+   let config: Config =
+      toml::from_str(&content).with_context(|| format!("Failed to parse config at {}", path.display()))?;
    Ok(config)
+}
+
+/// Load configuration from disk, returning `None` when no config file exists
+///
+/// # Errors
+/// Returns an error when a config file exists but cannot be read or parsed, so a broken config is
+/// never mistaken for a missing one.
+pub fn load_optional_config() -> Result<Option<Config>> {
+   if is_first_run()? {
+      return Ok(None);
+   }
+
+   load_config().map(Some)
 }
 
 /// Save configuration to disk
 ///
 /// The new contents are written to a sibling temporary file and then renamed over the target, so a
 /// failure part-way through leaves the previous configuration intact rather than a truncated file.
-/// The temporary name carries the process id to keep concurrent writers from sharing it.
+/// The temporary name carries the process id to keep concurrent writers from sharing it. A symlinked
+/// config file is resolved first, so the rename updates its target instead of replacing the link.
 pub fn save_config(config: &Config) -> Result<()> {
    let path = get_config_path()?;
 
-   // `parent()` yields the config file's directory, or `None` for a path with no parent at all.
-   // `create_dir_all` builds every missing ancestor and succeeds when they already exist, so it
-   // acts as the existence check itself
    if let Some(parent) = path.parent() {
       fs::create_dir_all(parent)?;
    }
 
+   let path = fs::canonicalize(&path).unwrap_or(path);
    let content = toml::to_string_pretty(config)?;
    let temp_path = path.with_extension(format!("toml.{}.tmp", id()));
 

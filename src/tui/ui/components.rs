@@ -69,18 +69,18 @@ pub fn render_scrollbar(
 ///
 /// # Arguments
 /// * `is_active` - Whether the panel is active
-/// * `use_bold` - If true, adds BOLD modifier when inactive (becomes BOLD | DIM); when active returns empty Style
+/// * `is_bold` - Adds BOLD in both states (BOLD when active, BOLD | DIM when inactive)
 ///
 /// # Returns
-/// * If `is_active` and `use_bold` is true: empty Style with BOLD
-/// * If `is_active` and `use_bold` is false: empty Style
-/// * If inactive and `use_bold` is true: BOLD | DIM
-/// * If inactive and `use_bold` is false: DIM only
+/// * If `is_active` and `is_bold` is true: empty Style with BOLD
+/// * If `is_active` and `is_bold` is false: empty Style
+/// * If inactive and `is_bold` is true: BOLD | DIM
+/// * If inactive and `is_bold` is false: DIM only
 pub fn active_style(
    is_active: bool,
-   use_bold: bool,
+   is_bold: bool,
 ) -> Style {
-   match (is_active, use_bold) {
+   match (is_active, is_bold) {
       (true, true) => Style::default().add_modifier(Modifier::BOLD),
       (true, false) => Style::default(),
       (false, true) => Style::default().add_modifier(Modifier::BOLD | Modifier::DIM),

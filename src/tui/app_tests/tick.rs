@@ -1,15 +1,12 @@
 use super::*;
 
 #[test]
-fn tick_with_no_pending_key_no_panic() {
+fn tick_leaves_state_alone_without_an_expired_key() {
    let mut app = make_app();
    app.tick();
-}
-
-#[test]
-fn tick_does_not_alter_state_when_key_fresh() {
-   let mut app = make_app();
-   app.set_pending_key('g');
+   assert!(app.pending_key().is_none());
+   assert!(app.is_running());
+   app.set_pending_key('o');
    app.tick();
-   assert!(app.pending_key().is_some());
+   assert_eq!(app.pending_key(), Some('o'), "A fresh pending key should survive a tick");
 }

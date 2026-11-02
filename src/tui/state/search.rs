@@ -59,12 +59,10 @@ impl SearchState {
       &mut self,
       c: char,
    ) {
-      // Convert uppercase letters to lowercase, leave special chars/symbols unchanged
       let char_to_insert = if c.is_ascii_uppercase() { c.to_ascii_lowercase() } else { c };
 
-      // Map character index to byte index for safe UTF-8 insertion
       let byte_index =
-         self.query.char_indices().nth(self.cursor_position).map(|(idx, _)| idx).unwrap_or(self.query.len()); // If at end, use total byte length
+         self.query.char_indices().nth(self.cursor_position).map(|(idx, _)| idx).unwrap_or(self.query.len());
 
       self.query.insert(byte_index, char_to_insert);
       self.cursor_position += 1;
@@ -73,12 +71,8 @@ impl SearchState {
    /// Delete the character before the cursor in the search query
    pub fn delete_char(&mut self) {
       if self.cursor_position > 0 {
-         // Map character index to byte index for the character to delete
-         // We need to find the byte range of the character at position (cursor_position - 1)
          if let Some((byte_idx, ch)) = self.query.char_indices().nth(self.cursor_position - 1) {
-            // Calculate the byte length of the character to remove
             let char_len = ch.len_utf8();
-            // Remove the byte range for this character
             self.query.drain(byte_idx..byte_idx + char_len);
             self.cursor_position -= 1;
          }
@@ -94,7 +88,6 @@ impl SearchState {
 
    /// Move search cursor right
    pub fn move_cursor_right(&mut self) {
-      // Use character count, not byte length
       let char_count = self.query.chars().count();
       if self.cursor_position < char_count {
          self.cursor_position += 1;

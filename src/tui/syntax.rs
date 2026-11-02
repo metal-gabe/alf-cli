@@ -11,6 +11,22 @@ use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span, Text};
+#[cfg(feature = "syntax-highlighting")]
+use std::sync::OnceLock;
+
+/// The bundled syntax definitions, loaded once because deserializing them is too slow to do per frame
+#[cfg(feature = "syntax-highlighting")]
+fn syntax_set() -> &'static SyntaxSet {
+   static SYNTAX_SET: OnceLock<SyntaxSet> = OnceLock::new();
+   SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines)
+}
+
+/// The bundled highlighting themes, loaded once because deserializing them is too slow to do per frame
+#[cfg(feature = "syntax-highlighting")]
+fn theme_set() -> &'static ThemeSet {
+   static THEME_SET: OnceLock<ThemeSet> = OnceLock::new();
+   THEME_SET.get_or_init(ThemeSet::load_defaults)
+}
 
 /// Convert syntect color to ratatui color
 #[cfg(feature = "syntax-highlighting")]
@@ -21,13 +37,11 @@ fn syntect_color_to_ratatui(color: syntect::highlighting::Color) -> Color {
 /// Highlight shell script code with syntax highlighting
 #[cfg(feature = "syntax-highlighting")]
 pub fn highlight_shell_script(code: &str) -> Text<'static> {
-   let ps = SyntaxSet::load_defaults_newlines();
-   let ts = ThemeSet::load_defaults();
+   let ps = syntax_set();
+   let ts = theme_set();
 
-   // Use a dark theme that works well with our color scheme
    let theme = &ts.themes["base16-ocean.dark"];
 
-   // Try to find the best syntax for shell scripts
    let syntax = ps
       .find_syntax_by_extension("sh")
       .or_else(|| ps.find_syntax_by_extension("bash"))
@@ -38,7 +52,7 @@ pub fn highlight_shell_script(code: &str) -> Text<'static> {
    let mut lines = Vec::new();
 
    for line in LinesWithEndings::from(code) {
-      let ranges = highlighter.highlight_line(line, &ps).unwrap_or_default();
+      let ranges = highlighter.highlight_line(line, ps).unwrap_or_default();
 
       let mut spans = Vec::new();
       for (style, text) in ranges {
@@ -62,8 +76,8 @@ pub fn highlight_shell_script(code: &str) -> Text<'static> {
 /// Highlight shell script code as 24-bit ANSI terminal escapes
 #[cfg(feature = "syntax-highlighting")]
 pub fn highlight_shell_script_ansi(code: &str) -> String {
-   let ps = SyntaxSet::load_defaults_newlines();
-   let ts = ThemeSet::load_defaults();
+   let ps = syntax_set();
+   let ts = theme_set();
    let theme = &ts.themes["base16-ocean.dark"];
    let syntax = ps
       .find_syntax_by_extension("sh")
@@ -74,7 +88,7 @@ pub fn highlight_shell_script_ansi(code: &str) -> String {
    let mut output = String::new();
 
    for line in LinesWithEndings::from(code) {
-      let ranges = highlighter.highlight_line(line, &ps).unwrap_or_default();
+      let ranges = highlighter.highlight_line(line, ps).unwrap_or_default();
       output.push_str(&as_24_bit_terminal_escaped(&ranges, false));
    }
 
@@ -91,31 +105,30 @@ pub fn highlight_shell_script_ansi(code: &str) -> String {
 /// Highlight shell script code with line numbers and optional dimming for inactive panels
 pub fn highlight_shell_script_with_style(
    code: &str,
-   dim: bool,
+   is_dimmed: bool,
 ) -> Text<'static> {
    let text = highlight_shell_script(code);
 
-   // Add line numbers to each line
    let mut numbered_lines = Vec::new();
    let line_count = text.lines.len();
-   let line_num_width = line_count.to_string().len().max(2); // At least 2 digits width
+   let line_num_width = line_count.to_string().len().max(2);
 
    for (idx, line) in text.lines.into_iter().enumerate() {
       let line_num = idx + 1;
       let line_num_str = format!("{:>width$} ", line_num, width = line_num_width);
 
-      // Create line number span with dimmed style
       let line_num_span = Span::styled(
          line_num_str,
-         Style::default()
-            .fg(Color::Rgb(100, 100, 100)) // Dark gray color for line numbers
-            .add_modifier(if dim { ratatui::style::Modifier::DIM } else { ratatui::style::Modifier::empty() }),
+         Style::default().fg(Color::Rgb(100, 100, 100)).add_modifier(if is_dimmed {
+            ratatui::style::Modifier::DIM
+         } else {
+            ratatui::style::Modifier::empty()
+         }),
       );
 
-      // Combine line number with the existing line spans
       let mut new_spans = vec![line_num_span];
       new_spans.extend(line.spans.into_iter().map(|span| {
-         if dim {
+         if is_dimmed {
             Span::styled(span.content, span.style.add_modifier(ratatui::style::Modifier::DIM))
          } else {
             span

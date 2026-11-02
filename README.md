@@ -87,23 +87,23 @@ The comments are annotations for this README and are not written to the generate
 
 ```toml
 [display]
-show_type_badges = true      # show Alias/Function badges
-syntax_highlighting = true   # syntax highlight in detail view
-parse_comments = true        # parse and display comments from shell files
+show_type_badges = true      # reserved: no effect yet
+syntax_highlighting = true   # reserved: no effect yet
+parse_comments = true        # reserved: no effect yet
 
 [general]
-shell_files = ["~/.bashrc", "~/.zshrc"]  # detected at init; glob patterns supported
+shell_files = ["~/.bashrc", "~/.zshrc"]  # detected at init; `~` and `$HOME` are expanded, glob patterns are not
 alias_expansion = "name"     # "name" | "script" — what Tab/Enter feeds back to the shell
 
 [search]
-case_matching = "smart"      # "ignore" | "smart" | "respect"
-normalize = true             # unicode normalization
-enable_regex = true
-substring_matching = true
+case_matching = "smart"      # reserved: no effect yet
+normalize = true             # reserved: no effect yet
+enable_regex = true          # reserved: no effect yet
+substring_matching = true    # reserved: no effect yet
 
 [ui]
 theme = "default"            # see Available Themes below
-keybind_mode = "vim"         # currently only "vim" is supported
+keybind_mode = "vim"         # reserved: no effect yet
 
 [which]
 hide_type = false            # hide the `alf which` Type Result box: true | false | "is_none" (only when `type` finds nothing)

@@ -34,34 +34,28 @@ pub(super) fn get_border_style(
    }
 }
 
-// Re-export the draw functions for use by other modules
 pub use body::draw_main_body;
 pub use footer::draw_footer;
 pub use header::draw_header;
 pub use help::draw_help_modal;
 pub use search::draw_search_bar;
 
+/// Columns between the search bar\'s left edge and its text: one for the border and one for padding
+const SEARCH_CURSOR_OFFSET: u16 = 2;
+
 /// Draw the complete TUI interface
 pub fn draw(
    frame: &mut Frame,
    app: &mut App,
 ) {
-   // Get theme for this render pass
    let theme = app.theme().clone();
 
-   // Apply global background color to entire TUI
    let background = Block::default().style(Style::default().bg(theme.background));
    frame.render_widget(background, frame.area());
 
-   // Top-level vertical layout
    let outer_chunks = Layout::default()
       .direction(Direction::Vertical)
-      .constraints([
-         Constraint::Length(1), // Header bar
-         Constraint::Length(3), // Search bar
-         Constraint::Min(0),    // Main content body
-         Constraint::Length(1), // Footer bar
-      ])
+      .constraints([Constraint::Length(1), Constraint::Length(3), Constraint::Min(0), Constraint::Length(1)])
       .split(frame.area());
 
    draw_header(frame, app, &theme, outer_chunks[0]);
@@ -69,14 +63,14 @@ pub fn draw(
    draw_main_body(frame, app, &theme, outer_chunks[2]);
    draw_footer(frame, app, &theme, outer_chunks[3]);
 
-   // Draw help modal overlay if active (must be last to overlay everything)
-   if app.show_help() {
+   if app.is_help_visible() {
       draw_help_modal(frame, app, &theme);
    }
 
-   // Place cursor in search bar when in search mode (and help is not showing)
-   if app.input_mode() == InputMode::Search && !app.show_help() {
-      // Cursor position: inside the search block (1 char border + 1 char padding + cursor_position)
-      frame.set_cursor_position((outer_chunks[1].x + 2 + app.cursor_position() as u16, outer_chunks[1].y + 1));
+   if app.input_mode() == InputMode::Search && !app.is_help_visible() {
+      frame.set_cursor_position((
+         outer_chunks[1].x + SEARCH_CURSOR_OFFSET + app.cursor_position() as u16,
+         outer_chunks[1].y + 1,
+      ));
    }
 }

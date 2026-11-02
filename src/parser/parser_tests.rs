@@ -4,6 +4,10 @@ use crate::models::{AliasEntry, EntryType};
 use std::path::Path;
 use tempfile::NamedTempFile;
 
+type BodyCase = (&'static str, &'static str, &'static [(&'static str, &'static str)]);
+
+const FIXTURE: &str = "tests/fixtures/sample.bashrc";
+
 fn assert_entries_snapshot(
    name: &str,
    entries: &[AliasEntry],
@@ -73,38 +77,6 @@ fn parse_empty_file_returns_empty() {
 }
 
 #[test]
-fn alias_extraction_with_quotes() {
-   let path = Path::new("tests/fixtures/sample.bashrc");
-   let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
-   let aliases: Vec<_> = entries.iter().filter(|e| e.entry_type == EntryType::Alias).collect();
-   assert!(!aliases.is_empty(), "Should find at least one alias");
-   for alias in aliases {
-      assert!(!alias.value.is_empty(), "Alias '{}' should have a command", alias.name);
-   }
-}
-
-#[test]
-fn function_extraction_multiline() {
-   let path = Path::new("tests/fixtures/sample.bashrc");
-   let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
-   let functions: Vec<_> = entries.iter().filter(|e| e.entry_type == EntryType::Function).collect();
-   assert!(!functions.is_empty(), "Should find at least one function");
-   for func in functions {
-      let open_braces = func.value.matches('{').count();
-      let close_braces = func.value.matches('}').count();
-      assert_eq!(open_braces, close_braces, "Function '{}' should have balanced braces", func.name);
-   }
-}
-
-#[test]
-fn comment_extraction() {
-   let path = Path::new("tests/fixtures/sample.bashrc");
-   let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
-   let with_comments: Vec<_> = entries.iter().filter(|e| e.comments.is_some()).collect();
-   assert!(!with_comments.is_empty(), "Sample file has comments, should be parsed");
-}
-
-#[test]
 fn source_file_tracking() {
    let path = Path::new("tests/fixtures/sample.bashrc");
    let entries = super::parse_shell_file(path).expect("Failed to parse bashrc");
@@ -162,4 +134,100 @@ fn empty_line_stops_multiline_comment_parsing() {
    );
    let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
    assert_entries_snapshot("empty_line_stops_multiline_comment", &entries);
+}
+
+#[test]
+fn fixture_aliases_have_exact_values() {
+   let entries = super::parse_shell_file(Path::new(FIXTURE)).expect("Failed to parse bashrc");
+   let aliases: Vec<(&str, &str)> = entries
+      .iter()
+      .filter(|e| e.entry_type == EntryType::Alias)
+      .map(|e| (e.name.as_str(), e.value.as_str()))
+      .collect();
+   assert_eq!(aliases, vec![("ll", "ls -lah"), ("grep", "grep --color=auto")]);
+}
+
+#[test]
+fn fixture_function_has_exact_multiline_body() {
+   let fixture = std::fs::read_to_string(FIXTURE).expect("Failed to read fixture");
+   let start = fixture.find("function extract()").expect("Fixture should define extract");
+   let entries = super::parse_shell_file(Path::new(FIXTURE)).expect("Failed to parse bashrc");
+   let functions: Vec<&AliasEntry> = entries.iter().filter(|e| e.entry_type == EntryType::Function).collect();
+   assert_eq!(functions.len(), 1);
+   assert_eq!(functions[0].name, "extract");
+   assert_eq!(functions[0].value, fixture[start..].trim_end());
+}
+
+#[test]
+fn fixture_comments_have_exact_values() {
+   let entries = super::parse_shell_file(Path::new(FIXTURE)).expect("Failed to parse bashrc");
+   let cases = [
+      ("ll", "list files in long format with hidden files"),
+      ("grep", "search with color highlighting"),
+      ("extract", "extract archives of various formats"),
+   ];
+   for (name, expected) in cases {
+      let entry = entries.iter().find(|e| e.name == name).expect("Fixture entry should exist");
+      assert_eq!(entry.comments, Some(vec![expected.to_string()]), "{name}");
+   }
+}
+
+#[test]
+fn function_bodies_end_at_their_closing_brace() {
+   let cases: [BodyCase; 4] = [
+      (
+         "one-line function before an alias",
+         "foo() { echo hi; }\nalias a='b'\n",
+         &[("a", "b"), ("foo", "foo() { echo hi; }")],
+      ),
+      (
+         "nested braces",
+         "outer() {\n  if true; then { echo a; }; fi\n}\nalias x='y'\n",
+         &[("x", "y"), ("outer", "outer() {\n  if true; then { echo a; }; fi\n}")],
+      ),
+      (
+         "multi-line function before a one-line function",
+         "a() {\n  echo a\n}\nb() { echo b; }\n",
+         &[("a", "a() {\n  echo a\n}"), ("b", "b() { echo b; }")],
+      ),
+      (
+         "two braces opened on the first line",
+         "c() { if x; then {\n  y\n}; }\nalias z='w'\n",
+         &[("z", "w"), ("c", "c() { if x; then {\n  y\n}; }")],
+      ),
+   ];
+   for (label, content, expected) in cases {
+      let f = write_temp_shell(content);
+      let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
+      let actual: Vec<(&str, &str)> = entries.iter().map(|e| (e.name.as_str(), e.value.as_str())).collect();
+      assert_eq!(actual, expected, "{label}");
+   }
+}
+
+#[test]
+fn descriptions_only_apply_to_the_next_definition() {
+   let cases = [
+      ("# alf\n# desc A\n# fla\nalias a='x'\nalias b='y'\n", "a", Some("desc A")),
+      ("# alf\n# desc A\n# fla\nalias a='x'\nalias b='y'\n", "b", None),
+      ("# alf\n# desc A\n# fla\nalias a='x'\nb() {\n  y\n}\n", "b", None),
+      ("#@: desc A :f#\nalias a='x'\nalias b='y'\n", "b", None),
+      ("# alf\nalias a='x'\n", "a", None),
+   ];
+   for (content, name, expected) in cases {
+      let f = write_temp_shell(content);
+      let entries = super::parse_shell_file(f.path()).expect("Failed to parse temp file");
+      let entry = entries.iter().find(|e| e.name == name).expect("Entry should be parsed");
+      assert_eq!(entry.comments, expected.map(|text| vec![text.to_string()]), "{name} in {content:?}");
+   }
+}
+
+#[test]
+fn non_utf8_bytes_do_not_lose_the_file() {
+   use std::io::Write;
+   let mut f = NamedTempFile::new().expect("Failed to create temp file");
+   f.write_all(b"# caf\xe9\nalias u='v'\n").expect("Failed to write");
+   let entries = super::parse_shell_file(f.path()).expect("Non-UTF-8 bytes should not fail the parse");
+   assert_eq!(entries.len(), 1);
+   assert_eq!(entries[0].name, "u");
+   assert_eq!(entries[0].value, "v");
 }

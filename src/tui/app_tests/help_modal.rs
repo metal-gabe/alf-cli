@@ -1,39 +1,26 @@
 use super::*;
 
 #[test]
-fn toggle_help_twice_hides_modal() {
+fn app_forwards_help_toggling_to_ui_state() {
    let mut app = make_app();
-   assert!(!app.show_help());
+   assert!(!app.is_help_visible());
    app.toggle_help();
-   assert!(app.show_help());
+   assert!(app.is_help_visible());
    app.toggle_help();
-   assert!(!app.show_help());
+   assert!(!app.is_help_visible());
 }
 
 #[test]
-fn help_scroll_operations_with_max_set() {
+fn app_forwards_help_scrolling_to_ui_state() {
    let mut app = make_app();
-   app.update_help_max_scroll(30, 10); // max = 20
+   app.update_help_max_scroll(30, 10);
    app.help_jump_bottom();
    assert_eq!(app.help_scroll_offset(), 20);
    app.help_jump_top();
    assert_eq!(app.help_scroll_offset(), 0);
-}
-
-#[test]
-fn help_scroll_down_increments() {
-   let mut app = make_app();
-   app.update_help_max_scroll(20, 5); // max = 15
-   app.help_scroll_down();
-   assert_eq!(app.help_scroll_offset(), 1);
-}
-
-#[test]
-fn help_scroll_up_decrements() {
-   let mut app = make_app();
-   app.update_help_max_scroll(20, 5);
    app.help_scroll_down();
    app.help_scroll_down();
+   assert_eq!(app.help_scroll_offset(), 2);
    app.help_scroll_up();
    assert_eq!(app.help_scroll_offset(), 1);
 }

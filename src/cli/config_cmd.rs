@@ -3,9 +3,10 @@
 use crate::cli::init;
 use crate::cli::ConfigAction;
 use crate::config::{
-   expand_path, get_config_path, is_first_run, load_config, save_config, Config, ConfigLock, GeneralConfig,
+   expand_path, get_config_path, is_first_run, load_config, resolve_home_dir, save_config, Config, ConfigLock,
+   GeneralConfig,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -73,7 +74,7 @@ fn add_source_files(raw_paths: &[String]) -> Result<()> {
 /// Directories, sockets and FIFOs are rejected because the parser reads each configured entry as a
 /// file: a directory would warn on every launch, and a FIFO would block the read. Both checks
 /// follow symlinks, so a symlink to a regular file is still accepted.
-fn resolve_new_source_files(
+pub(super) fn resolve_new_source_files(
    config: &Config,
    raw_paths: &[String],
 ) -> Result<(Vec<String>, Vec<String>)> {
@@ -142,13 +143,17 @@ fn show_config() -> Result<()> {
 fn edit_config() -> Result<()> {
    let config_path = get_config_path()?;
 
-   // Try $EDITOR first, then fall back to common editors
-   let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string());
-
-   let status = Command::new(&editor).arg(config_path.to_string_lossy().to_string()).status()?;
+   let editor = std::env::var("EDITOR").unwrap_or_default();
+   let mut editor_parts = editor.split_whitespace();
+   let program = editor_parts.next().unwrap_or("vi");
+   let status = Command::new(program)
+      .args(editor_parts)
+      .arg(&config_path)
+      .status()
+      .with_context(|| format!("Failed to launch editor `{}`", program))?;
 
    if !status.success() {
-      anyhow::bail!("Editor exited with non-zero status");
+      anyhow::bail!("Editor `{}` exited with {}", program, status);
    }
 
    Ok(())
@@ -167,9 +172,8 @@ fn reset_config() -> Result<()> {
       return Ok(());
    }
 
-   // Auto-detect standard shell files
-   let home = std::env::var("HOME").map_err(|_| anyhow::anyhow!("HOME environment variable is not set"))?;
-   let detected_files = init::detect_shell_files(&home);
+   let home = resolve_home_dir().context("Could not determine the home directory: set HOME or USERPROFILE")?;
+   let detected_files = init::detect_shell_files(&home.to_string_lossy());
 
    let config = Config {
       general: GeneralConfig {

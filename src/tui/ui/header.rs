@@ -27,7 +27,6 @@ pub fn draw_header(
 
    let badge_style = Style::default().fg(theme.background).bg(filter_color).bold();
 
-   // Build the left side: filter badges
    let badges = vec![
       Span::styled("FILTERS: ", Style::default().bold()),
       Span::styled(" @ ", if matches!(app.filter(), EntryFilter::Aliases) { badge_style } else { Style::default() }),
@@ -37,27 +36,22 @@ pub fn draw_header(
       Span::styled(" * ", if matches!(app.filter(), EntryFilter::All) { badge_style } else { Style::default() }),
    ];
 
-   // Build the middle: mode indicator
    let (mode_text, mode_color) = match app.input_mode() {
       InputMode::Normal => ("NORMAL", theme.mode_normal_color),
       InputMode::Search => ("-- SEARCH --", theme.highlight),
    };
    let mode_span = Span::styled(mode_text, Style::default().fg(mode_color));
 
-   // Build the right side: shell indicator
    let shell_label_prefix = " $SHELL: ";
 
-   // Detect shell name from environment or entries
    let shell_name = detect_shell_name(app);
 
    let shell_label_suffix = " ";
 
-   // Calculate widths
    let badges_width: usize = badges.iter().map(|s| s.width()).sum();
    let mode_width = mode_text.len();
    let shell_width = shell_label_prefix.len() + shell_name.len() + shell_label_suffix.len();
 
-   // Calculate padding to center the mode and right-align the shell
    let total_width = area.width as usize;
    let left_padding = if total_width > badges_width + mode_width + shell_width {
       (total_width - badges_width - mode_width - shell_width) / 2
@@ -86,7 +80,6 @@ pub fn draw_header(
 fn detect_shell_name(_app: &App) -> &'static str {
    if let Ok(shell_path) = std::env::var("SHELL") {
       if !shell_path.is_empty() {
-         // Extract basename from path (e.g., "/bin/zsh" -> "zsh")
          if let Some(basename) = shell_path.split('/').next_back() {
             if !basename.is_empty() {
                return match basename {
@@ -104,6 +97,5 @@ fn detect_shell_name(_app: &App) -> &'static str {
       }
    }
 
-   // Last resort
    "unknown"
 }

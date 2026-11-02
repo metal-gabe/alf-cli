@@ -45,99 +45,66 @@ fn marked_query(app: &App) -> String {
 fn enter_in_normal_mode_sets_execute_action() {
    let mut app = make_app();
    handle_key_event(&mut app, key(KeyCode::Enter));
-   assert!(app.should_quit);
-   assert!(matches!(app.exit_action, Some(ExitAction::Execute)));
+   assert!(!app.is_running());
+   assert!(matches!(app.exit_action(), Some(ExitAction::Execute)));
 }
 
 #[test]
 fn tab_in_normal_mode_sets_populate_action() {
    let mut app = make_app();
    handle_key_event(&mut app, key(KeyCode::Tab));
-   assert!(app.should_quit);
-   assert!(matches!(app.exit_action, Some(ExitAction::Populate)));
+   assert!(!app.is_running());
+   assert!(matches!(app.exit_action(), Some(ExitAction::Populate)));
 }
 
 #[test]
 fn enter_in_normal_mode_on_empty_app_quits_with_no_action() {
    let mut app = make_empty_app();
    handle_key_event(&mut app, key(KeyCode::Enter));
-   assert!(app.should_quit);
-   assert!(app.exit_action.is_none());
+   assert!(!app.is_running());
+   assert!(app.exit_action().is_none());
 }
 
 #[test]
 fn tab_in_normal_mode_on_empty_app_quits_with_no_action() {
    let mut app = make_empty_app();
    handle_key_event(&mut app, key(KeyCode::Tab));
-   assert!(app.should_quit);
-   assert!(app.exit_action.is_none());
+   assert!(!app.is_running());
+   assert!(app.exit_action().is_none());
 }
 
 // ===== Normal mode — navigation =====
 
 #[test]
-fn j_in_normal_mode_moves_selection_down() {
-   let mut app = make_app();
-   let before = app.selected_index();
-   handle_key_event(&mut app, key(KeyCode::Char('j')));
-   assert!(app.selected_index() > before);
-}
-
-#[test]
-fn down_arrow_moves_selection_down() {
-   let mut app = make_app();
-   let before = app.selected_index();
-   handle_key_event(&mut app, key(KeyCode::Down));
-   assert!(app.selected_index() > before);
-}
-
-#[test]
-fn k_in_normal_mode_moves_selection_up() {
-   let mut app = make_app();
-   app.move_down();
-   handle_key_event(&mut app, key(KeyCode::Char('k')));
-   assert_eq!(app.selected_index(), 0);
-}
-
-#[test]
-fn up_arrow_moves_selection_up() {
-   let mut app = make_app();
-   app.move_down();
-   handle_key_event(&mut app, key(KeyCode::Up));
-   assert_eq!(app.selected_index(), 0);
-}
-
-#[test]
-fn capital_g_moves_to_last_entry() {
-   let mut app = make_app();
-   handle_key_event(&mut app, key(KeyCode::Char('G')));
-   assert_eq!(app.selected_index(), 3);
-}
-
-#[test]
-fn g_in_normal_mode_moves_to_top() {
-   let mut app = make_app();
-   app.move_bottom();
-   assert_eq!(app.selected_index(), 3);
-   handle_key_event(&mut app, key(KeyCode::Char('g')));
-   assert_eq!(app.selected_index(), 0);
+fn navigation_keys_move_the_selection() {
+   let cases = [
+      (KeyCode::Char('j'), 0, 1),
+      (KeyCode::Down, 0, 1),
+      (KeyCode::Char('k'), 1, 0),
+      (KeyCode::Up, 1, 0),
+      (KeyCode::Char('G'), 0, 3),
+      (KeyCode::Char('g'), 3, 0),
+   ];
+   for (code, start_index, expected) in cases {
+      let mut app = make_app();
+      for _ in 0..start_index {
+         app.move_down();
+      }
+      handle_key_event(&mut app, key(code));
+      assert_eq!(app.selected_index(), expected, "{code:?} from {start_index}");
+   }
 }
 
 // ===== Normal mode — panel cycling =====
 
 #[test]
-fn n_cycles_panel_forward() {
-   let mut app = make_app();
-   assert_eq!(app.active_panel(), Panel::List);
-   handle_key_event(&mut app, key(KeyCode::Char('n')));
-   assert_eq!(app.active_panel(), Panel::Description);
-}
-
-#[test]
-fn p_cycles_panel_backward() {
-   let mut app = make_app();
-   handle_key_event(&mut app, key(KeyCode::Char('p')));
-   assert_eq!(app.active_panel(), Panel::Script);
+fn n_and_p_cycle_panels() {
+   for (c, expected) in [('n', Panel::Description), ('p', Panel::Script)] {
+      let mut app = make_app();
+      assert_eq!(app.active_panel(), Panel::List);
+      handle_key_event(&mut app, key(KeyCode::Char(c)));
+      assert_eq!(app.active_panel(), expected, "Key '{c}'");
+   }
 }
 
 // ===== Search mode — panel cycling =====
@@ -194,7 +161,7 @@ fn f_with_help_open_does_not_toggle_fullscreen() {
    app.toggle_help();
    handle_key_event(&mut app, key(KeyCode::Char('f')));
    assert!(!app.is_fullscreen());
-   assert!(app.show_help());
+   assert!(app.is_help_visible());
 }
 
 #[test]
@@ -211,40 +178,20 @@ fn f_with_pending_key_clears_pending_without_toggling_fullscreen() {
 // ===== Normal mode — filter =====
 
 #[test]
-fn l_cycles_filter_forward() {
-   let mut app = make_app();
-   assert_eq!(app.filter(), EntryFilter::All);
-   handle_key_event(&mut app, key(KeyCode::Char('l')));
-   assert_eq!(app.filter(), EntryFilter::Aliases);
-}
-
-#[test]
-fn h_cycles_filter_backward() {
-   let mut app = make_app();
-   handle_key_event(&mut app, key(KeyCode::Char('h')));
-   assert_eq!(app.filter(), EntryFilter::Functions);
-}
-
-#[test]
-fn key_1_sets_aliases_filter() {
-   let mut app = make_app();
-   handle_key_event(&mut app, key(KeyCode::Char('1')));
-   assert_eq!(app.filter(), EntryFilter::Aliases);
-}
-
-#[test]
-fn key_2_sets_functions_filter() {
-   let mut app = make_app();
-   handle_key_event(&mut app, key(KeyCode::Char('2')));
-   assert_eq!(app.filter(), EntryFilter::Functions);
-}
-
-#[test]
-fn key_3_sets_all_filter() {
-   let mut app = make_app();
-   app.set_filter(EntryFilter::Aliases);
-   handle_key_event(&mut app, key(KeyCode::Char('3')));
-   assert_eq!(app.filter(), EntryFilter::All);
+fn filter_keys_change_the_filter() {
+   let cases = [
+      ('l', EntryFilter::All, EntryFilter::Aliases),
+      ('h', EntryFilter::All, EntryFilter::Functions),
+      ('1', EntryFilter::All, EntryFilter::Aliases),
+      ('2', EntryFilter::All, EntryFilter::Functions),
+      ('3', EntryFilter::Aliases, EntryFilter::All),
+   ];
+   for (c, start, expected) in cases {
+      let mut app = make_app();
+      app.set_filter(start);
+      handle_key_event(&mut app, key(KeyCode::Char(c)));
+      assert_eq!(app.filter(), expected, "Key '{c}'");
+   }
 }
 
 // ===== Normal mode — sort order and group mode =====
@@ -338,7 +285,7 @@ fn ctrl_u_in_normal_mode_keeps_search_query() {
 fn q_in_normal_mode_quits() {
    let mut app = make_app();
    handle_key_event(&mut app, key(KeyCode::Char('q')));
-   assert!(app.should_quit);
+   assert!(!app.is_running());
 }
 
 #[test]
@@ -362,8 +309,8 @@ fn enter_in_search_mode_sets_execute_action() {
    let mut app = make_app();
    app.enter_search_mode();
    handle_key_event(&mut app, key(KeyCode::Enter));
-   assert!(app.should_quit);
-   assert!(matches!(app.exit_action, Some(ExitAction::Execute)));
+   assert!(!app.is_running());
+   assert!(matches!(app.exit_action(), Some(ExitAction::Execute)));
 }
 
 #[test]
@@ -371,8 +318,8 @@ fn tab_in_search_mode_sets_populate_action() {
    let mut app = make_app();
    app.enter_search_mode();
    handle_key_event(&mut app, key(KeyCode::Tab));
-   assert!(app.should_quit);
-   assert!(matches!(app.exit_action, Some(ExitAction::Populate)));
+   assert!(!app.is_running());
+   assert!(matches!(app.exit_action(), Some(ExitAction::Populate)));
 }
 
 // ===== Search mode — text input & navigation =====
@@ -416,7 +363,7 @@ fn ctrl_c_always_quits() {
          app.toggle_help();
       }
       handle_key_event(&mut app, ctrl('c'));
-      assert!(app.should_quit, "{mode:?} mode, help open: {is_help_open}");
+      assert!(!app.is_running(), "{mode:?} mode, help open: {is_help_open}");
    }
 }
 
@@ -432,7 +379,7 @@ fn ctrl_d_never_quits() {
          app.toggle_help();
       }
       handle_key_event(&mut app, ctrl('d'));
-      assert!(!app.should_quit, "{mode:?} mode, help open: {is_help_open}");
+      assert!(app.is_running(), "{mode:?} mode, help open: {is_help_open}");
    }
 }
 
@@ -489,7 +436,7 @@ fn invalid_sequence_clears_pending_key() {
 fn question_mark_toggles_help_open() {
    let mut app = make_app();
    handle_key_event(&mut app, key(KeyCode::Char('?')));
-   assert!(app.show_help());
+   assert!(app.is_help_visible());
 }
 
 #[test]
@@ -497,7 +444,7 @@ fn esc_closes_help_modal() {
    let mut app = make_app();
    app.toggle_help();
    handle_key_event(&mut app, key(KeyCode::Esc));
-   assert!(!app.show_help());
+   assert!(!app.is_help_visible());
 }
 
 #[test]
@@ -505,7 +452,7 @@ fn q_closes_help_modal() {
    let mut app = make_app();
    app.toggle_help();
    handle_key_event(&mut app, key(KeyCode::Char('q')));
-   assert!(!app.show_help());
+   assert!(!app.is_help_visible());
 }
 
 // ===== Search mode — word & line editing =====
@@ -538,7 +485,7 @@ fn search_mode_text_editing_keys() {
       let mut app = search_app(start);
       handle_key_event(&mut app, event);
       assert_eq!(marked_query(&app), expected, "{label} on {start:?}");
-      assert!(!app.should_quit, "{label} should not quit");
+      assert!(app.is_running(), "{label} should not quit");
    }
 }
 

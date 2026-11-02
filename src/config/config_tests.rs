@@ -1,8 +1,8 @@
 //! Tests for configuration loading, saving, and defaults
 
 use super::{
-   expand_path, get_config_lock_path, get_config_path, is_first_run, load_config, save_config, AliasExpansion,
-   CaseMatching, Config, ConfigLock, GeneralConfig,
+   expand_path, get_config_lock_path, get_config_path, is_first_run, load_config, load_optional_config, save_config,
+   AliasExpansion, CaseMatching, Config, ConfigLock, GeneralConfig,
 };
 use crate::test_support::TempHome;
 use std::fs;
@@ -11,63 +11,23 @@ use std::path::PathBuf;
 // ===== Default value tests =====
 
 #[test]
-fn config_default_theme() {
+fn config_defaults() {
    let config = Config::default();
    assert_eq!(config.ui.theme, "default");
-}
-
-#[test]
-fn config_default_keybind_mode() {
-   let config = Config::default();
    assert_eq!(config.ui.keybind_mode, "vim");
-}
-
-#[test]
-fn config_default_case_matching_is_smart() {
-   let config = Config::default();
    assert!(matches!(config.search.case_matching, CaseMatching::Smart));
-}
-
-#[test]
-fn config_default_normalize_is_true() {
-   let config = Config::default();
-   assert!(config.search.normalize);
-}
-
-#[test]
-fn config_default_enable_regex_is_true() {
-   let config = Config::default();
-   assert!(config.search.enable_regex);
-}
-
-#[test]
-fn config_default_substring_matching_is_true() {
-   let config = Config::default();
-   assert!(config.search.substring_matching);
-}
-
-#[test]
-fn config_default_show_type_badges() {
-   let config = Config::default();
-   assert!(config.display.show_type_badges);
-}
-
-#[test]
-fn config_default_syntax_highlighting() {
-   let config = Config::default();
-   assert!(config.display.syntax_highlighting);
-}
-
-#[test]
-fn config_default_parse_comments() {
-   let config = Config::default();
-   assert!(config.display.parse_comments);
-}
-
-#[test]
-fn config_default_shell_files_empty() {
-   let config = Config::default();
    assert!(config.general.shell_files.is_empty());
+   let enabled_flags = [
+      ("should_normalize", config.search.should_normalize),
+      ("is_regex_enabled", config.search.is_regex_enabled),
+      ("is_substring_matching", config.search.is_substring_matching),
+      ("should_show_type_badges", config.display.should_show_type_badges),
+      ("is_syntax_highlighting_enabled", config.display.is_syntax_highlighting_enabled),
+      ("should_parse_comments", config.display.should_parse_comments),
+   ];
+   for (name, is_enabled) in enabled_flags {
+      assert!(is_enabled, "{name} should default to true");
+   }
 }
 
 // ===== TOML serialization tests =====
@@ -102,10 +62,10 @@ parse_comments = false
    let config: Config = toml::from_str(toml_content).expect("Should parse valid TOML");
    assert_eq!(config.ui.theme, "dracula");
    assert_eq!(config.general.shell_files, vec!["~/.bashrc", "~/.zshrc"]);
-   assert!(!config.display.show_type_badges);
-   assert!(!config.display.syntax_highlighting);
-   assert!(!config.search.enable_regex);
-   assert!(!config.search.normalize);
+   assert!(!config.display.should_show_type_badges);
+   assert!(!config.display.is_syntax_highlighting_enabled);
+   assert!(!config.search.is_regex_enabled);
+   assert!(!config.search.should_normalize);
    assert!(matches!(config.search.case_matching, CaseMatching::Respect));
 }
 
@@ -283,6 +243,54 @@ fn expand_path_passes_through_paths_without_a_home_prefix() {
    }
 }
 
+#[test]
+fn config_partial_toml_fills_missing_values_with_defaults() {
+   let config: Config =
+      toml::from_str("[general]\nshell_files = [\"~/.zshrc\"]\n").expect("Should parse only [general]");
+   assert_eq!(config.general.shell_files, vec!["~/.zshrc".to_string()]);
+   assert_eq!(config.ui.theme, "default");
+   assert!(config.display.should_parse_comments);
+   let config: Config = toml::from_str("[search]\nnormalize = false\n").expect("Should parse a partial section");
+   assert!(!config.search.should_normalize);
+   assert!(config.search.is_regex_enabled);
+}
+
+#[test]
+fn config_renamed_fields_keep_their_toml_keys() {
+   let keys =
+      ["normalize", "enable_regex", "substring_matching", "show_type_badges", "syntax_highlighting", "parse_comments"];
+   let content = keys
+      .iter()
+      .enumerate()
+      .map(|(idx, key)| {
+         format!(
+            "{}{key} = false\n",
+            if idx == 0 {
+               "[search]\n"
+            } else if idx == 3 {
+               "[display]\n"
+            } else {
+               ""
+            }
+         )
+      })
+      .collect::<String>();
+   let config: Config = toml::from_str(&content).expect("Should parse the original keys");
+   let flags = [
+      config.search.should_normalize,
+      config.search.is_regex_enabled,
+      config.search.is_substring_matching,
+      config.display.should_show_type_badges,
+      config.display.is_syntax_highlighting_enabled,
+      config.display.should_parse_comments,
+   ];
+   assert!(flags.iter().all(|is_enabled| !is_enabled), "Every original key should set its field");
+   let written = toml::to_string_pretty(&config).expect("Should serialize");
+   for key in keys {
+      assert!(written.contains(&format!("{key} = false")), "{key} should be written back unchanged");
+   }
+}
+
 // ===== File I/O tests =====
 
 #[test]
@@ -290,11 +298,11 @@ fn save_and_load_config_roundtrip() {
    let _home = TempHome::new();
    let mut config = Config::default();
    config.ui.theme = "gruvbox".to_string();
-   config.display.syntax_highlighting = false;
+   config.display.is_syntax_highlighting_enabled = false;
    save_config(&config).expect("Should save config");
    let loaded = load_config().expect("Should load saved config");
    assert_eq!(loaded.ui.theme, "gruvbox");
-   assert!(!loaded.display.syntax_highlighting);
+   assert!(!loaded.display.is_syntax_highlighting_enabled);
 }
 
 #[test]
@@ -302,6 +310,18 @@ fn load_config_fails_when_missing() {
    let _home = TempHome::new();
    let result = load_config();
    assert!(result.is_err(), "Should fail when config file does not exist");
+}
+
+#[test]
+fn load_optional_config_distinguishes_missing_valid_and_broken() {
+   let _home = TempHome::new();
+   assert!(load_optional_config().expect("A missing config is not an error").is_none());
+   save_config(&Config::default()).expect("Should save config");
+   assert!(load_optional_config().expect("A valid config should load").is_some());
+   let path = get_config_path().expect("Should resolve config path");
+   fs::write(&path, "this is not valid [[[ toml !!!").expect("Should write broken config");
+   let error = load_optional_config().expect_err("A broken config should be an error");
+   assert!(format!("{error:#}").contains(&path.display().to_string()), "The error should name the file");
 }
 
 #[test]

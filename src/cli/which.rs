@@ -260,7 +260,13 @@ pub fn run_which(
    name: &str,
    will_show_script: bool,
 ) -> Result<()> {
-   let config = crate::config::load_config().ok();
+   let config = match crate::config::load_optional_config() {
+      Ok(config) => config,
+      Err(error) => {
+         eprintln!("Warning: {:#}. Using default settings.", error);
+         None
+      },
+   };
    let entries = match crate::tui::load_entries(config.as_ref()) {
       Ok(entries) => Some(entries),
       Err(error) => {
@@ -600,8 +606,16 @@ fn resolve_lookup(
 }
 
 /// Run `command` and return its trimmed stdout when it succeeds with output
+///
+/// A command that cannot be started gets a warning, so it is not mistaken for a name that was not found.
 fn run_lookup(command: &mut Command) -> Option<String> {
-   let output = command.stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
+   let output = match command.stdin(Stdio::null()).stderr(Stdio::null()).output() {
+      Ok(output) => output,
+      Err(error) => {
+         eprintln!("Warning: Could not run `{}`: {}", command.get_program().to_string_lossy(), error);
+         return None;
+      },
+   };
 
    if !output.status.success() {
       return None;
@@ -616,9 +630,12 @@ fn run_lookup(command: &mut Command) -> Option<String> {
    Some(stdout)
 }
 
-/// Resolve `name` with the user's shell `type` builtin
+/// Resolve `name` with the user's shell `type` builtin, using `sh` for fish, which has no `$1`
 fn type_lookup(name: &str) -> Option<String> {
-   let shell = std::env::var("SHELL").ok().filter(|shell| !shell.is_empty()).unwrap_or_else(|| "sh".to_string());
+   let shell = std::env::var("SHELL")
+      .ok()
+      .filter(|shell| !shell.is_empty() && !shell.ends_with("fish"))
+      .unwrap_or_else(|| "sh".to_string());
 
    run_lookup(Command::new(shell).args(["-c", "type -- \"$1\"", "alf", name]))
 }
@@ -627,3 +644,7 @@ fn type_lookup(name: &str) -> Option<String> {
 fn which_lookup(name: &str) -> Option<String> {
    run_lookup(Command::new("which").arg(name))
 }
+
+#[cfg(test)]
+#[path = "which_tests.rs"]
+mod which_tests;

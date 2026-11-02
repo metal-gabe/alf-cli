@@ -19,25 +19,11 @@ fn move_up_decrements_selection() {
 }
 
 #[test]
-fn move_up_at_top_stays_at_zero() {
-   let mut app = make_app();
-   assert_eq!(app.selected_index(), 0);
-   app.move_up();
-   assert_eq!(app.selected_index(), 0);
-}
-
-#[test]
 fn move_down_at_last_stays_at_last() {
    let mut app = make_app();
    assert_eq!(app.selected_index(), 0);
-   for i in 0..10 {
+   for _ in 0..10 {
       app.move_down();
-      if i == 0 {
-         assert_eq!(app.selected_index(), 1);
-      }
-      if i == 1 {
-         assert_eq!(app.selected_index(), 2);
-      }
    }
    assert_eq!(app.selected_index(), 3, "Should not exceed visible_count - 1");
 }

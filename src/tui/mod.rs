@@ -13,90 +13,110 @@ pub use app::App;
 pub use events::{Event, EventHandler};
 pub use themes::Theme;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
-use std::path::PathBuf;
 use std::time::Duration;
+
+/// Restores the terminal to its normal state when dropped, including during a panic unwind
+struct TerminalGuard;
+
+impl Drop for TerminalGuard {
+   fn drop(&mut self) {
+      restore_terminal();
+   }
+}
 
 /// Initialize and run the TUI application.
 ///
-/// Sets up the terminal, loads configuration, attempts to load shell configuration files,
-/// falls back to mock data if parsing fails, and runs the main event loop.
+/// Loads configuration and shell files before touching the terminal, so load warnings and errors
+/// stay visible on the normal screen, then sets up the terminal and runs the main event loop.
+/// The terminal is restored on return, on error and on panic.
 ///
 /// # Arguments
 /// * `initial_query` - Optional search query to populate and filter results on startup
+///
+/// # Errors
+/// Returns an error when no aliases or functions could be loaded, or when the terminal fails
 pub fn run(initial_query: Option<String>) -> Result<()> {
-   terminal::enable_raw_mode()?;
-   let mut stdout = io::stdout();
-   crossterm::execute!(stdout, EnterAlternateScreen)?;
-   let backend = CrosstermBackend::new(stdout);
-   let mut terminal = Terminal::new(backend)?;
+   let config = crate::config::load_optional_config()?;
+   let entries = load_entries(config.as_ref())
+      .context("No shell files could be read. Add one with `alf config add <file>` or run `alf init`")?;
 
-   // Try to load configuration
-   let config = crate::config::load_config()
-      .map_err(|e| {
-         log::debug!("Failed to load config, using defaults: {}", e);
-         e
-      })
-      .ok();
-
-   // Try to load real shell configuration files, fall back to mock data
-   let entries = load_entries(config.as_ref()).unwrap_or_else(|_| {
-      eprintln!("Failed to load shell files, using mock data");
-      mock::mock_entries()
-   });
-
-   // Get theme from config or use default
    let theme = config.as_ref().and_then(|cfg| Theme::from_name(&cfg.ui.theme)).unwrap_or_else(Theme::default_theme);
 
    let mut app = App::new(entries, theme);
    app.enter_search_mode();
 
-   // If an initial query was provided, populate it and search
    if let Some(query) = initial_query {
       app.set_search_query(query);
    }
 
-   // Create event handler (tick every 250ms)
    let event_handler = EventHandler::new(Duration::from_millis(250));
 
-   // Main event loop
+   install_panic_hook();
+   terminal::enable_raw_mode()?;
+   let guard = TerminalGuard;
+   crossterm::execute!(io::stdout(), EnterAlternateScreen)?;
+   let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
    let result = run_loop(&mut terminal, &mut app, &event_handler);
+   drop(guard);
+   result?;
 
-   // Write selected entry to output file if applicable
-   if let Some(action) = &app.exit_action {
+   if let Some(action) = app.exit_action() {
       if let Some(entry) = app.selected_entry() {
-         let action_str = match action {
-            crate::tui::app::ExitAction::Execute => "execute",
-            crate::tui::app::ExitAction::Populate => "populate",
-         };
          let alias_expansion = config.as_ref().map(|c| c.general.alias_expansion).unwrap_or_default();
-         let output_value = match action {
-            crate::tui::app::ExitAction::Populate
-               if entry.entry_type == crate::models::EntryType::Alias
-                  && matches!(alias_expansion, crate::config::AliasExpansion::Script) =>
-            {
-               &entry.value
-            },
-            _ => &entry.name,
-         };
          if let Ok(output_path) = std::env::var("ALF_OUTPUT") {
-            if let Err(e) = std::fs::write(&output_path, format!("{}\n{}", action_str, output_value)) {
-               log::warn!("Failed to write output to {}: {}", output_path, e);
-            }
+            std::fs::write(&output_path, build_exit_output(action, entry, alias_expansion))
+               .with_context(|| format!("Failed to write the selected entry to {}", output_path))?;
          }
       }
    }
 
-   // Restore terminal regardless of result
-   terminal::disable_raw_mode()?;
-   crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-   terminal.show_cursor()?;
+   Ok(())
+}
 
-   result
+/// Build the `ALF_OUTPUT` file contents the shell wrapper reads: the action, then the value to act on
+///
+/// The value is the entry's name, except that populating an alias uses its script when `alias_expansion`
+/// asks for it.
+fn build_exit_output(
+   action: app::ExitAction,
+   entry: &crate::models::AliasEntry,
+   alias_expansion: crate::config::AliasExpansion,
+) -> String {
+   let action_str = match action {
+      app::ExitAction::Execute => "execute",
+      app::ExitAction::Populate => "populate",
+   };
+   let output_value = match action {
+      app::ExitAction::Populate
+         if entry.entry_type == crate::models::EntryType::Alias
+            && matches!(alias_expansion, crate::config::AliasExpansion::Script) =>
+      {
+         &entry.value
+      },
+      _ => &entry.name,
+   };
+
+   format!("{}\n{}", action_str, output_value)
+}
+
+/// Leave raw mode and the alternate screen and show the cursor, ignoring each step's error so every step runs
+fn restore_terminal() {
+   let _ = terminal::disable_raw_mode();
+   let _ = crossterm::execute!(io::stdout(), LeaveAlternateScreen, crossterm::cursor::Show);
+}
+
+/// Install a panic hook that restores the terminal before the previous hook prints the panic message
+fn install_panic_hook() {
+   let previous_hook = std::panic::take_hook();
+   std::panic::set_hook(Box::new(move |info| {
+      restore_terminal();
+      previous_hook(info);
+   }));
 }
 
 /// The main event loop
@@ -105,21 +125,16 @@ fn run_loop(
    app: &mut App,
    event_handler: &EventHandler,
 ) -> Result<()> {
-   while !app.should_quit {
-      // Check and clear expired pending keys before drawing
+   while app.is_running() {
       if app.is_pending_key_expired() {
          app.clear_pending_key();
       }
 
-      // Draw the UI
       terminal.draw(|frame| ui::draw(frame, &mut *app))?;
 
-      // Handle events
       match event_handler.next()? {
          Event::Key(key) => keybinds::handle_key_event(app, key),
-         Event::Resize(_, _) => {
-            // ratatui handles terminal resize automatically on next draw
-         },
+         Event::Resize(_, _) => {},
          Event::Tick => app.tick(),
       }
    }
@@ -128,6 +143,8 @@ fn run_loop(
 }
 
 /// Load entries from the configured shell files, or from the standard shell files when no config exists
+///
+/// A file that parses but defines no aliases or functions is not a failure, so the result can be empty.
 ///
 /// # Errors
 /// Returns an error when no shell file could be found or parsed
@@ -141,15 +158,18 @@ pub fn load_entries(config: Option<&crate::config::Config>) -> Result<Vec<crate:
 /// Try to load entries from shell configuration files specified in config
 fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<crate::models::AliasEntry>> {
    let mut entries = Vec::new();
+   let mut was_any_file_parsed = false;
 
-   // Parse each shell file from config
    for file_path_str in &config.general.shell_files {
       let shell_file = crate::config::expand_path(file_path_str);
       log::debug!("Handled file path string:\n- orig: {},\n- expanded: {}", file_path_str, shell_file.display());
 
       if shell_file.exists() {
          match crate::parser::parse_shell_file(&shell_file) {
-            Ok(file_entries) => entries.extend(file_entries),
+            Ok(file_entries) => {
+               entries.extend(file_entries);
+               was_any_file_parsed = true;
+            },
             Err(e) => eprintln!("Warning: Failed to parse {}: {}", shell_file.display(), e),
          }
       } else {
@@ -157,7 +177,7 @@ fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<
       }
    }
 
-   if entries.is_empty() {
+   if !was_any_file_parsed {
       anyhow::bail!("No shell configuration files found or parsed successfully")
    }
 
@@ -167,30 +187,28 @@ fn load_shell_entries_from_config(config: &crate::config::Config) -> Result<Vec<
 /// Try to load entries from shell configuration files
 fn load_shell_entries() -> Result<Vec<crate::models::AliasEntry>> {
    let mut entries = Vec::new();
+   let mut was_any_file_parsed = false;
 
-   // Try to load from common shell config files
-   let shell_files = [
-      PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".bashrc"),
-      PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".zshrc"),
-      PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".kshrc"),
-      PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".fishrc"),
-      PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".profile"),
-      PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join(".zprofile"),
-   ];
+   let home =
+      crate::config::resolve_home_dir().context("Could not determine the home directory: set HOME or USERPROFILE")?;
 
-   // Parse each shell file if it exists
-   for shell_file in &shell_files {
-      if shell_file.exists() {
-         match crate::parser::parse_shell_file(shell_file) {
-            Ok(file_entries) => entries.extend(file_entries),
-            Err(e) => eprintln!("Warning: Failed to parse {}: {}", shell_file.display(), e),
-         }
+   for shell_file in crate::cli::init::detect_shell_files(&home.to_string_lossy()) {
+      match crate::parser::parse_shell_file(std::path::Path::new(&shell_file)) {
+         Ok(file_entries) => {
+            entries.extend(file_entries);
+            was_any_file_parsed = true;
+         },
+         Err(e) => eprintln!("Warning: Failed to parse {}: {}", shell_file, e),
       }
    }
 
-   if entries.is_empty() {
+   if !was_any_file_parsed {
       anyhow::bail!("No shell configuration files found or parsed successfully")
    }
 
    Ok(entries)
 }
+
+#[cfg(test)]
+#[path = "output_tests.rs"]
+mod output_tests;

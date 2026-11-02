@@ -26,7 +26,6 @@ pub fn draw_entry_list(
    let entries_title = format!("[ Entries ({}) ]", app.visible_indices().len());
    let block = panel_block(&entries_title, is_active, &app.filter(), theme);
 
-   // Check if we have no results after a search
    if app.visible_indices().is_empty() && !app.search_query().is_empty() {
       let no_results = ratatui::widgets::Paragraph::new(Span::styled(
          "(No results found)",
@@ -37,31 +36,22 @@ pub fn draw_entry_list(
       return;
    }
 
-   // Split area into header (1 line), divider (1 line), and list (remaining)
    let inner_area = block.inner(area);
    let chunks = Layout::default()
       .direction(Direction::Vertical)
-      .constraints([
-         Constraint::Length(1), // Header row
-         Constraint::Length(1), // Divider line
-         Constraint::Min(0),    // List entries
-      ])
+      .constraints([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0)])
       .split(inner_area);
 
-   // Render the block border
    frame.render_widget(block, area);
 
-   // Calculate available width for content (accounting for highlight symbol and padding)
-   let content_width = inner_area.width.saturating_sub(2); // 2 for highlight symbol "▸ ", 2 for padding
-   let badge_width = 4; // "[&] " or "[f] "
-   let source_file_max_width = 15; // Reserve space for source file display
+   let content_width = inner_area.width.saturating_sub(2);
+   let badge_width = 4;
+   let source_file_max_width = 15;
 
-   // Draw header row: "Name" on left (aligned with entry names after badge), "File Source" on right
-   let header_left_prefix = "  "; // 4 spaces to align with entry names after "[&] "
+   let header_left_prefix = "  ";
    let header_left = "Name";
    let header_right = "Source";
 
-   // Calculate padding: total width - prefix - "Name" - "File Source"
    let header_content_width = header_left_prefix.len() + header_left.len() + header_right.len();
    let header_padding =
       if content_width as usize > header_content_width { content_width as usize - header_content_width } else { 1 };
@@ -77,7 +67,6 @@ pub fn draw_entry_list(
 
    frame.render_widget(header, chunks[0]);
 
-   // Draw divider line (horizontal line of dashes)
    let divider_line = Line::from(Span::raw("─".repeat(content_width as usize + 2)));
    let divider = ratatui::widgets::Paragraph::new(divider_line).style(active_style(is_active, false));
    frame.render_widget(divider, chunks[1]);
@@ -107,19 +96,17 @@ pub fn draw_entry_list(
          };
          let name = Span::styled(&entry.name, active_style(is_active, false));
 
-         // Format source file: extract filename and truncate/pad to fit
          let source_filename = entry.source_file.file_name().and_then(|n| n.to_str()).unwrap_or("unknown");
 
-         // Truncate or pad the source filename to fit within source_file_max_width
-         // Right-align by padding on the left
-         let formatted_source = if source_filename.len() > source_file_max_width {
-            // Truncate from the left with ellipsis: "…long_filename"
-            format!("…{}", &source_filename[source_filename.len() - source_file_max_width + 1..])
+         let source_filename_chars = source_filename.chars().count();
+         let formatted_source = if source_filename_chars > source_file_max_width {
+            let truncated: String =
+               source_filename.chars().skip(source_filename_chars - source_file_max_width + 1).collect();
+            format!("…{}", truncated)
          } else {
             format!("{:>width$}  ", source_filename, width = source_file_max_width)
          };
 
-         // Calculate padding between name and source file
          let text_width = badge_width + entry.name.len() + formatted_source.len();
          let padding_width = if content_width as usize > text_width { content_width as usize - text_width } else { 1 };
 
