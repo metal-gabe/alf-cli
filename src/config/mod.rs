@@ -314,9 +314,12 @@ pub fn load_config() -> Result<Config> {
 ///
 /// # Errors
 /// Returns an error when a config file exists but cannot be read or parsed, so a broken config is
-/// never mistaken for a missing one.
+/// never mistaken for a missing one. The check does not follow symlinks, so a dangling config
+/// symlink is reported as a broken config rather than treated as a first run.
 pub fn load_optional_config() -> Result<Option<Config>> {
-   if is_first_run()? {
+   let path = get_config_path()?;
+
+   if fs::symlink_metadata(&path).is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound) {
       return Ok(None);
    }
 

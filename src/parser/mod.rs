@@ -77,13 +77,12 @@ fn extract_functions(
          let name = captures.get(1).unwrap().as_str().to_string();
 
          let mut body_lines = vec![line.to_string()];
-         let mut brace_count = line.matches('{').count() as i32 - line.matches('}').count() as i32;
+         let mut brace_count = count_brace_delta(line);
 
          if brace_count > 0 {
             for next_line in lines.iter().skip(line_num + 1) {
                body_lines.push(next_line.to_string());
-               brace_count += next_line.matches('{').count() as i32;
-               brace_count -= next_line.matches('}').count() as i32;
+               brace_count += count_brace_delta(next_line);
 
                if brace_count == 0 {
                   break;
@@ -105,6 +104,37 @@ fn extract_functions(
    }
 
    entries
+}
+
+/// Count the braces a line opens minus the ones it closes, as shell syntax
+///
+/// Braces inside single or double quotes, escaped with a backslash, or after an unquoted `#` that
+/// starts a comment are ignored. Quote state does not carry over to the next line, so an apostrophe
+/// in a heredoc or comment-like text only affects its own line.
+fn count_brace_delta(line: &str) -> i32 {
+   let mut delta = 0;
+   let mut quote: Option<char> = None;
+   let mut previous: Option<char> = None;
+   let mut chars = line.chars();
+
+   while let Some(c) = chars.next() {
+      match (quote, c) {
+         (Some('\''), '\'') | (Some('"'), '"') => quote = None,
+         (Some('"'), '\\') | (None, '\\') => {
+            chars.next();
+         },
+         (Some(_), _) => {},
+         (None, '\'' | '"') => quote = Some(c),
+         (None, '#') if previous.map_or(true, char::is_whitespace) => break,
+         (None, '{') => delta += 1,
+         (None, '}') => delta -= 1,
+         (None, _) => {},
+      }
+
+      previous = Some(c);
+   }
+
+   delta
 }
 
 /// Extract alf-friendly comments preceding a definition

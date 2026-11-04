@@ -9,7 +9,7 @@ use crate::config::{
 use anyhow::{Context, Result};
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// Run a configuration management action
@@ -144,10 +144,9 @@ fn edit_config() -> Result<()> {
    let config_path = get_config_path()?;
 
    let editor = std::env::var("EDITOR").unwrap_or_default();
-   let mut editor_parts = editor.split_whitespace();
-   let program = editor_parts.next().unwrap_or("vi");
-   let status = Command::new(program)
-      .args(editor_parts)
+   let (program, editor_args) = parse_editor_command(&editor).unwrap_or_else(|| ("vi".to_string(), Vec::new()));
+   let status = Command::new(&program)
+      .args(&editor_args)
       .arg(&config_path)
       .status()
       .with_context(|| format!("Failed to launch editor `{}`", program))?;
@@ -157,6 +156,80 @@ fn edit_config() -> Result<()> {
    }
 
    Ok(())
+}
+
+/// Split an `$EDITOR` value into the program and its arguments
+///
+/// A value naming an existing file is the program on its own, so a bare executable path containing
+/// spaces still works. Any other value is split on whitespace, with single quotes, double quotes and
+/// (outside Windows) backslashes grouping characters the way a POSIX shell does, so `vim -c "set number"`
+/// passes `set number` as one argument. Returns `None` when the value is empty or only whitespace.
+fn parse_editor_command(editor: &str) -> Option<(String, Vec<String>)> {
+   let trimmed = editor.trim();
+
+   if trimmed.is_empty() {
+      return None;
+   }
+
+   if Path::new(trimmed).is_file() {
+      return Some((trimmed.to_string(), Vec::new()));
+   }
+
+   let mut words = split_shell_words(trimmed).into_iter();
+   let program = words.next()?;
+   Some((program, words.collect()))
+}
+
+/// Split a command line into words, honouring single quotes, double quotes and backslash escapes
+///
+/// Backslashes are literal on Windows, where they separate path components. An unterminated quote
+/// runs to the end of the input.
+fn split_shell_words(input: &str) -> Vec<String> {
+   let is_escape_enabled = !cfg!(windows);
+   let mut words = Vec::new();
+   let mut current = String::new();
+   let mut is_in_word = false;
+   let mut quote: Option<char> = None;
+   let mut chars = input.chars();
+
+   while let Some(c) = chars.next() {
+      match (quote, c) {
+         (Some('\''), '\'') | (Some('"'), '"') => quote = None,
+         (Some('"'), '\\') if is_escape_enabled => match chars.next() {
+            Some(next @ ('"' | '\\' | '$' | '`')) => current.push(next),
+            Some(next) => {
+               current.push('\\');
+               current.push(next);
+            },
+            None => current.push('\\'),
+         },
+         (Some(_), _) => current.push(c),
+         (None, '\'' | '"') => {
+            quote = Some(c);
+            is_in_word = true;
+         },
+         (None, '\\') if is_escape_enabled => {
+            current.extend(chars.next());
+            is_in_word = true;
+         },
+         (None, _) if c.is_whitespace() => {
+            if is_in_word {
+               words.push(std::mem::take(&mut current));
+               is_in_word = false;
+            }
+         },
+         (None, _) => {
+            current.push(c);
+            is_in_word = true;
+         },
+      }
+   }
+
+   if is_in_word {
+      words.push(current);
+   }
+
+   words
 }
 
 /// Reset configuration to defaults
