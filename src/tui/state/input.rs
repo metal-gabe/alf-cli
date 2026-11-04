@@ -3,33 +3,22 @@
 use std::time::Instant;
 
 /// Input mode for the application
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum InputMode {
    /// Normal vim navigation mode
+   #[default]
    Normal,
    /// Typing in the search bar
    Search,
 }
 
 /// Input state management
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct InputState {
    /// Current input mode
    mode: InputMode,
-   /// Pending key for multi-key sequences (e.g. 'g' for 'gg')
-   pending_key: Option<char>,
-   /// Timestamp when pending key was set (for timeout handling)
-   pending_key_time: Option<Instant>,
-}
-
-impl Default for InputState {
-   fn default() -> Self {
-      Self {
-         mode: InputMode::Normal,
-         pending_key: None,
-         pending_key_time: None,
-      }
-   }
+   /// Pending key for multi-key sequences (e.g. 'o' for 'og') and when it was set, for timeout handling
+   pending: Option<(char, Instant)>,
 }
 
 impl InputState {
@@ -45,12 +34,12 @@ impl InputState {
 
    /// Get the pending key
    pub fn pending_key(&self) -> Option<char> {
-      self.pending_key
+      self.pending.map(|(key, _)| key)
    }
 
    /// Get the pending key timestamp
    pub fn pending_key_time(&self) -> Option<Instant> {
-      self.pending_key_time
+      self.pending.map(|(_, time)| time)
    }
 
    /// Enter search mode
@@ -73,23 +62,17 @@ impl InputState {
       &mut self,
       key: char,
    ) {
-      self.pending_key = Some(key);
-      self.pending_key_time = Some(Instant::now());
+      self.pending = Some((key, Instant::now()));
    }
 
    /// Clear pending key state
    pub fn clear_pending_key(&mut self) {
-      self.pending_key = None;
-      self.pending_key_time = None;
+      self.pending = None;
    }
 
    /// Check if pending key has timed out (2 seconds)
    pub fn is_pending_key_expired(&self) -> bool {
-      if let (Some(_), Some(time)) = (self.pending_key, self.pending_key_time) {
-         time.elapsed() > std::time::Duration::from_secs(2)
-      } else {
-         false
-      }
+      self.pending.is_some_and(|(_, time)| time.elapsed() > std::time::Duration::from_secs(2))
    }
 }
 

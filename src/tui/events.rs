@@ -1,7 +1,7 @@
 //! Event handling for the TUI.
 
 use anyhow::Result;
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent};
+use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, KeyEventKind};
 use std::time::Duration;
 
 /// Application events
@@ -35,9 +35,8 @@ impl EventHandler {
    pub fn next(&self) -> Result<Event> {
       if event::poll(self.tick_rate)? {
          match event::read()? {
-            CrosstermEvent::Key(key) => Ok(Event::Key(key)),
+            CrosstermEvent::Key(key) if key.kind != KeyEventKind::Release => Ok(Event::Key(key)),
             CrosstermEvent::Resize(w, h) => Ok(Event::Resize(w, h)),
-            // Ignore mouse, focus, and paste events
             _ => Ok(Event::Tick),
          }
       } else {

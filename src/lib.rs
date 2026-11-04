@@ -11,6 +11,5 @@ pub mod search;
 pub mod test_support;
 pub mod tui;
 
-// Re-export commonly used types
 pub use config::Config;
 pub use models::{AliasEntry, EntryType};

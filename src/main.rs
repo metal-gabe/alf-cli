@@ -26,8 +26,8 @@ fn main() -> Result<()> {
       }) => alf::cli::config_cmd::run_config_action(action),
       Some(Commands::Which {
          name,
-         show_script,
+         will_show_script,
          ..
-      }) => alf::cli::which::run_which(&name, show_script),
+      }) => alf::cli::which::run_which(&name, will_show_script),
    }
 }

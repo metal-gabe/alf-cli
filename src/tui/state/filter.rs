@@ -49,8 +49,8 @@ impl Default for FilterState {
    fn default() -> Self {
       Self {
          filter: EntryFilter::All,
-         group_mode: GroupMode::Aliases,   // Default: aliases first
-         sort_order: SortOrder::Ascending, // Default: A-Z
+         group_mode: GroupMode::Aliases,
+         sort_order: SortOrder::Ascending,
       }
    }
 }
@@ -136,22 +136,20 @@ impl FilterState {
    ) {
       let query = search_query.to_lowercase();
 
-      // Filter by type and search query
       *data.visible_indices_mut() = data
          .entries()
          .iter()
          .enumerate()
-         .filter(|(_, entry)| self.matches_filter(entry))
-         .filter(|(_, entry)| self.matches_search(entry, &query))
+         .filter(|(_, entry)| self.does_match_filter(entry))
+         .filter(|(_, entry)| self.does_match_search(entry, &query))
          .map(|(idx, _)| idx)
          .collect();
 
-      // Apply grouping and sorting
       self.apply_grouping_and_sorting(data);
    }
 
    /// Check if entry matches current filter
-   fn matches_filter(
+   fn does_match_filter(
       &self,
       entry: &crate::models::AliasEntry,
    ) -> bool {
@@ -163,7 +161,7 @@ impl FilterState {
    }
 
    /// Check if entry matches search query
-   fn matches_search(
+   fn does_match_search(
       &self,
       entry: &crate::models::AliasEntry,
       query: &str,
@@ -171,15 +169,14 @@ impl FilterState {
       if query.is_empty() {
          return true;
       }
-      // Simple substring matching on name, value, and comments
-      let name_match = entry.name.to_lowercase().contains(query);
-      let value_match = entry.value.to_lowercase().contains(query);
-      let comment_match = entry
+      let does_name_match = entry.name.to_lowercase().contains(query);
+      let does_value_match = entry.value.to_lowercase().contains(query);
+      let does_comment_match = entry
          .comments
          .as_ref()
          .map(|comments| comments.iter().any(|c| c.to_lowercase().contains(query)))
          .unwrap_or(false);
-      name_match || value_match || comment_match
+      does_name_match || does_value_match || does_comment_match
    }
 
    /// Apply grouping and sorting to visible_indices
@@ -191,44 +188,29 @@ impl FilterState {
 
       match self.group_mode {
          GroupMode::None => {
-            // All entries mixed together, sort by name
             data.sort_visible_indices(|entry_a, entry_b| match sort_order {
                SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
                SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
             });
          },
          GroupMode::Aliases => {
-            // Aliases first, then functions, each group sorted by name
-            data.sort_visible_indices(|entry_a, entry_b| {
-               // First, group by type (aliases before functions)
-               match (entry_a.entry_type, entry_b.entry_type) {
-                  (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Less,
-                  (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Greater,
-                  _ => {
-                     // Within same group, sort by name
-                     match sort_order {
-                        SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
-                        SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
-                     }
-                  },
-               }
+            data.sort_visible_indices(|entry_a, entry_b| match (entry_a.entry_type, entry_b.entry_type) {
+               (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Less,
+               (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Greater,
+               _ => match sort_order {
+                  SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
+                  SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
+               },
             });
          },
          GroupMode::Functions => {
-            // Functions first, then aliases, each group sorted by name
-            data.sort_visible_indices(|entry_a, entry_b| {
-               // First, group by type (functions before aliases)
-               match (entry_a.entry_type, entry_b.entry_type) {
-                  (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Less,
-                  (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Greater,
-                  _ => {
-                     // Within same group, sort by name
-                     match sort_order {
-                        SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
-                        SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
-                     }
-                  },
-               }
+            data.sort_visible_indices(|entry_a, entry_b| match (entry_a.entry_type, entry_b.entry_type) {
+               (EntryType::Function, EntryType::Alias) => std::cmp::Ordering::Less,
+               (EntryType::Alias, EntryType::Function) => std::cmp::Ordering::Greater,
+               _ => match sort_order {
+                  SortOrder::Ascending => entry_a.name.cmp(&entry_b.name),
+                  SortOrder::Descending => entry_b.name.cmp(&entry_a.name),
+               },
             });
          },
       }

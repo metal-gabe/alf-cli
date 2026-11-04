@@ -20,11 +20,9 @@ pub fn draw_help_modal(
 ) {
    let area = frame.area();
 
-   // Calculate modal dimensions: 70% width, 90% height
    let modal_width = (area.width as f32 * 0.70) as u16;
    let modal_height = (area.height as f32 * 0.90) as u16;
 
-   // Center the modal
    let modal_x = (area.width.saturating_sub(modal_width)) / 2;
    let modal_y = (area.height.saturating_sub(modal_height)) / 2;
 
@@ -35,17 +33,13 @@ pub fn draw_help_modal(
       height: modal_height,
    };
 
-   // Clear the entire screen area first (this removes all underlying content)
    frame.render_widget(Clear, area);
 
-   // Draw full-screen dark background
    let full_bg = Block::default().style(Style::default().bg(theme.background));
    frame.render_widget(full_bg, area);
 
-   // Clear the modal area to ensure clean rendering
    frame.render_widget(Clear, modal_area);
 
-   // Draw modal block with border and background
    let modal_block = Block::default()
       .borders(Borders::ALL)
       .border_type(BorderType::Double)
@@ -54,7 +48,6 @@ pub fn draw_help_modal(
       .style(Style::default().bg(theme.background))
       .padding(ratatui::widgets::Padding::horizontal(2));
 
-   // Content with padding consistent with the app
    let help_text = vec![
       Line::from(""),
       Line::from(vec![Span::styled(
@@ -123,18 +116,16 @@ pub fn draw_help_modal(
       Line::from(""),
       Line::from(vec![Span::styled("TIPS", Style::default().bold().fg(theme.function_color))]),
       Line::from("  • Search is case-insensitive (uppercase letters auto-convert to lowercase)"),
-      Line::from("  • Two-key sequences (gg, og, etc.) show hints in footer while waiting"),
+      Line::from("  • Two-key sequences (og, tj, etc.) show hints in footer while waiting"),
       Line::from("  • Active panel is indicated by double-line border"),
       Line::from("  • Group mode: '@' shows aliases first, 'ƒ' shows functions first"),
       Line::from(""),
    ];
 
-   // Calculate content dimensions for scrollbar
    let total_lines = help_text.len();
    let inner_area = modal_block.inner(modal_area);
    let visible_lines = inner_area.height as usize;
 
-   // Update max scroll in app state
    app.update_help_max_scroll(total_lines, visible_lines);
 
    let content = Paragraph::new(help_text)
@@ -147,6 +138,5 @@ pub fn draw_help_modal(
 
    frame.render_widget(content, modal_area);
 
-   // Render scrollbar only if content extends beyond visible area
    render_scrollbar(frame, inner_area, total_lines, visible_lines, app.help_scroll_offset(), theme.highlight);
 }

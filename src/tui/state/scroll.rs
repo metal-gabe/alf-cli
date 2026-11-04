@@ -62,7 +62,6 @@ impl ScrollManager {
       match ui.active_panel() {
          Panel::List => {
             navigation.move_top();
-            ui.set_list_scroll_offset(0);
             ui.reset_detail_scroll();
          },
          Panel::Description => {

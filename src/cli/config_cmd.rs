@@ -3,12 +3,13 @@
 use crate::cli::init;
 use crate::cli::ConfigAction;
 use crate::config::{
-   expand_path, get_config_path, is_first_run, load_config, save_config, Config, ConfigLock, GeneralConfig,
+   expand_path, get_config_path, is_first_run, load_config, resolve_home_dir, save_config, Config, ConfigLock,
+   GeneralConfig,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// Run a configuration management action
@@ -73,7 +74,7 @@ fn add_source_files(raw_paths: &[String]) -> Result<()> {
 /// Directories, sockets and FIFOs are rejected because the parser reads each configured entry as a
 /// file: a directory would warn on every launch, and a FIFO would block the read. Both checks
 /// follow symlinks, so a symlink to a regular file is still accepted.
-fn resolve_new_source_files(
+pub(super) fn resolve_new_source_files(
    config: &Config,
    raw_paths: &[String],
 ) -> Result<(Vec<String>, Vec<String>)> {
@@ -142,16 +143,93 @@ fn show_config() -> Result<()> {
 fn edit_config() -> Result<()> {
    let config_path = get_config_path()?;
 
-   // Try $EDITOR first, then fall back to common editors
-   let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string());
-
-   let status = Command::new(&editor).arg(config_path.to_string_lossy().to_string()).status()?;
+   let editor = std::env::var("EDITOR").unwrap_or_default();
+   let (program, editor_args) = parse_editor_command(&editor).unwrap_or_else(|| ("vi".to_string(), Vec::new()));
+   let status = Command::new(&program)
+      .args(&editor_args)
+      .arg(&config_path)
+      .status()
+      .with_context(|| format!("Failed to launch editor `{}`", program))?;
 
    if !status.success() {
-      anyhow::bail!("Editor exited with non-zero status");
+      anyhow::bail!("Editor `{}` exited with {}", program, status);
    }
 
    Ok(())
+}
+
+/// Split an `$EDITOR` value into the program and its arguments
+///
+/// A value naming an existing file is the program on its own, so a bare executable path containing
+/// spaces still works. Any other value is split on whitespace, with single quotes, double quotes and
+/// (outside Windows) backslashes grouping characters the way a POSIX shell does, so `vim -c "set number"`
+/// passes `set number` as one argument. Returns `None` when the value is empty or only whitespace.
+fn parse_editor_command(editor: &str) -> Option<(String, Vec<String>)> {
+   let trimmed = editor.trim();
+
+   if trimmed.is_empty() {
+      return None;
+   }
+
+   if Path::new(trimmed).is_file() {
+      return Some((trimmed.to_string(), Vec::new()));
+   }
+
+   let mut words = split_shell_words(trimmed).into_iter();
+   let program = words.next()?;
+   Some((program, words.collect()))
+}
+
+/// Split a command line into words, honouring single quotes, double quotes and backslash escapes
+///
+/// Backslashes are literal on Windows, where they separate path components. An unterminated quote
+/// runs to the end of the input.
+fn split_shell_words(input: &str) -> Vec<String> {
+   let is_escape_enabled = !cfg!(windows);
+   let mut words = Vec::new();
+   let mut current = String::new();
+   let mut is_in_word = false;
+   let mut quote: Option<char> = None;
+   let mut chars = input.chars();
+
+   while let Some(c) = chars.next() {
+      match (quote, c) {
+         (Some('\''), '\'') | (Some('"'), '"') => quote = None,
+         (Some('"'), '\\') if is_escape_enabled => match chars.next() {
+            Some(next @ ('"' | '\\' | '$' | '`')) => current.push(next),
+            Some(next) => {
+               current.push('\\');
+               current.push(next);
+            },
+            None => current.push('\\'),
+         },
+         (Some(_), _) => current.push(c),
+         (None, '\'' | '"') => {
+            quote = Some(c);
+            is_in_word = true;
+         },
+         (None, '\\') if is_escape_enabled => {
+            current.extend(chars.next());
+            is_in_word = true;
+         },
+         (None, _) if c.is_whitespace() => {
+            if is_in_word {
+               words.push(std::mem::take(&mut current));
+               is_in_word = false;
+            }
+         },
+         (None, _) => {
+            current.push(c);
+            is_in_word = true;
+         },
+      }
+   }
+
+   if is_in_word {
+      words.push(current);
+   }
+
+   words
 }
 
 /// Reset configuration to defaults
@@ -167,9 +245,8 @@ fn reset_config() -> Result<()> {
       return Ok(());
    }
 
-   // Auto-detect standard shell files
-   let home = std::env::var("HOME").map_err(|_| anyhow::anyhow!("HOME environment variable is not set"))?;
-   let detected_files = init::detect_shell_files(&home);
+   let home = resolve_home_dir().context("Could not determine the home directory: set HOME or USERPROFILE")?;
+   let detected_files = init::detect_shell_files(&home.to_string_lossy());
 
    let config = Config {
       general: GeneralConfig {

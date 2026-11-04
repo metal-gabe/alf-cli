@@ -25,40 +25,33 @@ impl Default for Theme {
    }
 }
 
+/// A theme's name and constructor
+type ThemeEntry = (&'static str, fn() -> Theme);
+
+/// Every theme, in alphabetical order
+const THEMES: [ThemeEntry; 8] = [
+   ("catppuccin", Theme::catppuccin_mocha),
+   ("default", Theme::default_theme),
+   ("dracula", Theme::dracula),
+   ("gruvbox", Theme::gruvbox),
+   ("nord", Theme::nord),
+   ("shades_of_purple", Theme::shades_of_purple),
+   ("solarized", Theme::solarized),
+   ("tokyonight", Theme::tokyo_night_storm),
+];
+
 impl Theme {
-   // ==========================================================================
-   // HELPERS
-   // ==========================================================================
+   /// The names of every theme, in alphabetical order
    pub fn available_themes() -> Vec<String> {
-      vec![
-         "catppuccin".to_string(),
-         "default".to_string(),
-         "dracula".to_string(),
-         "gruvbox".to_string(),
-         "nord".to_string(),
-         "shades_of_purple".to_string(),
-         "solarized".to_string(),
-         "tokyonight".to_string(),
-      ]
+      THEMES.iter().map(|(name, _)| name.to_string()).collect()
    }
 
+   /// Look up a theme by its case-insensitive name
    pub fn from_name(name: &str) -> Option<Self> {
-      match name.to_lowercase().as_str() {
-         "catppuccin" => Some(Self::catppuccin_mocha()),
-         "default" => Some(Self::default_theme()),
-         "dracula" => Some(Self::dracula()),
-         "gruvbox" => Some(Self::gruvbox()),
-         "nord" => Some(Self::nord()),
-         "shades_of_purple" => Some(Self::shades_of_purple()),
-         "solarized" => Some(Self::solarized()),
-         "tokyonight" => Some(Self::tokyo_night_storm()),
-         _ => None,
-      }
+      let name = name.to_lowercase();
+      THEMES.iter().find(|(theme_name, _)| *theme_name == name).map(|(_, build)| build())
    }
 
-   // ==========================================================================
-   // ACTUAL THEMES
-   // ==========================================================================
    pub fn catppuccin_mocha() -> Self {
       Self {
          alias_color: Color::Rgb(245, 194, 231),
@@ -89,7 +82,6 @@ impl Theme {
          mode_normal_color: Color::Rgb(144, 238, 144),
          name: "default".to_string(),
          selection: Color::Rgb(23, 148, 129),
-         // Unused fields (kept for future expansion)
          primary: Color::Reset,
          secondary: Color::Reset,
       }

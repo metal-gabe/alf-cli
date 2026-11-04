@@ -16,8 +16,6 @@ pub enum Panel {
 pub struct UiState {
    /// Currently active panel (receives scroll commands)
    active_panel: Panel,
-   /// Scroll offset for the list panel
-   list_scroll_offset: usize,
    /// Scroll offset for the description panel
    description_scroll_offset: usize,
    /// Maximum scroll offset for description panel (updated during rendering)
@@ -27,7 +25,7 @@ pub struct UiState {
    /// Maximum scroll offset for script panel (updated during rendering)
    script_max_scroll: usize,
    /// Flag to show/hide the help modal
-   show_help: bool,
+   is_help_visible: bool,
    /// Scroll offset for the help modal
    help_scroll_offset: usize,
    /// Maximum scroll offset for help modal (updated during rendering)
@@ -40,12 +38,11 @@ impl Default for UiState {
    fn default() -> Self {
       Self {
          active_panel: Panel::List,
-         list_scroll_offset: 0,
          description_scroll_offset: 0,
          description_max_scroll: 0,
          script_scroll_offset: 0,
          script_max_scroll: 0,
-         show_help: false,
+         is_help_visible: false,
          help_scroll_offset: 0,
          help_max_scroll: 0,
          is_fullscreen: false,
@@ -62,11 +59,6 @@ impl UiState {
    /// Get the active panel
    pub fn active_panel(&self) -> Panel {
       self.active_panel
-   }
-
-   /// Get list scroll offset
-   pub fn list_scroll_offset(&self) -> usize {
-      self.list_scroll_offset
    }
 
    /// Get description scroll offset
@@ -90,8 +82,8 @@ impl UiState {
    }
 
    /// Get show help flag
-   pub fn show_help(&self) -> bool {
-      self.show_help
+   pub fn is_help_visible(&self) -> bool {
+      self.is_help_visible
    }
 
    /// Get help scroll offset
@@ -107,14 +99,6 @@ impl UiState {
    /// Get fullscreen flag
    pub fn is_fullscreen(&self) -> bool {
       self.is_fullscreen
-   }
-
-   /// Set list scroll offset
-   pub fn set_list_scroll_offset(
-      &mut self,
-      offset: usize,
-   ) {
-      self.list_scroll_offset = offset;
    }
 
    /// Set description scroll offset
@@ -166,9 +150,8 @@ impl UiState {
 
    /// Toggle the help modal
    pub fn toggle_help(&mut self) {
-      self.show_help = !self.show_help;
-      // Reset scroll position when opening help
-      if self.show_help {
+      self.is_help_visible = !self.is_help_visible;
+      if self.is_help_visible {
          self.help_scroll_offset = 0;
       }
    }
@@ -207,6 +190,7 @@ impl UiState {
       visible_lines: usize,
    ) {
       self.help_max_scroll = if total_lines > visible_lines { total_lines.saturating_sub(visible_lines) } else { 0 };
+      self.help_scroll_offset = self.help_scroll_offset.min(self.help_max_scroll);
    }
 }
 

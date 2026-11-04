@@ -32,23 +32,18 @@ pub fn draw_description_panel(
       None => "(No entry selected)".to_string(),
    };
 
-   // Calculate content dimensions for scrollbar
-   let total_lines = description_text.lines().count();
+   let paragraph = Paragraph::new(Text::styled(description_text, active_style(is_active, false))).wrap(Wrap {
+      trim: false,
+   });
    let inner_area = block.inner(area);
+   let total_lines = paragraph.line_count(inner_area.width);
    let visible_lines = inner_area.height as usize;
 
-   // Update max scroll in app state
    app.update_description_max_scroll(total_lines, visible_lines);
 
-   let paragraph = Paragraph::new(Text::styled(description_text, active_style(is_active, false)))
-      .block(block)
-      .wrap(Wrap {
-         trim: false,
-      })
-      .scroll((app.description_scroll_offset() as u16, 0));
+   let paragraph = paragraph.block(block).scroll((app.description_scroll_offset() as u16, 0));
 
    frame.render_widget(paragraph, area);
 
-   // Render scrollbar
    render_scrollbar(frame, inner_area, total_lines, visible_lines, app.description_scroll_offset(), theme.border);
 }

@@ -10,7 +10,6 @@ use crate::models::{AliasEntry, EntryType};
 /// is also useful for unit/integration tests of the parser and search modules.
 pub fn mock_entries() -> Vec<AliasEntry> {
    vec![
-      // ── Aliases ──────────────────────────────────────────
       AliasEntry {
          name: "gs".to_string(),
          entry_type: EntryType::Alias,
@@ -98,7 +97,6 @@ pub fn mock_entries() -> Vec<AliasEntry> {
          comments: Some(vec!["Show all listening ports on this machine".to_string()]),
          source_file: PathBuf::from("~/.zshrc"),
       },
-      // ── Functions ────────────────────────────────────────
       AliasEntry {
          name: "mkcd".to_string(),
          entry_type: EntryType::Function,

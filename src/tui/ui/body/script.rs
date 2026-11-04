@@ -29,26 +29,20 @@ pub fn draw_script_panel(
       None => "(No entry selected)".to_string(),
    };
 
-   // Calculate content dimensions for scrollbar
-   let total_lines = script_text.lines().count();
-   let inner_area = block.inner(area);
-   let visible_lines = inner_area.height as usize;
-
-   // Update max scroll in app state
-   app.update_script_max_scroll(total_lines, visible_lines);
-
-   // Apply syntax highlighting with optional dimming
    let highlighted_text = syntax::highlight_shell_script_with_style(&script_text, !is_active);
 
-   let paragraph = Paragraph::new(highlighted_text)
-      .block(block)
-      .wrap(Wrap {
-         trim: false,
-      })
-      .scroll((app.script_scroll_offset() as u16, 0));
+   let paragraph = Paragraph::new(highlighted_text).wrap(Wrap {
+      trim: false,
+   });
+   let inner_area = block.inner(area);
+   let total_lines = paragraph.line_count(inner_area.width);
+   let visible_lines = inner_area.height as usize;
+
+   app.update_script_max_scroll(total_lines, visible_lines);
+
+   let paragraph = paragraph.block(block).scroll((app.script_scroll_offset() as u16, 0));
 
    frame.render_widget(paragraph, area);
 
-   // Render scrollbar
    render_scrollbar(frame, inner_area, total_lines, visible_lines, app.script_scroll_offset(), theme.border);
 }

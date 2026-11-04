@@ -1,6 +1,7 @@
 //! Fuzzy search implementation using nucleo-matcher.
 
-use nucleo_matcher::{Config, Matcher};
+use nucleo_matcher::pattern::{self, Atom, AtomKind, Normalization};
+use nucleo_matcher::{Config, Matcher, Utf32String};
 
 use crate::config::CaseMatching;
 use crate::models::{AliasEntry, SearchResult};
@@ -11,14 +12,14 @@ pub struct SearchOptions {
    /// Case matching strategy
    pub case_matching: CaseMatching,
    /// Enable Unicode normalization
-   pub normalize: bool,
+   pub should_normalize: bool,
 }
 
 impl Default for SearchOptions {
    fn default() -> Self {
       Self {
          case_matching: CaseMatching::Smart,
-         normalize: true,
+         should_normalize: true,
       }
    }
 }
@@ -38,7 +39,6 @@ pub fn fuzzy_search(
    opts: &SearchOptions,
 ) -> Vec<SearchResult> {
    if query.is_empty() {
-      // Empty query matches all entries with equal score
       return entries
          .iter()
          .map(|entry| SearchResult {
@@ -48,29 +48,21 @@ pub fn fuzzy_search(
          .collect();
    }
 
-   let mut matcher = create_matcher(opts);
+   let mut matcher = Matcher::new(Config::DEFAULT);
    let mut results = Vec::new();
-
-   // Convert query to nucleo format
-   let query_haystack = nucleo_matcher::Utf32Str::Ascii(query.as_bytes());
+   let atom = create_atom(query, opts);
 
    for entry in entries {
-      // Try matching against entry name first (prioritized)
-      let name_haystack = nucleo_matcher::Utf32Str::Ascii(entry.name.as_bytes());
-      let name_score = matcher.fuzzy_match(name_haystack, query_haystack);
+      let name_score = atom.score(Utf32String::from(entry.name.as_str()).slice(..), &mut matcher);
+      let comment_score = entry
+         .comments
+         .as_ref()
+         .and_then(|comments| atom.score(Utf32String::from(comments.join(" ")).slice(..), &mut matcher));
 
-      let comment_score = entry.comments.as_ref().and_then(|comments| {
-         // Join comments with spaces and try to match
-         let comment_text = comments.join(" ");
-         let comment_haystack = nucleo_matcher::Utf32Str::Ascii(comment_text.as_bytes());
-         matcher.fuzzy_match(comment_haystack, query_haystack)
-      });
-
-      // Use name score if available, otherwise use comment score
       if let Some(score) = name_score.or(comment_score) {
          results.push(SearchResult {
             entry: entry.clone(),
-            score: score as u32,
+            score: u32::from(score),
          });
       }
    }
@@ -80,12 +72,19 @@ pub fn fuzzy_search(
    results
 }
 
-/// Create and configure a nucleo Matcher based on search options
-fn create_matcher(_opts: &SearchOptions) -> Matcher {
-   // Note: nucleo-matcher has limited API for case matching configuration
-   // The default Smart case matching should work well for most users
-   // Future versions may expose more configurability
-   Matcher::new(Config::DEFAULT)
+/// Create the fuzzy pattern for `query` from the search options
+fn create_atom(
+   query: &str,
+   opts: &SearchOptions,
+) -> Atom {
+   let case_matching = match opts.case_matching {
+      CaseMatching::Ignore => pattern::CaseMatching::Ignore,
+      CaseMatching::Respect => pattern::CaseMatching::Respect,
+      CaseMatching::Smart => pattern::CaseMatching::Smart,
+   };
+   let normalization = if opts.should_normalize { Normalization::Smart } else { Normalization::Never };
+
+   Atom::new(query, case_matching, normalization, AtomKind::Fuzzy, false)
 }
 
 #[cfg(test)]

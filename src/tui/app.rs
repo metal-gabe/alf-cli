@@ -12,7 +12,17 @@ pub enum ExitAction {
    Populate,
 }
 
-// Import all state modules
+/// Whether the application is still running, and how it ended if not
+#[derive(Debug, Clone, Copy)]
+enum RunState {
+   /// The event loop should keep going
+   Running,
+   /// Exit without selecting an entry
+   Quit,
+   /// Exit after selecting an entry with the given action
+   Selected(ExitAction),
+}
+
 use super::state::{
    EntryData, EntryFilter, FilterState, GroupMode, InputMode, InputState, NavigationState, Panel, ScrollManager,
    SearchState, SortOrder, UiState,
@@ -34,10 +44,8 @@ pub struct App {
    filter: FilterState,
    /// Color theme
    theme: Theme,
-   /// Flag to signal application should quit
-   pub should_quit: bool,
-   /// Action to take when exiting (if entry was selected)
-   pub exit_action: Option<ExitAction>,
+   /// Whether the application is running or how it exited
+   run_state: RunState,
 }
 
 impl App {
@@ -54,11 +62,9 @@ impl App {
          navigation: NavigationState::default(),
          filter: FilterState::default(),
          theme,
-         should_quit: false,
-         exit_action: None,
+         run_state: RunState::Running,
       };
 
-      // Apply initial filtering, grouping, and sorting to populate visible_indices
       app.update_visible_entries();
 
       app
@@ -75,8 +81,6 @@ impl App {
       self.navigation.clamp(self.data.visible_count());
       self.ui.reset_detail_scroll();
    }
-
-   // ===== Accessor methods for state =====
 
    /// Get reference to all entries
    pub fn entries(&self) -> &[AliasEntry] {
@@ -123,11 +127,6 @@ impl App {
       self.filter.filter()
    }
 
-   /// Get list scroll offset
-   pub fn list_scroll_offset(&self) -> usize {
-      self.ui.list_scroll_offset()
-   }
-
    /// Get description scroll offset
    pub fn description_scroll_offset(&self) -> usize {
       self.ui.description_scroll_offset()
@@ -159,8 +158,8 @@ impl App {
    }
 
    /// Get show help flag
-   pub fn show_help(&self) -> bool {
-      self.ui.show_help()
+   pub fn is_help_visible(&self) -> bool {
+      self.ui.is_help_visible()
    }
 
    /// Get help scroll offset
@@ -182,8 +181,6 @@ impl App {
    pub fn sort_order(&self) -> SortOrder {
       self.filter.sort_order()
    }
-
-   // ===== Navigation methods =====
 
    /// Move selection up by one
    pub fn move_up(&mut self) {
@@ -223,8 +220,6 @@ impl App {
       ScrollManager::scroll_down(&mut self.ui, &mut self.navigation, amount, self.data.visible_count());
    }
 
-   // ===== Panel methods =====
-
    /// Cycle to the next panel (forward)
    pub fn cycle_panel(&mut self) {
       self.ui.cycle_panel();
@@ -239,8 +234,6 @@ impl App {
    pub fn toggle_fullscreen(&mut self) {
       self.ui.toggle_fullscreen();
    }
-
-   // ===== Filter methods =====
 
    /// Cycle the entry type filter (forward)
    pub fn cycle_filter(&mut self) {
@@ -262,8 +255,6 @@ impl App {
       self.filter.set_filter(filter);
       self.update_visible_entries();
    }
-
-   // ===== Search methods =====
 
    /// Enter search mode
    pub fn enter_search_mode(&mut self) {
@@ -360,8 +351,6 @@ impl App {
       self.search.move_word_forward();
    }
 
-   // ===== Help modal methods =====
-
    /// Toggle the help modal
    pub fn toggle_help(&mut self) {
       self.ui.toggle_help();
@@ -414,8 +403,6 @@ impl App {
       self.ui.update_script_max_scroll(total_lines, visible_lines);
    }
 
-   // ===== Grouping and sorting methods =====
-
    /// Cycle to the next group mode
    pub fn cycle_group_mode(&mut self) {
       self.filter.cycle_group_mode();
@@ -433,8 +420,6 @@ impl App {
       self.filter.toggle_sort_order();
       self.update_visible_entries();
    }
-
-   // ===== Pending key methods =====
 
    /// Check if pending key has timed out (2 seconds)
    pub fn is_pending_key_expired(&self) -> bool {
@@ -454,28 +439,38 @@ impl App {
       self.input.set_pending_key(key);
    }
 
-   // ===== Application lifecycle =====
-
    /// Select the current entry with the given action and exit gracefully
    pub fn select_entry(
       &mut self,
       action: ExitAction,
    ) {
-      if self.selected_entry().is_some() {
-         self.exit_action = Some(action);
+      self.run_state = if self.selected_entry().is_some() { RunState::Selected(action) } else { RunState::Quit };
+   }
+
+   /// Exit without selecting an entry
+   pub fn quit(&mut self) {
+      self.run_state = RunState::Quit;
+   }
+
+   /// Whether the event loop should keep going
+   pub fn is_running(&self) -> bool {
+      matches!(self.run_state, RunState::Running)
+   }
+
+   /// The action chosen when an entry was selected, if any
+   pub fn exit_action(&self) -> Option<ExitAction> {
+      match self.run_state {
+         RunState::Selected(action) => Some(action),
+         RunState::Quit | RunState::Running => None,
       }
-      self.should_quit = true;
    }
 
    /// Update application state (called each tick)
    pub fn tick(&mut self) {
-      // Check and clear expired pending keys
       if self.input.is_pending_key_expired() {
          self.input.clear_pending_key();
       }
    }
-
-   // ===== Theme cycling methods =====
 
    /// Cycle to the next theme in alphabetical order (wraps around)
    pub fn cycle_theme_next(&mut self) {
@@ -496,8 +491,6 @@ impl App {
          self.theme = t;
       }
    }
-
-   // ===== Theme accessor =====
 
    /// Get reference to the current theme
    pub fn theme(&self) -> &Theme {

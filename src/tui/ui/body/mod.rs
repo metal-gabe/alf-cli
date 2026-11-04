@@ -33,7 +33,6 @@ pub fn draw_main_body(
       return;
    }
 
-   // Horizontal split: left 40% list, right 60% detail
    let main_chunks = Layout::default()
       .direction(Direction::Horizontal)
       .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
@@ -50,7 +49,6 @@ fn draw_detail_panels(
    theme: &Theme,
    area: Rect,
 ) {
-   // Vertical split: top 30% description, bottom 70% script
    let detail_chunks = Layout::default()
       .direction(Direction::Vertical)
       .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])

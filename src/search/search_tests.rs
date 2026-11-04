@@ -70,35 +70,6 @@ fn score_ordering() {
 }
 
 #[test]
-fn case_sensitive_search() {
-   let entries = vec![
-      create_test_entry("MyAlias", EntryType::Alias, "some command", None),
-      create_test_entry("myalias", EntryType::Alias, "another command", None),
-   ];
-   let options = SearchOptions {
-      case_matching: CaseMatching::Respect,
-      ..Default::default()
-   };
-   let results = fuzzy_search(&entries, "My", &options);
-   assert_eq!(results.len(), 1, "Case-sensitive 'My' should match only 'MyAlias'");
-   assert_eq!(results[0].entry.name, "MyAlias");
-}
-
-#[test]
-fn smart_case_search() {
-   let entries = vec![
-      create_test_entry("MyAlias", EntryType::Alias, "some command", None),
-      create_test_entry("myalias", EntryType::Alias, "another command", None),
-   ];
-   let options = SearchOptions {
-      case_matching: CaseMatching::Smart,
-      ..Default::default()
-   };
-   let results_lower = fuzzy_search(&entries, "my", &options);
-   assert_eq!(results_lower.len(), 2, "Smart case with lowercase query should match both entries");
-}
-
-#[test]
 fn no_match_returns_empty() {
    let entries = vec![
       create_test_entry("ll", EntryType::Alias, "ls -lah", None),
@@ -122,4 +93,56 @@ fn multiple_comments_search() {
    )];
    let results = fuzzy_search(&entries, "file", &SearchOptions::default());
    assert!(!results.is_empty(), "Should find by searching through all comments");
+}
+
+#[test]
+fn case_matching_modes_are_honoured() {
+   let entries = vec![
+      create_test_entry("MyAlias", EntryType::Alias, "some command", None),
+      create_test_entry("myalias", EntryType::Alias, "another command", None),
+   ];
+   let cases: [(CaseMatching, &str, &[&str]); 5] = [
+      (CaseMatching::Respect, "My", &["MyAlias"]),
+      (CaseMatching::Respect, "my", &["myalias"]),
+      (CaseMatching::Ignore, "MY", &["MyAlias", "myalias"]),
+      (CaseMatching::Smart, "my", &["MyAlias", "myalias"]),
+      (CaseMatching::Smart, "My", &["MyAlias"]),
+   ];
+   for (case_matching, query, expected) in cases {
+      let options = SearchOptions {
+         case_matching,
+         ..Default::default()
+      };
+      let mut names: Vec<String> =
+         fuzzy_search(&entries, query, &options).into_iter().map(|result| result.entry.name).collect();
+      names.sort();
+      assert_eq!(names, expected, "{case_matching:?} with query {query:?}");
+   }
+}
+
+#[test]
+fn non_ascii_names_and_queries_match() {
+   let entries = vec![
+      create_test_entry("caf\u{e9}", EntryType::Alias, "brew", None),
+      create_test_entry("\u{65e5}\u{672c}\u{8a9e}", EntryType::Alias, "nihongo", None),
+      create_test_entry("ll", EntryType::Alias, "ls -lah", None),
+   ];
+   let cases = [("caf\u{e9}", "caf\u{e9}"), ("\u{672c}", "\u{65e5}\u{672c}\u{8a9e}")];
+   for (query, expected) in cases {
+      let results = fuzzy_search(&entries, query, &SearchOptions::default());
+      assert_eq!(results.len(), 1, "Query {query:?}");
+      assert_eq!(results[0].entry.name, expected, "Query {query:?}");
+   }
+}
+
+#[test]
+fn normalization_follows_the_option() {
+   let entries = vec![create_test_entry("caf\u{e9}", EntryType::Alias, "brew", None)];
+   for (should_normalize, expected_count) in [(true, 1), (false, 0)] {
+      let options = SearchOptions {
+         should_normalize,
+         ..Default::default()
+      };
+      assert_eq!(fuzzy_search(&entries, "cafe", &options).len(), expected_count, "should_normalize {should_normalize}");
+   }
 }

@@ -5,12 +5,6 @@ use super::Theme;
 // ===== available_themes =====
 
 #[test]
-fn available_themes_returns_eight_themes() {
-   let themes = Theme::available_themes();
-   assert_eq!(themes.len(), 8);
-}
-
-#[test]
 fn available_themes_are_alphabetically_sorted() {
    let themes = Theme::available_themes();
    let mut sorted = themes.clone();

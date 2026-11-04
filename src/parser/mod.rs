@@ -2,7 +2,9 @@
 
 use anyhow::Result;
 use regex::Regex;
+use std::iter::Peekable;
 use std::path::Path;
+use std::str::Chars;
 
 use crate::models::{AliasEntry, EntryType};
 
@@ -14,13 +16,12 @@ use crate::models::{AliasEntry, EntryType};
 /// # Returns
 /// A vector of parsed alias and function entries
 pub fn parse_shell_file(path: &Path) -> Result<Vec<AliasEntry>> {
-   let content = std::fs::read_to_string(path)?;
+   let bytes = std::fs::read(path)?;
+   let content = String::from_utf8_lossy(&bytes);
    let mut entries = Vec::new();
 
-   // Extract aliases
    entries.extend(extract_aliases(&content, path));
 
-   // Extract functions
    entries.extend(extract_functions(&content, path));
 
    Ok(entries)
@@ -34,16 +35,12 @@ fn extract_aliases(
    let mut entries = Vec::new();
    let lines: Vec<&str> = content.lines().collect();
 
-   // Regex patterns for alias definitions
-   // Matches: alias name='command' or alias name="command"
-   // Alias names can include dots, hyphens, and underscores (e.g., ll, my.alias)
    let alias_pattern =
       Regex::new(r#"^\s*alias\s+([a-zA-Z_][a-zA-Z0-9._-]*)=(?:'([^']*)'|"([^"]*)"|([^\s]+))"#).unwrap();
 
    for (line_num, line) in lines.iter().enumerate() {
       if let Some(captures) = alias_pattern.captures(line) {
          let name = captures.get(1).unwrap().as_str().to_string();
-         // The value is in one of these three groups (whichever matched)
          let value = captures
             .get(2)
             .or_else(|| captures.get(3))
@@ -75,26 +72,24 @@ fn extract_functions(
    let mut entries = Vec::new();
    let lines: Vec<&str> = content.lines().collect();
 
-   // Regex pattern for function definitions
-   // Matches: function name() { or name() {
-   // Function names can include dots, hyphens, and underscores (e.g., t.command, my-func)
    let func_pattern = Regex::new(r#"^\s*(?:function\s+)?([a-zA-Z_][a-zA-Z0-9._-]*)\s*\(\)\s*\{"#).unwrap();
 
    for (line_num, line) in lines.iter().enumerate() {
       if let Some(captures) = func_pattern.captures(line) {
          let name = captures.get(1).unwrap().as_str().to_string();
 
-         // Extract function body (from opening { to closing })
          let mut body_lines = vec![line.to_string()];
-         let mut brace_count = 1;
+         let mut scanner = BraceScanner::default();
+         let mut brace_count = scanner.count_brace_delta(line);
 
-         for next_line in lines.iter().skip(line_num + 1) {
-            body_lines.push(next_line.to_string());
-            brace_count += next_line.matches('{').count() as i32;
-            brace_count -= next_line.matches('}').count() as i32;
+         if brace_count > 0 {
+            for next_line in lines.iter().skip(line_num + 1) {
+               body_lines.push(next_line.to_string());
+               brace_count += scanner.count_brace_delta(next_line);
 
-            if brace_count == 0 {
-               break;
+               if brace_count == 0 {
+                  break;
+               }
             }
          }
 
@@ -112,6 +107,125 @@ fn extract_functions(
    }
 
    entries
+}
+
+/// The kind of quoted string a [`BraceScanner`] is inside
+#[derive(Clone, Copy)]
+enum Quote {
+   AnsiC,
+   Double,
+   Single,
+}
+
+/// A heredoc whose body starts on the line after its `<<` operator
+struct Heredoc {
+   terminator: String,
+   is_tab_stripped: bool,
+}
+
+/// Shell lexing state carried from one line of a function body to the next
+#[derive(Default)]
+struct BraceScanner {
+   arithmetic_depth: usize,
+   heredocs: Vec<Heredoc>,
+   parameter_depth: usize,
+   quote: Option<Quote>,
+}
+
+impl BraceScanner {
+   /// Count the braces a line opens minus the ones it closes, as shell syntax
+   ///
+   /// Braces inside single, double or ANSI-C (`$'…'`) quotes, escaped with a backslash, inside a
+   /// heredoc body, or after an unquoted `#` that starts a comment are ignored. Quote state carries
+   /// over to the next line, so a quoted string spanning lines hides all of its braces. `${…}`
+   /// parameter expansions are tracked so a `#` inside one is not taken for a comment and their braces
+   /// leave the count unchanged. `((…))` and `$((…))` arithmetic is tracked by parenthesis depth, so a
+   /// `<<` shift inside it is never read as a heredoc.
+   fn count_brace_delta(
+      &mut self,
+      line: &str,
+   ) -> i32 {
+      if let Some(heredoc) = self.heredocs.first() {
+         let candidate = if heredoc.is_tab_stripped { line.trim_start_matches('\t') } else { line };
+
+         if candidate == heredoc.terminator {
+            self.heredocs.remove(0);
+         }
+
+         return 0;
+      }
+
+      let mut delta = 0;
+      let mut previous: Option<char> = None;
+      let mut chars = line.chars().peekable();
+
+      while let Some(c) = chars.next() {
+         match (self.quote, c) {
+            (Some(Quote::AnsiC | Quote::Single), '\'') | (Some(Quote::Double), '"') => self.quote = None,
+            (Some(Quote::AnsiC | Quote::Double) | None, '\\') => {
+               chars.next();
+            },
+            (Some(_), _) => {},
+            (None, '$') if chars.next_if_eq(&'\'').is_some() => self.quote = Some(Quote::AnsiC),
+            (None, '$') if chars.next_if_eq(&'{').is_some() => self.parameter_depth += 1,
+            (None, '\'') => self.quote = Some(Quote::Single),
+            (None, '"') => self.quote = Some(Quote::Double),
+            (None, '#') if self.parameter_depth == 0 && previous.map_or(true, char::is_whitespace) => break,
+            (None, '(') if self.arithmetic_depth > 0 => self.arithmetic_depth += 1,
+            (None, '(') if chars.next_if_eq(&'(').is_some() => self.arithmetic_depth = 2,
+            (None, ')') if self.arithmetic_depth > 0 => self.arithmetic_depth -= 1,
+            (None, '<')
+               if self.parameter_depth == 0 && self.arithmetic_depth == 0 && chars.next_if_eq(&'<').is_some() =>
+            {
+               self.heredocs.extend(read_heredoc(&mut chars));
+            },
+            (None, '{') if self.parameter_depth == 0 => delta += 1,
+            (None, '}') if self.parameter_depth > 0 => self.parameter_depth -= 1,
+            (None, '}') => delta -= 1,
+            (None, _) => {},
+         }
+
+         previous = Some(c);
+      }
+
+      delta
+   }
+}
+
+/// Read the heredoc delimiter that follows a `<<` operator
+///
+/// Returns `None` for a `<<<` here-string, or when the delimiter does not start with a letter, `_`,
+/// a quote or a backslash. Quotes and backslashes are stripped from the delimiter, as the shell does
+/// when matching it.
+fn read_heredoc(chars: &mut Peekable<Chars>) -> Option<Heredoc> {
+   if chars.next_if_eq(&'<').is_some() {
+      return None;
+   }
+
+   let is_tab_stripped = chars.next_if_eq(&'-').is_some();
+   while chars.next_if(|c| *c == ' ' || *c == '\t').is_some() {}
+   let first = *chars.peek()?;
+
+   if !(first.is_alphabetic() || matches!(first, '_' | '\'' | '"' | '\\')) {
+      return None;
+   }
+
+   let mut terminator = String::new();
+
+   while let Some(c) = chars.next_if(|c| !c.is_whitespace() && !matches!(c, ';' | '|' | '&' | '<' | '>' | '(' | ')')) {
+      if !matches!(c, '\'' | '"' | '\\') {
+         terminator.push(c);
+      }
+   }
+
+   if terminator.is_empty() {
+      return None;
+   }
+
+   Some(Heredoc {
+      terminator,
+      is_tab_stripped,
+   })
 }
 
 /// Extract alf-friendly comments preceding a definition
@@ -133,14 +247,12 @@ fn extract_comments(
    lines: &[&str],
    line_number: usize,
 ) -> Option<Vec<String>> {
-   // First check for concise format on the line BEFORE the definition
    if line_number > 0 {
       if let Some(description) = extract_concise_comment(lines[line_number - 1]) {
          return Some(vec![description]);
       }
    }
 
-   // Then check for multi-line format above the definition
    extract_multiline_comment(lines, line_number)
 }
 
@@ -167,44 +279,28 @@ fn extract_multiline_comment(
 
    line_number = line_number.saturating_sub(1);
 
-   // Look for closing marker "# fla" first
-   let mut closing_found = false;
+   let mut is_closing_found = false;
    let mut description_lines = Vec::new();
    let mut temp_line_num = line_number;
 
-   // Scan backwards to find the markers
    loop {
       let line = lines[temp_line_num].trim();
 
-      // Check for closing marker
       if line == "# fla" {
-         closing_found = true;
-      } else if line == "# alf" && closing_found {
-         // Found opening marker, we have a valid block
+         is_closing_found = true;
+      } else if line == "# alf" && is_closing_found {
          return if description_lines.is_empty() {
             None
          } else {
             description_lines.reverse();
             Some(description_lines)
          };
-      } else if closing_found && line.starts_with('#') && line != "# fla" && line != "# alf" {
-         // Collect description lines between markers
+      } else if is_closing_found && line.starts_with('#') && line != "# fla" && line != "# alf" {
          let text = line.trim_start_matches('#').trim();
          if !text.is_empty() {
             description_lines.push(text.to_string());
          }
-      } else if closing_found && !line.starts_with('#') && !line.is_empty() {
-         // Hit non-comment before finding opening marker, invalid block
-         return None;
-      } else if closing_found && line.is_empty() {
-         // Empty line after closing marker, block is incomplete
-         return None;
-      } else if !closing_found && line.is_empty() {
-         // Empty line before finding closing marker, no alf block here
-         return None;
-      } else if !closing_found && line.starts_with('#') && line != "# alf" {
-         // Found comment that's not an alf marker before closing marker
-         // This is not a valid alf block
+      } else if !is_closing_found || !line.starts_with('#') {
          return None;
       }
 

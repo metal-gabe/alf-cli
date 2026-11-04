@@ -52,8 +52,8 @@ pub enum Commands {
       ignored: Vec<String>,
 
       /// Also print the full script contents of each alf match
-      #[arg(long)]
-      show_script: bool,
+      #[arg(long = "show-script")]
+      will_show_script: bool,
    },
 }
 

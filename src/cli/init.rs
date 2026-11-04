@@ -1,8 +1,9 @@
 //! First-run initialization wizard for alf.
 
-use crate::config::{is_first_run, save_config, Config, GeneralConfig, UiConfig};
+use crate::cli::config_cmd::resolve_new_source_files;
+use crate::config::{is_first_run, resolve_home_dir, save_config, Config, GeneralConfig, UiConfig};
 use crate::tui::themes::Theme;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -11,7 +12,6 @@ const STANDARD_SHELL_FILES: &[&str] = &[".bashrc", ".zshrc", ".kshrc", "config.f
 
 /// Run the initialization wizard
 pub fn run_init_wizard() -> Result<()> {
-   // Check if already configured
    if !is_first_run()? {
       eprintln!("Config already exists at $HOME/.config/alf/config.toml");
       eprintln!("To reconfigure, run: alf config reset");
@@ -20,11 +20,8 @@ pub fn run_init_wizard() -> Result<()> {
 
    println!("Welcome to alf!\n");
 
-   // Auto-detect standard shell files
-   let home = std::env::var("HOME").map_err(|_| {
-      let _ = anyhow::anyhow!("HOME environment variable not set");
-   });
-   let detected_files = detect_shell_files(&home.unwrap());
+   let home = resolve_home_dir().context("Could not determine the home directory: set HOME or USERPROFILE")?;
+   let detected_files = detect_shell_files(&home.to_string_lossy());
 
    println!("Detected shell files:");
    if detected_files.is_empty() {
@@ -36,47 +33,20 @@ pub fn run_init_wizard() -> Result<()> {
    }
    println!();
 
-   // Prompt for additional files
-   print!("Additional files? (comma-separated paths, or Enter to skip):\n> ");
-   io::stdout().flush()?;
-
-   let mut additional = String::new();
-   io::stdin().read_line(&mut additional)?;
-
-   let mut all_files = detected_files;
-   if !additional.trim().is_empty() {
-      for path in additional.split(',') {
-         let trimmed = path.trim();
-         if !trimmed.is_empty() {
-            all_files.push(trimmed.to_string());
-         }
-      }
-   }
+   let all_files = prompt_additional_files(detected_files)?;
 
    println!();
 
-   // Theme selection
    println!("Choose a theme:");
    let themes = Theme::available_themes();
    for (i, theme_name) in themes.iter().enumerate() {
       println!("  {}) {}", i + 1, theme_name);
    }
 
-   print!("> ");
-   io::stdout().flush()?;
-
-   let mut choice = String::new();
-   io::stdin().read_line(&mut choice)?;
-
-   let theme_idx = choice.trim().parse::<usize>().unwrap_or(1).saturating_sub(1);
-   let selected_theme = themes.get(theme_idx).cloned().unwrap_or_else(|| {
-      eprintln!("Invalid selection, using default theme.");
-      "default".to_string()
-   });
+   let selected_theme = prompt_theme(&themes)?;
 
    println!();
 
-   // Create and save config
    let config = Config {
       general: GeneralConfig {
          shell_files: all_files,
@@ -116,6 +86,64 @@ pub fn run_init_wizard() -> Result<()> {
    println!("Run `alf` to start.");
 
    Ok(())
+}
+
+/// Ask for extra shell files until every given path is valid, returning them after `detected_files`
+///
+/// Paths get the same checks as `alf config add`. Empty input, including end of input, skips the step.
+fn prompt_additional_files(detected_files: Vec<String>) -> Result<Vec<String>> {
+   let mut config = Config::default();
+   config.general.shell_files = detected_files;
+
+   loop {
+      print!("Additional files? (comma-separated paths, or Enter to skip):\n> ");
+      io::stdout().flush()?;
+
+      let mut additional = String::new();
+      io::stdin().read_line(&mut additional)?;
+
+      let raw_paths: Vec<String> =
+         additional.split(',').map(str::trim).filter(|path| !path.is_empty()).map(str::to_string).collect();
+
+      match resolve_new_source_files(&config, &raw_paths) {
+         Ok((to_add, _)) => {
+            config.general.shell_files.extend(to_add);
+            return Ok(config.general.shell_files);
+         },
+         Err(error) => eprintln!("{}\nTry again, or press Enter to skip.", error),
+      }
+   }
+}
+
+/// Ask for a theme from the numbered `themes` menu until the answer is valid
+fn prompt_theme(themes: &[String]) -> Result<String> {
+   loop {
+      print!("(Enter for default)\n> ");
+      io::stdout().flush()?;
+
+      let mut choice = String::new();
+      io::stdin().read_line(&mut choice)?;
+
+      match parse_theme_choice(&choice, themes) {
+         Some(theme) => return Ok(theme),
+         None => eprintln!("Invalid selection: enter a number from 1 to {}.", themes.len()),
+      }
+   }
+}
+
+/// Resolve a theme menu answer, where empty input, including end of input, picks the `default` theme
+fn parse_theme_choice(
+   choice: &str,
+   themes: &[String],
+) -> Option<String> {
+   let choice = choice.trim();
+
+   if choice.is_empty() {
+      return Some("default".to_string());
+   }
+
+   let number = choice.parse::<usize>().ok()?;
+   themes.get(number.checked_sub(1)?).cloned()
 }
 
 /// Print the shell integration wrapper for a given shell
@@ -227,7 +255,7 @@ fn get_shell_hook(shell: &str) -> &'static str {
 }
 
 /// Detect which standard shell files exist in the home directory
-pub(super) fn detect_shell_files(home: &str) -> Vec<String> {
+pub(crate) fn detect_shell_files(home: &str) -> Vec<String> {
    STANDARD_SHELL_FILES
       .iter()
       .filter_map(|filename| {
