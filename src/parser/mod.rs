@@ -2,7 +2,9 @@
 
 use anyhow::Result;
 use regex::Regex;
+use std::iter::Peekable;
 use std::path::Path;
+use std::str::Chars;
 
 use crate::models::{AliasEntry, EntryType};
 
@@ -77,12 +79,13 @@ fn extract_functions(
          let name = captures.get(1).unwrap().as_str().to_string();
 
          let mut body_lines = vec![line.to_string()];
-         let mut brace_count = count_brace_delta(line);
+         let mut scanner = BraceScanner::default();
+         let mut brace_count = scanner.count_brace_delta(line);
 
          if brace_count > 0 {
             for next_line in lines.iter().skip(line_num + 1) {
                body_lines.push(next_line.to_string());
-               brace_count += count_brace_delta(next_line);
+               brace_count += scanner.count_brace_delta(next_line);
 
                if brace_count == 0 {
                   break;
@@ -106,35 +109,116 @@ fn extract_functions(
    entries
 }
 
-/// Count the braces a line opens minus the ones it closes, as shell syntax
-///
-/// Braces inside single or double quotes, escaped with a backslash, or after an unquoted `#` that
-/// starts a comment are ignored. Quote state does not carry over to the next line, so an apostrophe
-/// in a heredoc or comment-like text only affects its own line.
-fn count_brace_delta(line: &str) -> i32 {
-   let mut delta = 0;
-   let mut quote: Option<char> = None;
-   let mut previous: Option<char> = None;
-   let mut chars = line.chars();
+/// The kind of quoted string a [`BraceScanner`] is inside
+#[derive(Clone, Copy)]
+enum Quote {
+   AnsiC,
+   Double,
+   Single,
+}
 
-   while let Some(c) = chars.next() {
-      match (quote, c) {
-         (Some('\''), '\'') | (Some('"'), '"') => quote = None,
-         (Some('"'), '\\') | (None, '\\') => {
-            chars.next();
-         },
-         (Some(_), _) => {},
-         (None, '\'' | '"') => quote = Some(c),
-         (None, '#') if previous.map_or(true, char::is_whitespace) => break,
-         (None, '{') => delta += 1,
-         (None, '}') => delta -= 1,
-         (None, _) => {},
+/// A heredoc whose body starts on the line after its `<<` operator
+struct Heredoc {
+   terminator: String,
+   is_tab_stripped: bool,
+}
+
+/// Shell lexing state carried from one line of a function body to the next
+#[derive(Default)]
+struct BraceScanner {
+   heredocs: Vec<Heredoc>,
+   parameter_depth: usize,
+   quote: Option<Quote>,
+}
+
+impl BraceScanner {
+   /// Count the braces a line opens minus the ones it closes, as shell syntax
+   ///
+   /// Braces inside single, double or ANSI-C (`$'…'`) quotes, escaped with a backslash, inside a
+   /// heredoc body, or after an unquoted `#` that starts a comment are ignored. Quote state carries
+   /// over to the next line, so a quoted string spanning lines hides all of its braces. `${…}`
+   /// parameter expansions are tracked so a `#` inside one is not taken for a comment and their braces
+   /// leave the count unchanged.
+   fn count_brace_delta(
+      &mut self,
+      line: &str,
+   ) -> i32 {
+      if let Some(heredoc) = self.heredocs.first() {
+         let candidate = if heredoc.is_tab_stripped { line.trim_start_matches('\t') } else { line };
+
+         if candidate == heredoc.terminator {
+            self.heredocs.remove(0);
+         }
+
+         return 0;
       }
 
-      previous = Some(c);
+      let mut delta = 0;
+      let mut previous: Option<char> = None;
+      let mut chars = line.chars().peekable();
+
+      while let Some(c) = chars.next() {
+         match (self.quote, c) {
+            (Some(Quote::AnsiC | Quote::Single), '\'') | (Some(Quote::Double), '"') => self.quote = None,
+            (Some(Quote::AnsiC | Quote::Double) | None, '\\') => {
+               chars.next();
+            },
+            (Some(_), _) => {},
+            (None, '$') if chars.next_if_eq(&'\'').is_some() => self.quote = Some(Quote::AnsiC),
+            (None, '$') if chars.next_if_eq(&'{').is_some() => self.parameter_depth += 1,
+            (None, '\'') => self.quote = Some(Quote::Single),
+            (None, '"') => self.quote = Some(Quote::Double),
+            (None, '#') if self.parameter_depth == 0 && previous.map_or(true, char::is_whitespace) => break,
+            (None, '<') if self.parameter_depth == 0 && chars.next_if_eq(&'<').is_some() => {
+               self.heredocs.extend(read_heredoc(&mut chars));
+            },
+            (None, '{') if self.parameter_depth == 0 => delta += 1,
+            (None, '}') if self.parameter_depth > 0 => self.parameter_depth -= 1,
+            (None, '}') => delta -= 1,
+            (None, _) => {},
+         }
+
+         previous = Some(c);
+      }
+
+      delta
+   }
+}
+
+/// Read the heredoc delimiter that follows a `<<` operator
+///
+/// Returns `None` for a `<<<` here-string, or when the delimiter does not start with a letter, `_`,
+/// a quote or a backslash, which keeps a shift such as `$(( 1 << 2 ))` from being read as a heredoc.
+/// Quotes and backslashes are stripped from the delimiter, as the shell does when matching it.
+fn read_heredoc(chars: &mut Peekable<Chars>) -> Option<Heredoc> {
+   if chars.next_if_eq(&'<').is_some() {
+      return None;
    }
 
-   delta
+   let is_tab_stripped = chars.next_if_eq(&'-').is_some();
+   while chars.next_if(|c| *c == ' ' || *c == '\t').is_some() {}
+   let first = *chars.peek()?;
+
+   if !(first.is_alphabetic() || matches!(first, '_' | '\'' | '"' | '\\')) {
+      return None;
+   }
+
+   let mut terminator = String::new();
+
+   while let Some(c) = chars.next_if(|c| !c.is_whitespace() && !matches!(c, ';' | '|' | '&' | '<' | '>' | '(' | ')')) {
+      if !matches!(c, '\'' | '"' | '\\') {
+         terminator.push(c);
+      }
+   }
+
+   if terminator.is_empty() {
+      return None;
+   }
+
+   Some(Heredoc {
+      terminator,
+      is_tab_stripped,
+   })
 }
 
 /// Extract alf-friendly comments preceding a definition
