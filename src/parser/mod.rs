@@ -126,6 +126,7 @@ struct Heredoc {
 /// Shell lexing state carried from one line of a function body to the next
 #[derive(Default)]
 struct BraceScanner {
+   arithmetic_depth: usize,
    heredocs: Vec<Heredoc>,
    parameter_depth: usize,
    quote: Option<Quote>,
@@ -138,7 +139,8 @@ impl BraceScanner {
    /// heredoc body, or after an unquoted `#` that starts a comment are ignored. Quote state carries
    /// over to the next line, so a quoted string spanning lines hides all of its braces. `${…}`
    /// parameter expansions are tracked so a `#` inside one is not taken for a comment and their braces
-   /// leave the count unchanged.
+   /// leave the count unchanged. `((…))` and `$((…))` arithmetic is tracked by parenthesis depth, so a
+   /// `<<` shift inside it is never read as a heredoc.
    fn count_brace_delta(
       &mut self,
       line: &str,
@@ -169,7 +171,12 @@ impl BraceScanner {
             (None, '\'') => self.quote = Some(Quote::Single),
             (None, '"') => self.quote = Some(Quote::Double),
             (None, '#') if self.parameter_depth == 0 && previous.map_or(true, char::is_whitespace) => break,
-            (None, '<') if self.parameter_depth == 0 && chars.next_if_eq(&'<').is_some() => {
+            (None, '(') if self.arithmetic_depth > 0 => self.arithmetic_depth += 1,
+            (None, '(') if chars.next_if_eq(&'(').is_some() => self.arithmetic_depth = 2,
+            (None, ')') if self.arithmetic_depth > 0 => self.arithmetic_depth -= 1,
+            (None, '<')
+               if self.parameter_depth == 0 && self.arithmetic_depth == 0 && chars.next_if_eq(&'<').is_some() =>
+            {
                self.heredocs.extend(read_heredoc(&mut chars));
             },
             (None, '{') if self.parameter_depth == 0 => delta += 1,
@@ -188,8 +195,8 @@ impl BraceScanner {
 /// Read the heredoc delimiter that follows a `<<` operator
 ///
 /// Returns `None` for a `<<<` here-string, or when the delimiter does not start with a letter, `_`,
-/// a quote or a backslash, which keeps a shift such as `$(( 1 << 2 ))` from being read as a heredoc.
-/// Quotes and backslashes are stripped from the delimiter, as the shell does when matching it.
+/// a quote or a backslash. Quotes and backslashes are stripped from the delimiter, as the shell does
+/// when matching it.
 fn read_heredoc(chars: &mut Peekable<Chars>) -> Option<Heredoc> {
    if chars.next_if_eq(&'<').is_some() {
       return None;
