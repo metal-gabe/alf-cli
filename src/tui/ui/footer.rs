@@ -8,6 +8,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
+use crate::config::ParseComments;
 use crate::tui::app::App;
 use crate::tui::state::{GroupMode, SortOrder};
 use crate::tui::themes::Theme;
@@ -30,6 +31,12 @@ pub fn draw_footer(
       SortOrder::Descending => "desc",
    };
 
+   let comments_text = match app.parse_comments() {
+      ParseComments::Always => "true",
+      ParseComments::Dynamic => "dynamic",
+      ParseComments::Never => "false",
+   };
+
    let right_text = if let Some(pending) = app.pending_key() {
       match pending {
          'o' => "Waiting: g (group), G (back), s (sort) ",
@@ -44,11 +51,14 @@ pub fn draw_footer(
    let theme_display_name = theme.display_name.as_str();
 
    let left_spans = vec![
-      Span::styled("GROUP: ", Style::default().bold()),
+      Span::styled("G: ", Style::default().bold()),
       Span::raw(group_text),
       Span::raw(" | "),
-      Span::styled("SORT: ", Style::default().bold()),
+      Span::styled("S: ", Style::default().bold()),
       Span::raw(sort_text),
+      Span::raw(" | "),
+      Span::styled("C: ", Style::default().bold()),
+      Span::raw(comments_text),
    ];
 
    let left_width: usize = left_spans.iter().map(|s| s.width()).sum();
@@ -75,3 +85,7 @@ pub fn draw_footer(
    let footer = Paragraph::new(footer_line);
    frame.render_widget(footer, area);
 }
+
+#[cfg(test)]
+#[path = "footer_tests.rs"]
+mod footer_tests;

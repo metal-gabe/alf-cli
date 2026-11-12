@@ -1,6 +1,7 @@
 //! Tests for the App state manager
 
 pub use super::{App, ExitAction};
+pub use crate::config::ParseComments;
 pub use crate::models::{AliasEntry, EntryType};
 pub use crate::tui::state::{EntryFilter, GroupMode, InputMode, Panel, SortOrder};
 pub use crate::tui::themes::Theme;
@@ -48,6 +49,8 @@ mod initial_state;
 mod navigation;
 #[path = "app_tests/panel_cycling.rs"]
 mod panel_cycling;
+#[path = "app_tests/parse_comments.rs"]
+mod parse_comments;
 #[path = "app_tests/pending_key.rs"]
 mod pending_key;
 #[path = "app_tests/scroll.rs"]

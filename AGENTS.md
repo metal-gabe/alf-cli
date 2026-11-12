@@ -15,7 +15,7 @@ This file provides guidance to AI coding assistants when working with code in th
   - `which.rs` — `alf which <NAME>`: prints alf's parsed info for a name plus the `which`/`type` lookup result.
   - The shell hook in `init.rs` runs `which`/`type` in the user's interactive shell and passes the results via `ALF_LOOKUP_NAME`, `ALF_WHICH_RESULT` and `ALF_TYPE_RESULT`; `which.rs` trusts them only when `ALF_LOOKUP_NAME` matches the parsed name, and otherwise falls back to subprocess lookups.
 - `src/models/` — Core data structures: `AliasEntry`, `EntryType`, `SearchResult`.
-- `src/config/` — Configuration structs, TOML load and atomic save, advisory file lock, `~`/`$HOME` expansion. The `[display]` and `[search]` settings and `ui.keybind_mode` are reserved and have no effect yet.
+- `src/config/` — Configuration structs, TOML load and atomic save, advisory file lock, `~`/`$HOME` expansion. `display.parse_comments` (`true` | `false` | `"dynamic"`) controls TUI Description panel visibility (the TUI always parses comments; `c` / `Shift-C` cycles the value for the session only); the other `[display]` settings, the `[search]` settings and `ui.keybind_mode` are reserved and have no effect yet.
 - `src/parser/` — Regex-based shell file parser for aliases, functions and their `# alf … # fla` and `#@: … :f#` description comments.
 - `src/search/` — Fuzzy search using nucleo-matcher. The TUI does not call it yet; it filters by substring in `src/tui/state/filter.rs`.
 - `src/tui/` — Terminal UI implementation:

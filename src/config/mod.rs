@@ -76,7 +76,7 @@ pub struct UiConfig {
    pub keybind_mode: String,
 }
 
-/// Display preferences, reserved for future use: no setting here has an effect yet
+/// Display preferences; only `parse_comments` has an effect so far, the other settings are reserved
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct DisplayConfig {
@@ -86,9 +86,82 @@ pub struct DisplayConfig {
    /// Enable syntax highlighting
    #[serde(rename = "syntax_highlighting")]
    pub is_syntax_highlighting_enabled: bool,
-   /// Parse and display comments
-   #[serde(rename = "parse_comments")]
-   pub should_parse_comments: bool,
+   /// Whether comments are parsed and when the TUI description panel is shown
+   pub parse_comments: ParseComments,
+}
+
+/// Whether to parse alf comments and show the TUI description panel, written as `true`, `false` or `"dynamic"`
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "ParseCommentsValue", into = "ParseCommentsValue")]
+pub enum ParseComments {
+   /// Parse comments and always show the description panel
+   #[default]
+   Always,
+   /// Parse comments and show the description panel only for entries that have an alf comment
+   Dynamic,
+   /// Skip parsing comments and always hide the description panel
+   Never,
+}
+
+impl ParseComments {
+   /// Whether the description panel should be shown, given whether the entry has an alf comment
+   pub fn is_description_visible(
+      self,
+      does_have_comments: bool,
+   ) -> bool {
+      match self {
+         Self::Always => true,
+         Self::Dynamic => does_have_comments,
+         Self::Never => false,
+      }
+   }
+
+   /// Whether comments should be extracted while parsing shell files
+   pub fn is_parsing_enabled(self) -> bool {
+      !matches!(self, Self::Never)
+   }
+
+   /// The next setting in the TUI cycle order: `"dynamic"` → `true` → `false` → `"dynamic"`
+   pub fn next(self) -> Self {
+      match self {
+         Self::Always => Self::Never,
+         Self::Dynamic => Self::Always,
+         Self::Never => Self::Dynamic,
+      }
+   }
+}
+
+/// The raw TOML form of a [`ParseComments`]: a boolean or a keyword string
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum ParseCommentsValue {
+   Flag(bool),
+   Keyword(String),
+}
+
+impl From<ParseComments> for ParseCommentsValue {
+   fn from(setting: ParseComments) -> Self {
+      match setting {
+         ParseComments::Always => Self::Flag(true),
+         ParseComments::Dynamic => Self::Keyword("dynamic".to_string()),
+         ParseComments::Never => Self::Flag(false),
+      }
+   }
+}
+
+impl TryFrom<ParseCommentsValue> for ParseComments {
+   type Error = String;
+
+   fn try_from(value: ParseCommentsValue) -> Result<Self, Self::Error> {
+      match value {
+         ParseCommentsValue::Flag(true) => Ok(Self::Always),
+         ParseCommentsValue::Flag(false) => Ok(Self::Never),
+         ParseCommentsValue::Keyword(keyword) if keyword == "dynamic" => Ok(Self::Dynamic),
+         ParseCommentsValue::Keyword(keyword) => {
+            Err(format!("invalid parse_comments setting `{}`, expected `true`, `false` or \"dynamic\"", keyword))
+         },
+      }
+   }
 }
 
 /// `alf which` output preferences
@@ -164,7 +237,7 @@ impl TryFrom<HideSettingValue> for HideSetting {
 impl Default for DisplayConfig {
    fn default() -> Self {
       Self {
-         should_parse_comments: true,
+         parse_comments: ParseComments::Always,
          should_show_type_badges: true,
          is_syntax_highlighting_enabled: true,
       }

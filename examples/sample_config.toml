@@ -34,7 +34,10 @@ show_type_badges = true
 # Enable syntax highlighting in detail view
 syntax_highlighting = true
 
-# Parse and display comments from shell files
+# Parse alf comments and show the Description panel
+# Options: true (always show it), false (hide it), "dynamic" (show it only for entries with an alf comment)
+# In the TUI, `c` (or Shift-C in search mode) cycles the value for the current session only
+# When the Description panel is hidden, the Script panel fills its space
 parse_comments = true
 
 [which]

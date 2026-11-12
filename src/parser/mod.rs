@@ -8,7 +8,7 @@ use std::str::Chars;
 
 use crate::models::{AliasEntry, EntryType};
 
-/// Parse a shell file and extract aliases and functions
+/// Parse a shell file and extract aliases and functions, including their alf comments
 ///
 /// # Arguments
 /// * `path` - Path to the shell file to parse
@@ -16,13 +16,28 @@ use crate::models::{AliasEntry, EntryType};
 /// # Returns
 /// A vector of parsed alias and function entries
 pub fn parse_shell_file(path: &Path) -> Result<Vec<AliasEntry>> {
+   parse_shell_file_with_options(path, true)
+}
+
+/// Parse a shell file and extract aliases and functions, optionally skipping their alf comments
+///
+/// # Arguments
+/// * `path` - Path to the shell file to parse
+/// * `should_parse_comments` - Whether to extract alf comments; when `false` every entry has no comments
+///
+/// # Returns
+/// A vector of parsed alias and function entries
+pub fn parse_shell_file_with_options(
+   path: &Path,
+   should_parse_comments: bool,
+) -> Result<Vec<AliasEntry>> {
    let bytes = std::fs::read(path)?;
    let content = String::from_utf8_lossy(&bytes);
    let mut entries = Vec::new();
 
-   entries.extend(extract_aliases(&content, path));
+   entries.extend(extract_aliases(&content, path, should_parse_comments));
 
-   entries.extend(extract_functions(&content, path));
+   entries.extend(extract_functions(&content, path, should_parse_comments));
 
    Ok(entries)
 }
@@ -31,6 +46,7 @@ pub fn parse_shell_file(path: &Path) -> Result<Vec<AliasEntry>> {
 fn extract_aliases(
    content: &str,
    source: &Path,
+   should_parse_comments: bool,
 ) -> Vec<AliasEntry> {
    let mut entries = Vec::new();
    let lines: Vec<&str> = content.lines().collect();
@@ -49,7 +65,7 @@ fn extract_aliases(
             .unwrap_or("")
             .to_string();
 
-         let comments = extract_comments(&lines, line_num);
+         let comments = if should_parse_comments { extract_comments(&lines, line_num) } else { None };
 
          entries.push(AliasEntry {
             name,
@@ -68,6 +84,7 @@ fn extract_aliases(
 fn extract_functions(
    content: &str,
    source: &Path,
+   should_parse_comments: bool,
 ) -> Vec<AliasEntry> {
    let mut entries = Vec::new();
    let lines: Vec<&str> = content.lines().collect();
@@ -94,7 +111,7 @@ fn extract_functions(
          }
 
          let value = body_lines.join("\n");
-         let comments = extract_comments(&lines, line_num);
+         let comments = if should_parse_comments { extract_comments(&lines, line_num) } else { None };
 
          entries.push(AliasEntry {
             name,

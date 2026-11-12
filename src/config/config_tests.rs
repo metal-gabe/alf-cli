@@ -2,7 +2,7 @@
 
 use super::{
    expand_path, get_config_lock_path, get_config_path, is_first_run, load_config, load_optional_config, save_config,
-   AliasExpansion, CaseMatching, Config, ConfigLock, GeneralConfig,
+   AliasExpansion, CaseMatching, Config, ConfigLock, GeneralConfig, ParseComments,
 };
 use crate::test_support::TempHome;
 use std::fs;
@@ -23,11 +23,11 @@ fn config_defaults() {
       ("is_substring_matching", config.search.is_substring_matching),
       ("should_show_type_badges", config.display.should_show_type_badges),
       ("is_syntax_highlighting_enabled", config.display.is_syntax_highlighting_enabled),
-      ("should_parse_comments", config.display.should_parse_comments),
    ];
    for (name, is_enabled) in enabled_flags {
       assert!(is_enabled, "{name} should default to true");
    }
+   assert_eq!(config.display.parse_comments, ParseComments::Always);
 }
 
 // ===== TOML serialization tests =====
@@ -67,6 +67,50 @@ parse_comments = false
    assert!(!config.search.is_regex_enabled);
    assert!(!config.search.should_normalize);
    assert!(matches!(config.search.case_matching, CaseMatching::Respect));
+   assert_eq!(config.display.parse_comments, ParseComments::Never);
+}
+
+#[test]
+fn config_parse_comments_accepts_each_value_and_writes_it_back() {
+   let cases = [
+      ("true", ParseComments::Always, true, [true, true]),
+      ("\"dynamic\"", ParseComments::Dynamic, true, [false, true]),
+      ("false", ParseComments::Never, false, [false, false]),
+   ];
+   for (raw, expected, is_parsing_enabled, visibility) in cases {
+      let content = format!("[display]\nparse_comments = {raw}\n");
+      let config: Config = toml::from_str(&content).expect("Should parse parse_comments");
+      let setting = config.display.parse_comments;
+      assert_eq!(setting, expected, "{raw} should parse to {expected:?}");
+      assert_eq!(setting.is_parsing_enabled(), is_parsing_enabled, "{raw} parsing");
+      assert_eq!(
+         [setting.is_description_visible(false), setting.is_description_visible(true)],
+         visibility,
+         "{raw} description visibility without and with comments"
+      );
+      let written = toml::to_string_pretty(&config).expect("Should serialize");
+      assert!(written.contains(&format!("parse_comments = {raw}")), "{raw} should be written back unchanged");
+   }
+}
+
+#[test]
+fn parse_comments_next_cycles_dynamic_true_false() {
+   let cases = [
+      (ParseComments::Dynamic, ParseComments::Always),
+      (ParseComments::Always, ParseComments::Never),
+      (ParseComments::Never, ParseComments::Dynamic),
+   ];
+   for (current, expected) in cases {
+      assert_eq!(current.next(), expected, "{current:?} should cycle to {expected:?}");
+   }
+}
+
+#[test]
+fn config_parse_comments_rejects_unknown_values() {
+   for raw in ["\"always\"", "\"\"", "1"] {
+      let content = format!("[display]\nparse_comments = {raw}\n");
+      assert!(toml::from_str::<Config>(&content).is_err(), "{raw} should be rejected");
+   }
 }
 
 #[test]
@@ -249,7 +293,7 @@ fn config_partial_toml_fills_missing_values_with_defaults() {
       toml::from_str("[general]\nshell_files = [\"~/.zshrc\"]\n").expect("Should parse only [general]");
    assert_eq!(config.general.shell_files, vec!["~/.zshrc".to_string()]);
    assert_eq!(config.ui.theme, "default");
-   assert!(config.display.should_parse_comments);
+   assert_eq!(config.display.parse_comments, ParseComments::Always);
    let config: Config = toml::from_str("[search]\nnormalize = false\n").expect("Should parse a partial section");
    assert!(!config.search.should_normalize);
    assert!(config.search.is_regex_enabled);
@@ -282,9 +326,9 @@ fn config_renamed_fields_keep_their_toml_keys() {
       config.search.is_substring_matching,
       config.display.should_show_type_badges,
       config.display.is_syntax_highlighting_enabled,
-      config.display.should_parse_comments,
    ];
    assert!(flags.iter().all(|is_enabled| !is_enabled), "Every original key should set its field");
+   assert_eq!(config.display.parse_comments, ParseComments::Never);
    let written = toml::to_string_pretty(&config).expect("Should serialize");
    for key in keys {
       assert!(written.contains(&format!("{key} = false")), "{key} should be written back unchanged");

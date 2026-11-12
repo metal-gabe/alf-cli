@@ -1,6 +1,7 @@
 //! Application state management for the TUI.
 
 use super::themes::Theme;
+use crate::config::ParseComments;
 use crate::models::AliasEntry;
 
 /// Action to take when the user selects an entry
@@ -46,6 +47,8 @@ pub struct App {
    theme: Theme,
    /// Whether the application is running or how it exited
    run_state: RunState,
+   /// When the description panel is shown
+   parse_comments: ParseComments,
 }
 
 impl App {
@@ -63,6 +66,7 @@ impl App {
          filter: FilterState::default(),
          theme,
          run_state: RunState::Running,
+         parse_comments: ParseComments::default(),
       };
 
       app.update_visible_entries();
@@ -115,6 +119,37 @@ impl App {
    /// Get the active panel
    pub fn active_panel(&self) -> Panel {
       self.ui.active_panel()
+   }
+
+   /// Whether the description panel is shown for the currently selected entry
+   pub fn is_description_visible(&self) -> bool {
+      let does_have_comments = self.selected_entry().is_some_and(|entry| entry.comments.is_some());
+      self.parse_comments.is_description_visible(does_have_comments)
+   }
+
+   /// Get when the description panel is shown
+   pub fn parse_comments(&self) -> ParseComments {
+      self.parse_comments
+   }
+
+   /// Cycle when the description panel is shown for this session only: `"dynamic"` → `true` → `false`
+   pub fn cycle_parse_comments(&mut self) {
+      self.parse_comments = self.parse_comments.next();
+   }
+
+   /// Set when the description panel is shown
+   pub fn set_parse_comments(
+      &mut self,
+      parse_comments: ParseComments,
+   ) {
+      self.parse_comments = parse_comments;
+   }
+
+   /// Move focus off the description panel while it is hidden, onto the script panel that takes its place
+   pub fn sync_active_panel(&mut self) {
+      if self.ui.active_panel() == Panel::Description && !self.is_description_visible() {
+         self.ui.set_active_panel(Panel::Script);
+      }
    }
 
    /// Get the fullscreen flag
@@ -223,11 +258,17 @@ impl App {
    /// Cycle to the next panel (forward)
    pub fn cycle_panel(&mut self) {
       self.ui.cycle_panel();
+      if self.ui.active_panel() == Panel::Description && !self.is_description_visible() {
+         self.ui.cycle_panel();
+      }
    }
 
    /// Cycle to the previous panel (backward)
    pub fn cycle_panel_backward(&mut self) {
       self.ui.cycle_panel_backward();
+      if self.ui.active_panel() == Panel::Description && !self.is_description_visible() {
+         self.ui.cycle_panel_backward();
+      }
    }
 
    /// Toggle fullscreen for the active panel

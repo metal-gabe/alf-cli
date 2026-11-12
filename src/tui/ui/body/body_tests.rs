@@ -4,6 +4,7 @@ use ratatui::backend::TestBackend;
 use ratatui::Terminal;
 
 use super::draw_main_body;
+use crate::config::ParseComments;
 use crate::tui::app::app_tests::make_app;
 use crate::tui::app::App;
 use crate::tui::state::Panel;
@@ -29,6 +30,19 @@ fn split_layout_renders_all_panels() {
    let rendered = render_body(&mut app);
    for (panel, title) in PANEL_TITLES {
       assert!(rendered.contains(title), "{panel:?} title missing from split layout");
+   }
+}
+
+#[test]
+fn hidden_description_leaves_list_and_script_panels() {
+   for setting in [ParseComments::Dynamic, ParseComments::Never] {
+      let mut app = make_app();
+      app.set_parse_comments(setting);
+      let rendered = render_body(&mut app);
+      for (panel, title) in PANEL_TITLES {
+         let is_title_rendered = rendered.contains(title);
+         assert_eq!(is_title_rendered, panel != Panel::Description, "{setting:?}: {panel:?} title");
+      }
    }
 }
 
