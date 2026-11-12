@@ -109,6 +109,14 @@ impl UiState {
       self.description_scroll_offset = offset;
    }
 
+   /// Set the active panel
+   pub fn set_active_panel(
+      &mut self,
+      panel: Panel,
+   ) {
+      self.active_panel = panel;
+   }
+
    /// Set script scroll offset
    pub fn set_script_scroll_offset(
       &mut self,

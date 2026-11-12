@@ -48,6 +48,7 @@ pub fn run(initial_query: Option<String>) -> Result<()> {
    let theme = config.as_ref().and_then(|cfg| Theme::from_name(&cfg.ui.theme)).unwrap_or_else(Theme::default_theme);
 
    let mut app = App::new(entries, theme);
+   app.set_parse_comments(config.as_ref().map(|cfg| cfg.display.parse_comments).unwrap_or_default());
    app.enter_search_mode();
 
    if let Some(query) = initial_query {

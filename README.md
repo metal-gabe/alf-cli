@@ -89,7 +89,7 @@ The comments are annotations for this README and are not written to the generate
 [display]
 show_type_badges = true      # reserved: no effect yet
 syntax_highlighting = true   # reserved: no effect yet
-parse_comments = true        # reserved: no effect yet
+parse_comments = true        # true (always show Description) | false (hide Description) | "dynamic" (show Description only for entries with an alf comment); `c` cycles it for the session
 
 [general]
 shell_files = ["~/.bashrc", "~/.zshrc"]  # detected at init; `~` and `$HOME` are expanded, glob patterns are not
@@ -147,6 +147,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 <li><code>f</code> - Toggle fullscreen for the focused panel</li>
 <li><code>h</code> / <code>l</code> - Cycle filter backward/forward (Aliases ↔ Functions ↔ All)</li>
 <li><code>1</code> / <code>2</code> / <code>3</code> - Select the Aliases / Functions / All filter directly</li>
+<li><code>c</code> - Cycle the <code>parse_comments</code> value for this session (dynamic → true → false); restarting resets it to the config value</li>
 </ul>
 
 <strong>Grouping &amp; sorting</strong>
@@ -166,6 +167,7 @@ The full reference is always available in-app — press `?` to toggle the help m
 <li><code>Shift-N</code> / <code>Shift-P</code> - Cycle panels while in search mode</li>
 <li><code>Shift-F</code> - Toggle fullscreen while in search mode</li>
 <li><code>Shift-H</code> / <code>Shift-L</code> - Cycle filters while in search mode</li>
+<li><code>Shift-C</code> - Cycle the <code>parse_comments</code> value while in search mode</li>
 <li><code>Ctrl-j</code> / <code>Ctrl-k</code> - Scroll the list while in search mode</li>
 <li><code>Ctrl-w</code> (or <code>Alt-Backspace</code> / <code>Ctrl-Backspace</code>) - Delete the word before the cursor</li>
 <li><code>Alt-d</code> (or <code>Ctrl-Delete</code>) - Delete the word after the cursor</li>

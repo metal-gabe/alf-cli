@@ -3,6 +3,7 @@
 //! Orchestrates the layout of the main content area:
 //! left list panel (40%) and right detail panels (60%),
 //! or the active panel alone when fullscreen is toggled on.
+//! The script panel fills the detail area whenever the description panel is hidden.
 
 #[cfg(test)]
 mod body_tests;
@@ -24,6 +25,8 @@ pub fn draw_main_body(
    theme: &Theme,
    area: Rect,
 ) {
+   app.sync_active_panel();
+
    if app.is_fullscreen() {
       match app.active_panel() {
          Panel::List => list::draw_entry_list(frame, app, theme, area),
@@ -42,13 +45,18 @@ pub fn draw_main_body(
    draw_detail_panels(frame, app, theme, main_chunks[1]);
 }
 
-/// Draw the right detail panels: description (top) + script (bottom)
+/// Draw the right detail panels: description (top) + script (bottom), or the script alone when the description is hidden
 fn draw_detail_panels(
    frame: &mut Frame,
    app: &mut App,
    theme: &Theme,
    area: Rect,
 ) {
+   if !app.is_description_visible() {
+      script::draw_script_panel(frame, app, theme, area);
+      return;
+   }
+
    let detail_chunks = Layout::default()
       .direction(Direction::Vertical)
       .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])

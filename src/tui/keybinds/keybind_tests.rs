@@ -1,6 +1,7 @@
 //! Tests for the keybind dispatch layer
 
 use super::handle_key_event;
+use crate::config::ParseComments;
 use crate::tui::app::app_tests::{make_app, make_empty_app};
 use crate::tui::app::{App, ExitAction};
 use crate::tui::state::{EntryFilter, InputMode, Panel, SortOrder};
@@ -191,6 +192,26 @@ fn filter_keys_change_the_filter() {
       app.set_filter(start);
       handle_key_event(&mut app, key(KeyCode::Char(c)));
       assert_eq!(app.filter(), expected, "Key '{c}'");
+   }
+}
+
+// ===== Comments cycling =====
+
+#[test]
+fn comments_key_dispatch_per_mode() {
+   let cases = [
+      (InputMode::Normal, 'c', ParseComments::Never, ""),
+      (InputMode::Search, 'C', ParseComments::Never, ""),
+      (InputMode::Search, 'c', ParseComments::Always, "c"),
+   ];
+   for (mode, c, expected_setting, expected_query) in cases {
+      let mut app = make_app();
+      if mode == InputMode::Search {
+         app.enter_search_mode();
+      }
+      handle_key_event(&mut app, key(KeyCode::Char(c)));
+      assert_eq!(app.parse_comments(), expected_setting, "{mode:?} mode, key '{c}'");
+      assert_eq!(app.search_query(), expected_query, "{mode:?} mode, key '{c}'");
    }
 }
 

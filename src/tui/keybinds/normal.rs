@@ -66,6 +66,8 @@ pub fn handle_normal_mode(
       KeyCode::Char('l') => app.cycle_filter(),
       KeyCode::Char('h') => app.cycle_filter_backward(),
 
+      KeyCode::Char('c') => app.cycle_parse_comments(),
+
       KeyCode::Char('1') => app.set_filter(EntryFilter::Aliases),
       KeyCode::Char('2') => app.set_filter(EntryFilter::Functions),
       KeyCode::Char('3') => app.set_filter(EntryFilter::All),

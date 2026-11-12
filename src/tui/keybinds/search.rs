@@ -6,7 +6,7 @@ use crate::tui::app::{App, ExitAction};
 
 /// Handle key events in Search (text input) mode
 ///
-/// Shift+letter arrives as the uppercase letter, which is why the panel and filter keys match on those.
+/// Shift+letter arrives as the uppercase letter, which is why the panel, filter and comments keys match on those.
 pub fn handle_search_mode(
    app: &mut App,
    key: KeyEvent,
@@ -20,6 +20,8 @@ pub fn handle_search_mode(
 
       KeyCode::Char('L') => app.cycle_filter(),
       KeyCode::Char('H') => app.cycle_filter_backward(),
+
+      KeyCode::Char('C') => app.cycle_parse_comments(),
 
       KeyCode::Char('j') if key.modifiers.contains(KeyModifiers::CONTROL) => app.scroll_down(1),
       KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => app.scroll_up(1),
