@@ -1,3 +1,18 @@
+## [0.9.0](https://github.com/metal-gabe/alf-cli/compare/v0.8.0...v0.9.0) (2026-11-12)
+
+
+### Features
+
+* **comments-visibility:** add comments panel modes; ([3bbcfcb](https://github.com/metal-gabe/alf-cli/commit/3bbcfcb0a05d9e712eca24741ca9fd3cf13a6275))
+
+
+### Bug Fixes
+
+* **full-review-1:** carry shell state across lines; ([1c05907](https://github.com/metal-gabe/alf-cli/commit/1c059073dbaafecafeb3384c966eb84e60587c73))
+* **full-review-1:** harden parser, startup, config; ([c3a81ed](https://github.com/metal-gabe/alf-cli/commit/c3a81ed85e9d81582ac18b89efa8ddcf6119495a))
+* **full-review-1:** respect quotes, dangling config; ([527de66](https://github.com/metal-gabe/alf-cli/commit/527de666d05d069ae1e8cf29fad3b56cf17061f0))
+* **full-review-1:** skip heredocs inside arithmetic; ([8925b03](https://github.com/metal-gabe/alf-cli/commit/8925b0396daf0eae60e160048064eecf37a98440))
+
 ## [0.8.0](https://github.com/metal-gabe/alf-cli/compare/v0.6.0...v0.8.0) (2026-10-30)
 
 
